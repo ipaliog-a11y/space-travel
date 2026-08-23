@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#05050a" />
+  <title>Starwake</title>
+  <style>
+    :root {
+      --bg: #05050a;
+      --fg: #ececef;
+      --muted: #8c8c96;
+      --surface: rgba(18, 18, 22, 0.82);
+      --border: rgba(236, 236, 239, 0.12);
+      --primary: #c5ced8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--fg);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      touch-action: none; overscroll-behavior: none;
+      user-select: none;
+    }
+    canvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      display: block; touch-action: none;
+    }
+    .vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 2;
+      background: radial-gradient(ellipse at center, transparent 48%, rgba(5,5,10,0.72) 100%);
+      opacity: 0.55; transition: opacity 0.12s linear;
+    }
+    .flash {
+      position: fixed; inset: 0; pointer-events: none; z-index: 4;
+      background: radial-gradient(ellipse at center, rgba(220,230,255,0.55) 0%, rgba(180,200,255,0.12) 40%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.08s ease-out;
+    }
+    .flash.on { opacity: 1; transition: opacity 0.04s linear; }
+    .tunnel {
+      position: fixed; inset: 0; pointer-events: none; z-index: 1;
+      overflow: hidden;
+    }
+    .tunnel-ring {
+      position: absolute; left: 50%; top: 50%;
+      width: 40px; height: 40px;
+      margin: -20px 0 0 -20px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(180, 200, 230, 0.35);
+      box-shadow: 0 0 12px rgba(140, 170, 220, 0.12), inset 0 0 18px rgba(160, 190, 240, 0.06);
+      transform: scale(0.15);
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    .hud {
+      position: fixed; inset: 0; z-index: 3; pointer-events: none;
+      font-size: 13px;
+    }
+    .hud * { pointer-events: auto; }
+    .wordmark {
+      position: absolute; top: max(12px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      pointer-events: none;
+    }
+    .wordmark h1 {
+      font-size: 14px; font-weight: 600; letter-spacing: 0.04em;
+      color: rgba(236,236,239,0.78);
+    }
+    .wordmark p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .warp {
+      position: absolute;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: max(14px, env(safe-area-inset-left));
+      pointer-events: none;
+    }
+    .warp label {
+      display: block; font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+    }
+    .warp .val {
+      font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .warp .dist {
+      margin-top: 6px;
+      font-size: 11px; color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+    .warp .dist strong {
+      color: rgba(236,236,239,0.8);
+      font-weight: 600;
+    }
+    .panel {
+      position: absolute;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: max(14px, env(safe-area-inset-left));
+      width: min(260px, calc(100vw - 28px));
+      margin-bottom: 88px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px 10px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .panel.hidden {
+      opacity: 0; pointer-events: none; transform: translateY(6px);
+    }
+    .row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-bottom: 2px;
+      font-size: 12px; color: var(--muted);
+    }
+    .row span:last-child {
+      color: rgba(236,236,239,0.85);
+      font-variant-numeric: tabular-nums; min-width: 2.5em; text-align: right;
+    }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 28px; background: transparent; margin: 0 0 6px;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px; border-radius: 999px; background: rgba(236,236,239,0.14);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--fg); margin-top: -5.5px;
+      box-shadow: 0 0 0 2px var(--bg);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 3px; border-radius: 999px; background: rgba(236,236,239,0.14); border: none;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--fg); border: none;
+      box-shadow: 0 0 0 2px var(--bg);
+    }
+    .boost {
+      position: absolute;
+      right: max(14px, env(safe-area-inset-right));
+      bottom: max(16px, env(safe-area-inset-bottom));
+      height: 48px; min-width: 112px; padding: 0 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(18,18,22,0.88);
+      color: var(--fg);
+      font-size: 13px; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; touch-action: none;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .boost.active {
+      background: var(--fg); color: #05050a;
+      border-color: rgba(236,236,239,0.6);
+    }
+    .top-right {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      display: flex; gap: 4px;
+    }
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid transparent;
+      background: rgba(18,18,22,0.55);
+      color: rgba(236,236,239,0.8);
+      display: grid; place-items: center;
+      cursor: pointer; font-size: 14px;
+    }
+    .icon-btn:hover { background: rgba(18,18,22,0.85); color: var(--fg); }
+    .icon-btn.on {
+      background: rgba(236,236,239,0.18);
+      color: var(--fg);
+      border-color: rgba(236,236,239,0.2);
+    }
+    .gate {
+      position: fixed; inset: 0; z-index: 5;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+      background: rgba(5,5,10,0.28);
+      backdrop-filter: blur(2px);
+    }
+    .gate h1 {
+      font-size: clamp(2.4rem, 9vw, 4rem);
+      font-weight: 600; letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+    .gate p {
+      max-width: 28rem; color: var(--muted);
+      font-size: 14px; line-height: 1.45; margin-bottom: 8px;
+    }
+    .gate .hint { font-size: 12px; color: #6a6a74; margin-bottom: 28px; }
+    .gate button {
+      height: 48px; min-width: 148px; padding: 0 22px;
+      border: none; border-radius: 12px;
+      background: var(--primary); color: #07070a;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .reticle {
+      position: absolute; top: 50%; left: 50%;
+      width: 64px; height: 64px; margin: -32px 0 0 -32px;
+      pointer-events: none;
+    }
+    .reticle .dot {
+      position: absolute; top: 50%; left: 50%;
+      width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px;
+      border-radius: 50%; background: rgba(236,236,239,0.7);
+    }
+    .reticle .arm {
+      position: absolute; background: rgba(236,236,239,0.28);
+    }
+    .reticle .arm.h { width: 10px; height: 1px; top: 50%; margin-top: -0.5px; }
+    .reticle .arm.v { width: 1px; height: 10px; left: 50%; margin-left: -0.5px; }
+    .reticle .arm.l { left: 0; }
+    .reticle .arm.r { right: 0; }
+    .reticle .arm.t { top: 0; }
+    .reticle .arm.b { bottom: 0; }
+    .ring {
+      position: absolute; top: 50%; left: 50%;
+      width: 28px; height: 28px; margin: -14px 0 0 -14px;
+      border: 1px solid rgba(236,236,239,0.18);
+      border-radius: 50%;
+      pointer-events: none;
+      will-change: transform;
+    }
+    .link-btn {
+      background: none; border: none; color: var(--muted);
+      font-size: 12px; cursor: pointer; padding: 0;
+    }
+    .link-btn.on { color: rgba(236,236,239,0.9); }
+    /* Ship stick (left) */
+    .stick {
+      position: absolute;
+      left: max(16px, env(safe-area-inset-left));
+      bottom: max(16px, env(safe-area-inset-bottom));
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      border: 1px solid rgba(236,236,239,0.14);
+      background: rgba(18,18,22,0.45);
+      touch-action: none;
+      z-index: 4;
+    }
+    .stick-knob {
+      position: absolute; left: 50%; top: 50%;
+      width: 44px; height: 44px; margin: -22px 0 0 -22px;
+      border-radius: 50%;
+      background: rgba(236,236,239,0.55);
+      box-shadow: 0 0 0 2px rgba(5,5,10,0.5);
+      pointer-events: none;
+      will-change: transform;
+    }
+    .stick label {
+      position: absolute; top: -18px; left: 0; right: 0;
+      text-align: center; font-size: 9px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      pointer-events: none;
+    }
+    /* Throttle (right, above boost) */
+    .throttle {
+      position: absolute;
+      right: max(16px, env(safe-area-inset-right));
+      bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
+      width: 44px; height: 140px;
+      border-radius: 14px;
+      border: 1px solid rgba(236,236,239,0.14);
+      background: rgba(18,18,22,0.45);
+      touch-action: none;
+      z-index: 4;
+    }
+    .throttle-track {
+      position: absolute; left: 50%; top: 10px; bottom: 10px;
+      width: 4px; margin-left: -2px;
+      border-radius: 2px; background: rgba(236,236,239,0.12);
+      pointer-events: none;
+    }
+    .throttle-fill {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      border-radius: 2px; background: rgba(200,210,230,0.55);
+      pointer-events: none;
+    }
+    .throttle-knob {
+      position: absolute; left: 50%; width: 28px; height: 18px;
+      margin-left: -14px; border-radius: 6px;
+      background: rgba(236,236,239,0.85);
+      box-shadow: 0 0 0 2px rgba(5,5,10,0.45);
+      pointer-events: none;
+      will-change: top;
+    }
+    .throttle label {
+      position: absolute; top: -18px; left: -8px; right: -8px;
+      text-align: center; font-size: 9px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      pointer-events: none;
+    }
+    @media (max-width: 420px) {
+      .stick { width: 96px; height: 96px; }
+      .stick-knob { width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+      .throttle { height: 120px; width: 40px; }
+      .panel { margin-bottom: 120px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="tunnel" id="tunnel" aria-hidden="true"></div>
+  <div class="vignette" id="vignette"></div>
+  <div class="flash" id="flash"></div>
+
+  <div class="hud" id="hud" hidden>
+    <div class="wordmark">
+      <h1>STARWAKE</h1>
+      <p>Warp field</p>
+    </div>
+    <div class="top-right">
+      <button class="icon-btn" id="btnGyro" title="Gyro steering" aria-label="Gyro steering">◎</button>
+      <button class="icon-btn" id="btnMute" title="Mute" aria-label="Mute">♪</button>
+      <button class="icon-btn" id="btnHud" title="Toggle controls" aria-label="Toggle controls">▾</button>
+    </div>
+    <div class="reticle" aria-hidden="true">
+      <span class="dot"></span>
+      <span class="arm h l"></span>
+      <span class="arm h r"></span>
+      <span class="arm v t"></span>
+      <span class="arm v b"></span>
+    </div>
+    <div class="ring" id="ring"></div>
+    <div class="warp">
+      <label>Warp</label>
+      <div class="val"><span id="warpVal">1.0</span></div>
+      <div class="dist">Distance <strong id="distVal">0.00</strong> ly</div>
+    </div>
+    <div class="panel" id="panel">
+      <div class="row"><span>Throttle</span><span id="speedLabel">40</span></div>
+      <input id="speed" type="range" min="0" max="100" value="40" aria-label="Throttle" />
+      <div class="row"><span>Density</span><span id="densityLabel">4200</span></div>
+      <input id="density" type="range" min="800" max="12000" step="100" value="4200" aria-label="Density" />
+      <div class="row" style="margin-top:4px; gap:12px; justify-content:flex-start; flex-wrap:wrap">
+        <button type="button" class="link-btn" id="btnInvert">Invert look off</button>
+        <button type="button" class="link-btn" id="btnGyroLabel">Gyro off</button>
+        <button type="button" class="link-btn on" id="btnRings">Rings on</button>
+      </div>
+    </div>
+    <div class="stick" id="stick" aria-label="Ship stick">
+      <label>Stick</label>
+      <div class="stick-knob" id="stickKnob"></div>
+    </div>
+    <div class="throttle" id="throttle" aria-label="Throttle">
+      <label>Thr</label>
+      <div class="throttle-track"><div class="throttle-fill" id="throttleFill"></div></div>
+      <div class="throttle-knob" id="throttleKnob"></div>
+    </div>
+    <button class="boost" id="boost" type="button">Boost</button>
+  </div>
+
+  <div class="gate" id="gate">
+    <h1>STARWAKE</h1>
+    <p>Drag the screen to look. Left stick steers the ship · right throttle sets speed. Hold Boost for hyperspace.</p>
+    <p class="hint">A / D bank · W / S pitch · 0–100% throttle · optional rings</p>
+    <button type="button" id="engage">Engage</button>
+  </div>
+
+  <script>
+(() => {
+  // --- State (early so Engage works even if WebGL setup fails) ---
+  const state = {
+    entered: false,
+    speed: 0.40,       // 0 = full stop, 1 = max cruise
+    density: 4200,
+    boostHeld: false,
+    muted: false,
+    invertY: false,
+    hudOpen: true,
+    gyro: false,
+    rings: true,
+  };
+
+  const gateEl = document.getElementById("gate");
+  const hudEl = document.getElementById("hud");
+  const engageBtn = document.getElementById("engage");
+
+  function engage() {
+    if (state.entered) return;
+    state.entered = true;
+    if (gateEl) {
+      gateEl.hidden = true;
+      gateEl.style.display = "none";
+    }
+    if (hudEl) hudEl.hidden = false;
+    try { if (typeof unlockAudio === "function") unlockAudio(); } catch (_) {}
+  }
+
+  if (engageBtn) {
+    engageBtn.addEventListener("click", (e) => { e.preventDefault(); engage(); });
+    engageBtn.addEventListener("pointerup", (e) => { e.preventDefault(); engage(); });
+    engageBtn.addEventListener("touchend", (e) => { e.preventDefault(); engage(); }, { passive: false });
+  }
+  window.addEventListener("keydown", (e) => {
+    if (!state.entered && (e.code === "Space" || e.code === "Enter")) {
+      e.preventDefault();
+      engage();
+    }
+  });
+
+  const canvas = document.getElementById("c");
+  const gl = canvas.getContext("webgl", {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    powerPreference: "high-performance",
+  }) || canvas.getContext("experimental-webgl", {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+  });
+  if (!gl) {
+    document.getElementById("gate").querySelector("p").textContent =
+      "WebGL is required. Try Chrome or Firefox.";
+    return;
+  }
+
+  const keys = new Set();
+  let overUi = false;
+  let steerX = 0, steerY = 0, boostAmt = 0, headingYaw = 0;
+  // Ship stick input (-1..1)
+  let stickX = 0, stickY = 0, stickActive = false;
+  // Head look (radians) — drag screen to look around
+  let lookYaw = 0, lookPitch = 0;
+  let lookDragging = false, lookLastX = 0, lookLastY = 0;
+  let fov = 68 * Math.PI / 180;
+  let last = performance.now();
+  let fpsEma = 60;
+  let distanceLy = 0;
+  let prevBoosting = false;
+  let punchT = 0;
+  let flashT = 0;
+  let ringSpawnAcc = 0;
+
+  // Gyro → ship assist (when stick idle)
+  let gyroX = 0, gyroY = 0, gyroReady = false;
+  let gyroBaseBeta = null, gyroBaseGamma = null;
+
+  // --- Tunables ---
+  const HALF = 180;
+  const SIZE = HALF * 2;
+  const MAX_STARS = 12000;
+
+  // --- Geometry ---
+  const starPos = new Float32Array(MAX_STARS * 3);
+  const starColor = new Float32Array(MAX_STARS * 3);
+  const starSize = new Float32Array(MAX_STARS);
+
+  function hash(i, salt) {
+    const s = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
+  for (let i = 0; i < MAX_STARS; i++) {
+    starPos[i * 3] = (hash(i, 1) - 0.5) * SIZE;
+    starPos[i * 3 + 1] = (hash(i, 2) - 0.5) * SIZE;
+    starPos[i * 3 + 2] = (hash(i, 3) - 0.5) * SIZE;
+    const roll = hash(i, 4);
+    if (roll < 0.07) {
+      starColor[i * 3] = 1.0;
+      starColor[i * 3 + 1] = 0.88;
+      starColor[i * 3 + 2] = 0.72;
+    } else if (roll < 0.38) {
+      starColor[i * 3] = 0.72;
+      starColor[i * 3 + 1] = 0.86;
+      starColor[i * 3 + 2] = 1.0;
+    } else {
+      starColor[i * 3] = 0.94;
+      starColor[i * 3 + 1] = 0.96;
+      starColor[i * 3 + 2] = 1.0;
+    }
+    starSize[i] = 0.55 + hash(i, 5) * 1.15;
+  }
+
+  const quad = new Float32Array([0,0, 1,0, 0,1, 0,1, 1,0, 1,1]);
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s));
+      throw new Error("shader compile failed");
+    }
+    return s;
+  }
+
+  function program(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(p));
+      throw new Error("program link failed");
+    }
+    return p;
+  }
+
+  const streakProg = program(
+`attribute vec2 aUv;
+attribute vec3 aPosition;
+attribute vec3 aColor;
+attribute float aSize;
+uniform mat4 uProj;
+uniform mat4 uView;
+uniform float uStreak;
+uniform vec2 uResolution;
+uniform float uDensityScale;
+uniform float uBoost;
+varying vec2 vUv;
+varying vec3 vColor;
+varying float vAlpha;
+
+void main() {
+  vUv = aUv;
+  vColor = aColor;
+  float z = aPosition.z;
+  float depthFade = smoothstep(10.0, -2.0, z) * smoothstep(-420.0, -18.0, z);
+  float dens = clamp(uDensityScale, 0.25, 1.0);
+  vAlpha = depthFade * dens * mix(0.55, 0.85, aSize / 1.7);
+
+  vec3 head = aPosition;
+  vec3 tail = aPosition - vec3(0.0, 0.0, uStreak);
+  vec4 cH = uProj * uView * vec4(head, 1.0);
+  vec4 cT = uProj * uView * vec4(tail, 1.0);
+  if (cH.w < 0.08) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    vAlpha = 0.0;
+    return;
+  }
+  vec2 ndcH = cH.xy / cH.w;
+  vec2 ndcT = cT.xy / max(cT.w, 0.08);
+  vec2 dir = ndcH - ndcT;
+  float len = length(dir);
+  vec2 tanDir = len > 1.0e-5 ? dir / len : vec2(0.0, 1.0);
+  vec2 nrm = vec2(-tanDir.y, tanDir.x);
+  float aspect = uResolution.x / max(uResolution.y, 1.0);
+  vec2 nPix = normalize(vec2(nrm.x * aspect, nrm.y));
+  vec2 nNdc = vec2(nPix.x / aspect, nPix.y);
+  float ahead = max(-z, 0.35);
+  float px = 1.0 / max(uResolution.y, 1.0);
+  float basePx = mix(0.9, 1.6, aSize / 1.7);
+  basePx *= mix(1.35, 0.75, clamp(ahead / 180.0, 0.0, 1.0));
+  basePx *= mix(1.0, 1.25, uBoost);
+  float thick = basePx * 2.0 * px;
+  if (len < 0.002) {
+    tanDir = vec2(0.0, 1.0);
+    nrm = vec2(1.0, 0.0);
+    nPix = normalize(vec2(nrm.x * aspect, nrm.y));
+    nNdc = vec2(nPix.x / aspect, nPix.y);
+  }
+  vec2 ndc = mix(ndcT, ndcH, aUv.x) + nNdc * (aUv.y - 0.5) * thick * 2.0;
+  float w = mix(cT.w, cH.w, aUv.x);
+  float zc = mix(cT.z, cH.z, aUv.x);
+  gl_Position = vec4(ndc * w, zc, w);
+}`,
+`precision mediump float;
+varying vec2 vUv;
+varying vec3 vColor;
+varying float vAlpha;
+void main() {
+  float x = vUv.x;
+  float y = abs(vUv.y - 0.5) * 2.0;
+  float taper = mix(0.18, 1.0, pow(max(x, 0.001), 0.55));
+  float d = y / max(taper, 0.12);
+  float shaft = exp(-d * d * 9.5) * smoothstep(0.0, 0.08, x);
+  float glow  = exp(-d * d * 2.2) * 0.18 * x;
+  vec2 hp = vec2((x - 1.0) * 4.0, y * 1.8);
+  float head = exp(-dot(hp, hp) * 7.0) * 0.85;
+  float a = (shaft * 0.72 + glow + head) * vAlpha;
+  if (a < 0.008) discard;
+  vec3 col = vColor * a;
+  float lum = max(col.r, max(col.g, col.b));
+  float soft = lum / (1.0 + lum * 0.65);
+  col *= (soft / max(lum, 1e-4));
+  gl_FragColor = vec4(col, 1.0);
+}`
+  );
+
+  const dustProg = program(
+`attribute vec3 aPosition;
+attribute float aSize;
+attribute vec3 aColor;
+uniform mat4 uProj;
+uniform mat4 uView;
+uniform float uPixelRatio;
+varying vec3 vColor;
+varying float vAlpha;
+void main() {
+  vColor = aColor;
+  vec4 mv = uView * vec4(aPosition, 1.0);
+  float depth = max(-mv.z, 0.3);
+  vAlpha = smoothstep(0.6, 8.0, depth) * smoothstep(380.0, 40.0, depth) * 0.35;
+  gl_PointSize = clamp(aSize * uPixelRatio * (90.0 / depth), 0.5, 3.5);
+  gl_Position = uProj * mv;
+}`,
+`precision mediump float;
+varying vec3 vColor;
+varying float vAlpha;
+void main() {
+  vec2 p = gl_PointCoord * 2.0 - 1.0;
+  float d = dot(p, p);
+  if (d > 1.0) discard;
+  float a = exp(-d * 4.0) * vAlpha;
+  gl_FragColor = vec4(vColor * a, 1.0);
+}`
+  );
+
+  const nebulaProg = program(
+`attribute vec3 aPosition;
+varying vec3 vPos;
+uniform mat4 uProj;
+uniform mat4 uView;
+void main() {
+  vPos = aPosition;
+  gl_Position = uProj * uView * vec4(aPosition, 1.0);
+}`,
+`precision mediump float;
+varying vec3 vPos;
+void main() {
+  vec3 n = normalize(vPos);
+  float bands =
+    sin(n.x * 3.0 + n.y * 1.5) * 0.4 +
+    sin(n.z * 2.3 + n.x * 0.9) * 0.3 +
+    sin(n.y * 4.0 + n.z * 1.1) * 0.2;
+  float veil = pow(clamp(bands * 0.5 + 0.5, 0.0, 1.0), 2.6);
+  vec3 deep = vec3(0.008, 0.012, 0.024);
+  vec3 teal = vec3(0.022, 0.036, 0.058);
+  vec3 col = mix(deep, teal, veil);
+  float rim = pow(clamp(1.0 - abs(n.y), 0.0, 1.0), 1.6) * 0.1;
+  col += vec3(0.014, 0.022, 0.036) * rim;
+  gl_FragColor = vec4(col, 1.0);
+}`
+  );
+
+  // --- Buffers ---
+  const quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+
+  const posBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, starPos, gl.DYNAMIC_DRAW);
+
+  const colBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, starColor, gl.STATIC_DRAW);
+
+  const sizeBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, starSize, gl.STATIC_DRAW);
+
+  const DUST = 2200;
+  const dustPos = starPos.slice(0, DUST * 3);
+  const dustCol = new Float32Array(DUST * 3);
+  const dustSize = new Float32Array(DUST);
+  for (let i = 0; i < DUST; i++) {
+    const c = 0.5 + hash(i, 20) * 0.4;
+    dustCol[i * 3] = c * 0.85;
+    dustCol[i * 3 + 1] = c * 0.9;
+    dustCol[i * 3 + 2] = c;
+    dustSize[i] = 0.5 + hash(i, 21) * 1.0;
+  }
+  const dustPosBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, dustPosBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, dustPos, gl.DYNAMIC_DRAW);
+  const dustColBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, dustColBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, dustCol, gl.STATIC_DRAW);
+  const dustSizeBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, dustSizeBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, dustSize, gl.STATIC_DRAW);
+
+  const nebVerts = [];
+  const stacks = 16, slices = 24, R = 600;
+  for (let i = 0; i < stacks; i++) {
+    const phi0 = (i / stacks) * Math.PI;
+    const phi1 = ((i + 1) / stacks) * Math.PI;
+    for (let j = 0; j < slices; j++) {
+      const th0 = (j / slices) * Math.PI * 2;
+      const th1 = ((j + 1) / slices) * Math.PI * 2;
+      const p = (phi, th) => {
+        nebVerts.push(
+          R * Math.sin(phi) * Math.cos(th),
+          R * Math.cos(phi),
+          R * Math.sin(phi) * Math.sin(th)
+        );
+      };
+      p(phi0, th0); p(phi1, th0); p(phi1, th1);
+      p(phi0, th0); p(phi1, th1); p(phi0, th1);
+    }
+  }
+  const nebulaData = new Float32Array(nebVerts);
+  const nebBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, nebBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, nebulaData, gl.STATIC_DRAW);
+
+  // --- Matrix helpers ---
+  function mat4() { return new Float32Array(16); }
+  function perspective(o, fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2);
+    const nf = 1 / (near - far);
+    o.set([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) * nf, -1,
+      0, 0, 2 * far * near * nf, 0,
+    ]);
+    return o;
+  }
+  function multiply(o, a, b) {
+    const a00=a[0],a01=a[1],a02=a[2],a03=a[3];
+    const a10=a[4],a11=a[5],a12=a[6],a13=a[7];
+    const a20=a[8],a21=a[9],a22=a[10],a23=a[11];
+    const a30=a[12],a31=a[13],a32=a[14],a33=a[15];
+    for (let i = 0; i < 4; i++) {
+      const b0 = b[i*4], b1 = b[i*4+1], b2 = b[i*4+2], b3 = b[i*4+3];
+      o[i*4]   = a00*b0 + a10*b1 + a20*b2 + a30*b3;
+      o[i*4+1] = a01*b0 + a11*b1 + a21*b2 + a31*b3;
+      o[i*4+2] = a02*b0 + a12*b1 + a22*b2 + a32*b3;
+      o[i*4+3] = a03*b0 + a13*b1 + a23*b2 + a33*b3;
+    }
+    return o;
+  }
+  // Camera: look pitch/yaw then ship bank (roll). Looking does not change flight path.
+  function viewFromLook(o, roll, lookY, lookP) {
+    const cy = Math.cos(lookY), sy = Math.sin(lookY);
+    const cp = Math.cos(lookP), sp = Math.sin(lookP);
+    const cr = Math.cos(roll), sr = Math.sin(roll);
+    // R = Roll * Pitch * Yaw (column-major view rotation)
+    // yaw (Y), pitch (X), roll (Z)
+    const a00 = cy * cr + sy * sp * sr;
+    const a01 = cp * sr;
+    const a02 = -sy * cr + cy * sp * sr;
+    const a10 = -cy * sr + sy * sp * cr;
+    const a11 = cp * cr;
+    const a12 = sy * sr + cy * sp * cr;
+    const a20 = sy * cp;
+    const a21 = -sp;
+    const a22 = cy * cp;
+    o.set([
+      a00, a01, a02, 0,
+      a10, a11, a12, 0,
+      a20, a21, a22, 0,
+      0, 0, 0, 1
+    ]);
+    return o;
+  }
+
+  const proj = mat4();
+  const view = mat4();
+  const nebView = mat4();
+  let nebQuat = [0, 0, 0, 1];
+
+  function quatMul(a, b) {
+    return [
+      a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+      a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+      a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+      a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2],
+    ];
+  }
+  function quatFromEuler(pitch, yaw) {
+    const hp = pitch * 0.5, hy = yaw * 0.5;
+    const sp = Math.sin(hp), cp = Math.cos(hp);
+    const sy = Math.sin(hy), cy = Math.cos(hy);
+    return [sp * cy, cp * sy, -sp * sy, cp * cy];
+  }
+  function quatInvert(q) {
+    return [-q[0], -q[1], -q[2], q[3]];
+  }
+  function quatToMat4(o, q) {
+    const x=q[0],y=q[1],z=q[2],w=q[3];
+    const x2=x+x,y2=y+y,z2=z+z;
+    const xx=x*x2,xy=x*y2,xz=x*z2;
+    const yy=y*y2,yz=y*z2,zz=z*z2;
+    const wx=w*x2,wy=w*y2,wz=w*z2;
+    o.set([
+      1-(yy+zz), xy+wz, xz-wy, 0,
+      xy-wz, 1-(xx+zz), yz+wx, 0,
+      xz+wy, yz-wx, 1-(xx+yy), 0,
+      0,0,0,1
+    ]);
+    return o;
+  }
+
+  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE);
+  gl.clearColor(0.02, 0.023, 0.04, 1);
+
+  let dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+  let cssW = 1, cssH = 1;
+
+  function resize() {
+    cssW = window.innerWidth;
+    cssH = window.innerHeight;
+    const isMobile = cssW <= 640;
+    dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.4 : 1.75);
+    canvas.width = Math.max(1, Math.floor(cssW * dpr));
+    canvas.height = Math.max(1, Math.floor(cssH * dpr));
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // --- Hyperspace rings (DOM pool) ---
+  const tunnel = document.getElementById("tunnel");
+  const RING_POOL = 14;
+  const rings = [];
+  for (let i = 0; i < RING_POOL; i++) {
+    const el = document.createElement("div");
+    el.className = "tunnel-ring";
+    tunnel.appendChild(el);
+    rings.push({ el, t: -1, life: 1.2 });
+  }
+
+  function spawnRing(boost) {
+    for (let i = 0; i < RING_POOL; i++) {
+      const r = rings[i];
+      if (r.t < 0) {
+        r.t = 0;
+        r.life = boost ? 0.7 + Math.random() * 0.25 : 1.0 + Math.random() * 0.4;
+        r.el.style.borderColor = boost
+          ? `rgba(220, 235, 255, ${0.45 + Math.random() * 0.2})`
+          : `rgba(160, 185, 220, ${0.22 + Math.random() * 0.15})`;
+        return;
+      }
+    }
+  }
+
+  function updateRings(dt, speedNorm, boosting) {
+    if (!state.rings) {
+      for (let i = 0; i < RING_POOL; i++) {
+        rings[i].t = -1;
+        rings[i].el.style.opacity = "0";
+      }
+      ringSpawnAcc = 0;
+      return;
+    }
+    const rate = 0.35 + speedNorm * 2.2 + (boosting ? 4.5 : 0);
+    ringSpawnAcc += rate * dt;
+    while (ringSpawnAcc >= 1) {
+      ringSpawnAcc -= 1;
+      spawnRing(boosting);
+    }
+    for (let i = 0; i < RING_POOL; i++) {
+      const r = rings[i];
+      if (r.t < 0) continue;
+      r.t += dt / r.life;
+      if (r.t >= 1) {
+        r.t = -1;
+        r.el.style.opacity = "0";
+        continue;
+      }
+      const e = r.t * r.t;
+      const scale = 0.12 + e * 28;
+      const opacity = (1 - r.t) * (boosting ? 0.55 : 0.38);
+      r.el.style.transform = `scale(${scale.toFixed(3)})`;
+      r.el.style.opacity = String(Math.max(0, opacity));
+    }
+  }
+
+  // --- Input ---
+  function shapeAxis(v, dead = 0.06) {
+    const a = Math.abs(v);
+    if (a < dead) return 0;
+    const t = (a - dead) / (1 - dead);
+    return Math.sign(v) * t * t;
+  }
+
+  function isUiTarget(t) {
+    return !!(t && t.closest && t.closest(".panel, .boost, .icon-btn, .gate, .link-btn, .stick, .throttle, input"));
+  }
+
+  // Head look: drag anywhere that isn't a ship control
+  window.addEventListener("pointerdown", (e) => {
+    if (!state.entered) return;
+    if (isUiTarget(e.target)) return;
+    lookDragging = true;
+    lookLastX = e.clientX;
+    lookLastY = e.clientY;
+    try { e.target.setPointerCapture?.(e.pointerId); } catch (_) {}
+  });
+  window.addEventListener("pointermove", (e) => {
+    overUi = isUiTarget(e.target);
+    if (!lookDragging) return;
+    const dx = e.clientX - lookLastX;
+    const dy = e.clientY - lookLastY;
+    lookLastX = e.clientX;
+    lookLastY = e.clientY;
+    const sens = 0.0045;
+    lookYaw += -dx * sens;
+    const inv = state.invertY ? -1 : 1;
+    lookPitch += dy * sens * inv;
+    // Clamp look so you don't flip upside-down
+    lookYaw = Math.max(-1.15, Math.min(1.15, lookYaw));
+    lookPitch = Math.max(-0.85, Math.min(0.85, lookPitch));
+  });
+  window.addEventListener("pointerup", () => { lookDragging = false; });
+  window.addEventListener("pointercancel", () => { lookDragging = false; });
+
+  window.addEventListener("keydown", (e) => {
+    keys.add(e.code);
+    if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+    if (e.repeat) return;
+    if (e.code === "KeyM") toggleMute();
+    if (e.code === "KeyH") toggleHud();
+    if (e.code === "KeyG") toggleGyro();
+    if (e.code === "KeyR") toggleRings();
+    if (e.code === "KeyI") {
+      state.invertY = !state.invertY;
+      btnInvert.textContent = "Invert look " + (state.invertY ? "on" : "off");
+    }
+  });
+  window.addEventListener("keyup", (e) => keys.delete(e.code));
+  window.addEventListener("blur", () => {
+    keys.clear();
+    state.boostHeld = false;
+    stickActive = false;
+    stickX = 0; stickY = 0;
+    lookDragging = false;
+    syncBoostBtn();
+    syncStickKnob();
+  });
+
+  // Device orientation (gyro)
+  function onOrient(e) {
+    if (!state.gyro) return;
+    const beta = e.beta;   // front-back tilt (-180..180)
+    const gamma = e.gamma; // left-right tilt (-90..90)
+    if (beta == null || gamma == null) return;
+    if (gyroBaseBeta == null) {
+      gyroBaseBeta = beta;
+      gyroBaseGamma = gamma;
+    }
+    // Relative to calibration
+    let dy = (beta - gyroBaseBeta) / 28;   // pitch
+    let dx = (gamma - gyroBaseGamma) / 28; // yaw
+    if (state.invertY) dy = -dy;
+    gyroX = Math.max(-1, Math.min(1, dx));
+    gyroY = Math.max(-1, Math.min(1, dy));
+    gyroReady = true;
+  }
+
+  async function enableGyro() {
+    try {
+      if (typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function") {
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res !== "granted") return false;
+      }
+      window.addEventListener("deviceorientation", onOrient, true);
+      gyroBaseBeta = null;
+      gyroBaseGamma = null;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function disableGyro() {
+    window.removeEventListener("deviceorientation", onOrient, true);
+    gyroReady = false;
+    gyroX = 0;
+    gyroY = 0;
+  }
+
+  // --- UI ---
+  const panel = document.getElementById("panel");
+  const boostBtn = document.getElementById("boost");
+  const speedInput = document.getElementById("speed");
+  const densityInput = document.getElementById("density");
+  const speedLabel = document.getElementById("speedLabel");
+  const densityLabel = document.getElementById("densityLabel");
+  const warpVal = document.getElementById("warpVal");
+  const distVal = document.getElementById("distVal");
+  const vignette = document.getElementById("vignette");
+  const flash = document.getElementById("flash");
+  const ring = document.getElementById("ring");
+  const btnInvert = document.getElementById("btnInvert");
+  const btnMute = document.getElementById("btnMute");
+  const btnHud = document.getElementById("btnHud");
+  const btnGyro = document.getElementById("btnGyro");
+  const btnGyroLabel = document.getElementById("btnGyroLabel");
+  const btnRings = document.getElementById("btnRings");
+  const stickEl = document.getElementById("stick");
+  const stickKnob = document.getElementById("stickKnob");
+  const throttleEl = document.getElementById("throttle");
+  const throttleFill = document.getElementById("throttleFill");
+  const throttleKnob = document.getElementById("throttleKnob");
+
+  function setSpeed(v) {
+    state.speed = Math.max(0, Math.min(1, v));
+    speedInput.value = String(Math.round(state.speed * 100));
+    speedLabel.textContent = String(Math.round(state.speed * 100));
+    syncThrottleUi();
+  }
+
+  function syncStickKnob() {
+    const max = 32;
+    stickKnob.style.transform = `translate(${(stickX * max).toFixed(1)}px, ${(stickY * max).toFixed(1)}px)`;
+  }
+  function syncThrottleUi() {
+    const t = state.speed; // 0 bottom, 1 top
+    const trackH = Math.max(40, throttleEl.clientHeight - 20);
+    const y = 10 + (1 - t) * trackH;
+    throttleKnob.style.top = `${y - 9}px`;
+    throttleFill.style.height = `${Math.max(0, t * 100)}%`;
+  }
+
+  speedInput.addEventListener("input", () => {
+    setSpeed(Number(speedInput.value) / 100);
+  });
+  densityInput.addEventListener("input", () => {
+    state.density = Number(densityInput.value);
+    densityLabel.textContent = state.density.toLocaleString();
+  });
+  btnInvert.addEventListener("click", () => {
+    state.invertY = !state.invertY;
+    btnInvert.textContent = "Invert look " + (state.invertY ? "on" : "off");
+  });
+  btnMute.addEventListener("click", toggleMute);
+  btnHud.addEventListener("click", toggleHud);
+  btnGyro.addEventListener("click", toggleGyro);
+  btnGyroLabel.addEventListener("click", toggleGyro);
+  btnRings.addEventListener("click", toggleRings);
+
+  function toggleMute() {
+    state.muted = !state.muted;
+    btnMute.textContent = state.muted ? "🔇" : "♪";
+    btnMute.setAttribute("aria-label", state.muted ? "Unmute" : "Mute");
+  }
+  function toggleHud() {
+    state.hudOpen = !state.hudOpen;
+    panel.classList.toggle("hidden", !state.hudOpen);
+    btnHud.textContent = state.hudOpen ? "▾" : "▴";
+  }
+  function toggleRings() {
+    state.rings = !state.rings;
+    btnRings.classList.toggle("on", state.rings);
+    btnRings.textContent = state.rings ? "Rings on" : "Rings off";
+  }
+  async function toggleGyro() {
+    if (state.gyro) {
+      state.gyro = false;
+      disableGyro();
+    } else {
+      const ok = await enableGyro();
+      state.gyro = ok;
+      if (!ok) {
+        btnGyroLabel.textContent = "Gyro unavailable";
+        return;
+      }
+    }
+    btnGyro.classList.toggle("on", state.gyro);
+    btnGyroLabel.classList.toggle("on", state.gyro);
+    btnGyroLabel.textContent = state.gyro ? "Gyro on" : "Gyro off";
+  }
+  function syncBoostBtn() {
+    boostBtn.classList.toggle("active", state.boostHeld || keys.has("Space") || keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  }
+
+  // Virtual stick
+  function stickFromEvent(e) {
+    const r = stickEl.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const maxR = r.width * 0.42;
+    let dx = e.clientX - cx;
+    let dy = e.clientY - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    if (len > maxR) { dx = dx / len * maxR; dy = dy / len * maxR; }
+    stickX = dx / maxR;
+    stickY = dy / maxR;
+    syncStickKnob();
+  }
+  stickEl.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    stickActive = true;
+    stickEl.setPointerCapture(e.pointerId);
+    stickFromEvent(e);
+  });
+  stickEl.addEventListener("pointermove", (e) => {
+    if (!stickActive) return;
+    e.preventDefault();
+    stickFromEvent(e);
+  });
+  const endStick = () => {
+    stickActive = false;
+    stickX = 0; stickY = 0;
+    syncStickKnob();
+  };
+  stickEl.addEventListener("pointerup", endStick);
+  stickEl.addEventListener("pointercancel", endStick);
+  stickEl.addEventListener("lostpointercapture", endStick);
+
+  // Vertical throttle
+  function throttleFromEvent(e) {
+    const r = throttleEl.getBoundingClientRect();
+    const pad = 10;
+    const t = 1 - Math.max(0, Math.min(1, (e.clientY - r.top - pad) / Math.max(1, r.height - pad * 2)));
+    setSpeed(t);
+  }
+  let throttleActive = false;
+  throttleEl.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    throttleActive = true;
+    throttleEl.setPointerCapture(e.pointerId);
+    throttleFromEvent(e);
+  });
+  throttleEl.addEventListener("pointermove", (e) => {
+    if (!throttleActive) return;
+    e.preventDefault();
+    throttleFromEvent(e);
+  });
+  const endThr = () => { throttleActive = false; };
+  throttleEl.addEventListener("pointerup", endThr);
+  throttleEl.addEventListener("pointercancel", endThr);
+  throttleEl.addEventListener("lostpointercapture", endThr);
+
+  const hold = (v) => (e) => {
+    e.preventDefault();
+    if (v) e.currentTarget.setPointerCapture(e.pointerId);
+    state.boostHeld = v;
+    syncBoostBtn();
+  };
+  boostBtn.addEventListener("pointerdown", hold(true));
+  boostBtn.addEventListener("pointerup", hold(false));
+  boostBtn.addEventListener("pointercancel", hold(false));
+  boostBtn.addEventListener("lostpointercapture", () => { state.boostHeld = false; syncBoostBtn(); });
+
+  // Initial throttle UI
+  requestAnimationFrame(() => syncThrottleUi());
+
+  // --- Audio: Elite-inspired cruise / FSD charge / hyperspace (procedural) ---
+  // Inspired by the feel of frame-shift travel — not a copy of game assets.
+  let audioCtx = null, masterGain = null;
+  let engOsc = null, engOsc2 = null, engGain = null, engGain2 = null;
+  let cruiseNoise = null, cruiseFilt = null, cruiseGain = null;
+  let tunnelOsc = null, tunnelOsc2 = null, tunnelGain = null, tunnelGain2 = null;
+  let chargeOsc = null, chargeGain = null;
+  let airFilt = null, airGain = null;
+  let fxBus = null;
+  let fsdCharging = false;
+
+  function makeBrown(sr, secs) {
+    const buf = audioCtx.createBuffer(1, Math.floor(sr * secs), sr);
+    const d = buf.getChannelData(0);
+    let n = 0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random() * 2 - 1;
+      n = (n + 0.02 * w) / 1.02;
+      d[i] = n * 3.5;
+    }
+    return buf;
+  }
+
+  function unlockAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0;
+      masterGain.connect(audioCtx.destination);
+
+      fxBus = audioCtx.createGain();
+      fxBus.gain.value = 1;
+      fxBus.connect(masterGain);
+
+      // --- Cruise: ship systems / engine bay ---
+      engOsc = audioCtx.createOscillator();
+      engOsc.type = "sine";
+      engOsc.frequency.value = 36;
+      engGain = audioCtx.createGain();
+      engGain.gain.value = 0.16;
+      const engLp = audioCtx.createBiquadFilter();
+      engLp.type = "lowpass";
+      engLp.frequency.value = 140;
+      engOsc.connect(engGain); engGain.connect(engLp); engLp.connect(masterGain);
+
+      engOsc2 = audioCtx.createOscillator();
+      engOsc2.type = "triangle";
+      engOsc2.frequency.value = 72;
+      engGain2 = audioCtx.createGain();
+      engGain2.gain.value = 0.04;
+      const engLp2 = audioCtx.createBiquadFilter();
+      engLp2.type = "lowpass";
+      engLp2.frequency.value = 320;
+      engOsc2.connect(engGain2); engGain2.connect(engLp2); engLp2.connect(masterGain);
+
+      const brown = makeBrown(audioCtx.sampleRate, 2.5);
+      const nSrc = audioCtx.createBufferSource();
+      nSrc.buffer = brown; nSrc.loop = true;
+      cruiseFilt = audioCtx.createBiquadFilter();
+      cruiseFilt.type = "bandpass";
+      cruiseFilt.frequency.value = 220;
+      cruiseFilt.Q.value = 0.55;
+      cruiseGain = audioCtx.createGain();
+      cruiseGain.gain.value = 0.12;
+      nSrc.connect(cruiseFilt); cruiseFilt.connect(cruiseGain); cruiseGain.connect(masterGain);
+
+      // Thin "vacuum" air layer
+      const nSrc2 = audioCtx.createBufferSource();
+      nSrc2.buffer = brown; nSrc2.loop = true;
+      airFilt = audioCtx.createBiquadFilter();
+      airFilt.type = "highpass";
+      airFilt.frequency.value = 1800;
+      airGain = audioCtx.createGain();
+      airGain.gain.value = 0.025;
+      nSrc2.connect(airFilt); airFilt.connect(airGain); airGain.connect(masterGain);
+
+      // --- Hyperspace tunnel (sustained while boosting) ---
+      tunnelOsc = audioCtx.createOscillator();
+      tunnelOsc.type = "sine";
+      tunnelOsc.frequency.value = 55;
+      tunnelGain = audioCtx.createGain();
+      tunnelGain.gain.value = 0;
+      const tLp = audioCtx.createBiquadFilter();
+      tLp.type = "lowpass";
+      tLp.frequency.value = 400;
+      tunnelOsc.connect(tunnelGain); tunnelGain.connect(tLp); tLp.connect(masterGain);
+
+      tunnelOsc2 = audioCtx.createOscillator();
+      tunnelOsc2.type = "sawtooth";
+      tunnelOsc2.frequency.value = 110;
+      tunnelGain2 = audioCtx.createGain();
+      tunnelGain2.gain.value = 0;
+      const tBp = audioCtx.createBiquadFilter();
+      tBp.type = "bandpass";
+      tBp.frequency.value = 480;
+      tBp.Q.value = 2.2;
+      tunnelOsc2.connect(tunnelGain2); tunnelGain2.connect(tBp); tBp.connect(masterGain);
+
+      // FSD charge sweep tone (rises while entering boost)
+      chargeOsc = audioCtx.createOscillator();
+      chargeOsc.type = "sine";
+      chargeOsc.frequency.value = 180;
+      chargeGain = audioCtx.createGain();
+      chargeGain.gain.value = 0;
+      chargeOsc.connect(chargeGain); chargeGain.connect(masterGain);
+
+      engOsc.start(); engOsc2.start(); nSrc.start(); nSrc2.start();
+      tunnelOsc.start(); tunnelOsc2.start(); chargeOsc.start();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  // One-shot: FSD engage (charge + spool into tunnel)
+  function fireFsdEngage() {
+    if (!audioCtx || !fxBus || state.muted) return;
+    const now = audioCtx.currentTime;
+    const sr = audioCtx.sampleRate;
+
+    // Rising charge chirps (two stepped tones)
+    [0, 0.12, 0.24].forEach((tOff, i) => {
+      const o = audioCtx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = 220 + i * 160;
+      const g = audioCtx.createGain();
+      g.gain.value = 0.0001;
+      o.connect(g); g.connect(fxBus);
+      const t0 = now + tOff;
+      g.gain.exponentialRampToValueAtTime(0.12 - i * 0.02, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+      o.frequency.linearRampToValueAtTime(320 + i * 200, t0 + 0.16);
+      o.start(t0); o.stop(t0 + 0.2);
+    });
+
+    // Deep spool / mass-lock style noise swell
+    const len = Math.floor(sr * 0.9);
+    const buf = audioCtx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    let n = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      n = (n + 0.025 * w) / 1.025;
+      const env = Math.sin((i / len) * Math.PI); // swell in/out
+      d[i] = n * 3.2 * env;
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 180;
+    bp.Q.value = 0.8;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.28;
+    src.connect(bp); bp.connect(g); g.connect(fxBus);
+    bp.frequency.linearRampToValueAtTime(900, now + 0.55);
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.exponentialRampToValueAtTime(0.32, now + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    src.start(now); src.stop(now + 0.9);
+
+    // Sub thump
+    const sub = audioCtx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.value = 48;
+    const sg = audioCtx.createGain();
+    sg.gain.value = 0.0001;
+    sub.connect(sg); sg.connect(fxBus);
+    sg.gain.exponentialRampToValueAtTime(0.35, now + 0.05);
+    sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    sub.frequency.exponentialRampToValueAtTime(28, now + 0.5);
+    sub.start(now); sub.stop(now + 0.55);
+  }
+
+  // One-shot: drop from hyperspace
+  function fireFsdDrop() {
+    if (!audioCtx || !fxBus || state.muted) return;
+    const now = audioCtx.currentTime;
+    const sr = audioCtx.sampleRate;
+
+    // Abrupt tunnel collapse noise
+    const len = Math.floor(sr * 0.45);
+    const buf = audioCtx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    let n = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      n = (n + 0.04 * w) / 1.04;
+      const env = Math.exp(-i / (sr * 0.1));
+      d[i] = n * 4 * env;
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 1200;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.3;
+    src.connect(lp); lp.connect(g); g.connect(fxBus);
+    lp.frequency.exponentialRampToValueAtTime(200, now + 0.35);
+    src.start(now); src.stop(now + 0.45);
+
+    // Arrival tone (descending)
+    const o = audioCtx.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = 420;
+    const og = audioCtx.createGain();
+    og.gain.value = 0.0001;
+    o.connect(og); og.connect(fxBus);
+    og.gain.exponentialRampToValueAtTime(0.1, now + 0.02);
+    og.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+    o.frequency.exponentialRampToValueAtTime(90, now + 0.38);
+    o.start(now); o.stop(now + 0.42);
+  }
+
+  function updateAudio(speedNorm, boosting, boostAmt) {
+    if (!audioCtx || !masterGain) return;
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const live = state.muted ? 0 : 1;
+
+    // Master: quieter cruise, fuller in tunnel
+    const amp = 0.03 + speedNorm * 0.09 + boostAmt * 0.1;
+    masterGain.gain.setTargetAtTime(live * amp, now, 0.08);
+
+    // Engine bay scales with speed
+    if (engOsc) engOsc.frequency.setTargetAtTime(32 + speedNorm * 40 + boostAmt * 18, now, 0.12);
+    if (engOsc2) engOsc2.frequency.setTargetAtTime(64 + speedNorm * 70 + boostAmt * 30, now, 0.12);
+    if (engGain) engGain.gain.setTargetAtTime(0.12 + speedNorm * 0.08, now, 0.1);
+    if (engGain2) engGain2.gain.setTargetAtTime(0.03 + speedNorm * 0.04, now, 0.1);
+
+    // Cruise airflow
+    if (cruiseFilt) cruiseFilt.frequency.setTargetAtTime(160 + speedNorm * 500 + boostAmt * 200, now, 0.1);
+    if (cruiseGain) cruiseGain.gain.setTargetAtTime(0.08 + speedNorm * 0.12 + boostAmt * 0.06, now, 0.1);
+    if (airFilt) airFilt.frequency.setTargetAtTime(1400 + speedNorm * 1600 + boostAmt * 1200, now, 0.1);
+    if (airGain) airGain.gain.setTargetAtTime(0.015 + speedNorm * 0.05 + boostAmt * 0.08, now, 0.1);
+
+    // Hyperspace tunnel bed — only while boosting
+    const tun = boostAmt;
+    if (tunnelOsc) tunnelOsc.frequency.setTargetAtTime(48 + tun * 70 + speedNorm * 20, now, 0.15);
+    if (tunnelOsc2) tunnelOsc2.frequency.setTargetAtTime(95 + tun * 180 + speedNorm * 40, now, 0.12);
+    if (tunnelGain) tunnelGain.gain.setTargetAtTime(tun * 0.14, now, 0.12);
+    if (tunnelGain2) tunnelGain2.gain.setTargetAtTime(tun * 0.055, now, 0.12);
+
+    // Charge tone while spooling into boost (first part of the ramp)
+    const charge = boostAmt > 0.02 && boostAmt < 0.85 ? (1 - Math.abs(boostAmt - 0.4) / 0.45) : 0;
+    const chargeAmt = Math.max(0, charge);
+    if (chargeOsc) {
+      chargeOsc.frequency.setTargetAtTime(160 + boostAmt * 520, now, 0.08);
+    }
+    if (chargeGain) chargeGain.gain.setTargetAtTime(chargeAmt * 0.07, now, 0.06);
+  }
+
+  // --- Star wrap with continuous depth parallax ---
+  // layerBase: 1 = near field, <1 = distant layer
+  // collapse: 0 = full parallax (cruise), 1 = uniform tunnel (boost)
+  // dx, dy: lateral ship motion for side parallax
+  function wrapCloud(arr, count, qx, qy, qz, qw, dz, dx, dy, layerBase, collapse) {
+    const c = Math.max(0, Math.min(1, collapse));
+    const c2 = c * c; // ease-in collapse so cruise keeps depth longer
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3;
+      const x = arr[i3], y = arr[i3 + 1], z = arr[i3 + 2];
+      // Rotate with ship turn
+      const ix = qw * x + qy * z - qz * y;
+      const iy = qw * y + qz * x - qx * z;
+      const iz = qw * z + qx * y - qy * x;
+      const iw = -qx * x - qy * y - qz * z;
+      let nx = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+      let ny = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+      let nz = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+
+      // Continuous depth weight: near (z≈0) → ~1, far → ~0.1
+      const depth = Math.max(0.35, -nz);
+      const depthFactor = 0.10 + 0.90 * (14.0 / (14.0 + depth));
+      // Layer base + depth, then collapse toward 1.0 on boost
+      const cruiseW = layerBase * depthFactor;
+      const w = cruiseW + (1.0 - cruiseW) * c2;
+
+      nx += dx * w;
+      ny += dy * w;
+      nz += dz * w;
+
+      if (nx > HALF) nx -= SIZE; else if (nx < -HALF) nx += SIZE;
+      if (ny > HALF) ny -= SIZE; else if (ny < -HALF) ny += SIZE;
+      if (nz > HALF) nz -= SIZE; else if (nz < -HALF) nz += SIZE;
+      arr[i3] = nx; arr[i3 + 1] = ny; arr[i3 + 2] = nz;
+    }
+  }
+
+  function held(code) { return keys.has(code); }
+
+  // --- Frame ---
+  function tick(now) {
+    const rawDt = (now - last) / 1000;
+    const dt = Math.min(Math.max(rawDt, 0), 0.1);
+    last = now;
+
+    const instFps = 1 / Math.max(dt || 1/60, 1/240);
+    fpsEma = fpsEma * 0.92 + instFps * 0.08;
+
+    const count = Math.max(1, Math.min(MAX_STARS, Math.round(state.density)));
+    const densityScale = Math.pow(1800 / Math.max(count, 800), 0.45);
+    const densityScaleClamped = Math.max(0.28, Math.min(1.0, densityScale));
+
+    // Ship controls: stick + keyboard (screen drag is head look, not ship)
+    let yawInput = 0, pitchInput = 0;
+    if (held("KeyA") || held("ArrowLeft")) yawInput += 1;
+    if (held("KeyD") || held("ArrowRight")) yawInput -= 1;
+    if (held("KeyW") || held("ArrowUp")) pitchInput -= 1;
+    if (held("KeyS") || held("ArrowDown")) pitchInput += 1;
+
+    // Stick: X = bank/yaw, Y = pitch (pull back = pitch up)
+    yawInput += -shapeAxis(stickX, 0.08);
+    pitchInput += shapeAxis(stickY, 0.08);
+
+    // Gyro assists ship when stick mostly centered
+    if (state.entered && state.gyro && gyroReady && !stickActive) {
+      yawInput += -shapeAxis(gyroX, 0.1) * 0.9;
+      pitchInput += shapeAxis(gyroY, 0.1) * 0.9;
+    }
+
+    // Idle demo pre-engage
+    if (!state.entered) {
+      const t = now * 0.001;
+      yawInput += Math.sin(t * 0.22) * 0.18;
+      pitchInput += Math.sin(t * 0.16 + 1.1) * 0.09;
+    }
+
+    const boosting = state.entered && (state.boostHeld || held("Space") || held("ShiftLeft") || held("ShiftRight"));
+    syncBoostBtn();
+
+    if (boosting && !prevBoosting && state.entered) {
+      punchT = 1;
+      flashT = 1;
+      fireFsdEngage();
+      if (state.rings) for (let k = 0; k < 3; k++) spawnRing(true);
+    } else if (!boosting && prevBoosting && state.entered) {
+      fireFsdDrop();
+    }
+    prevBoosting = boosting;
+
+    const targetBoost = boosting ? 1 : 0;
+    const boostLerp = boosting ? 4.2 : 6.5;
+    boostAmt += (targetBoost - boostAmt) * (1 - Math.exp(-boostLerp * dt));
+    punchT = Math.max(0, punchT - dt * 3.2);
+    flashT = Math.max(0, flashT - dt * 4.5);
+
+    // Slow look recenter when not dragging (cockpit centering)
+    if (!lookDragging) {
+      const rec = 1 - Math.exp(-1.6 * dt);
+      lookYaw *= (1 - rec);
+      lookPitch *= (1 - rec);
+    }
+
+    const targetSteerX = Math.max(-1, Math.min(1, yawInput));
+    const targetSteerY = Math.max(-1, Math.min(1, pitchInput));
+    const follow = 1 - Math.exp(-11 * dt);
+    steerX += (targetSteerX - steerX) * follow;
+    steerY += (targetSteerY - steerY) * follow;
+
+    const turnRate = 1.0 - boostAmt * 0.2;
+    const yawDelta = steerX * turnRate * dt;
+    const pitchDelta = steerY * turnRate * 0.85 * dt;
+    headingYaw += yawDelta;
+
+    const qDelta = quatFromEuler(pitchDelta, yawDelta);
+    const qInv = quatInvert(qDelta);
+
+    // Throttle 0 = full stop, 1 = max cruise; boost multiplies on top
+    const cruise = state.speed * 420;
+    const boostMul = 1 + boostAmt * 2.8;
+    const worldSpeed = cruise * boostMul;
+    const vz = worldSpeed * dt;
+
+    // Lateral parallax from stick/turn — fades as boost collapses the field to a tunnel
+    const latFade = 1 - boostAmt * 0.9;
+    const dx = -steerX * worldSpeed * dt * 0.28 * latFade;
+    const dy = -steerY * worldSpeed * dt * 0.18 * latFade;
+
+    // Boost collapses layer separation (0 = full depth parallax, 1 = uniform)
+    const collapse = boostAmt;
+
+    if (state.entered) {
+      distanceLy += (worldSpeed * dt) * 0.00035;
+    }
+
+    // Streaks short at low speed so points + parallax read clearly
+    const streakLen = (2 + state.speed * 48) * (1 + boostAmt * 1.4) + boostAmt * 40;
+
+    // Stars: full near-field layer (base 1). Dust: distant layer (base ~0.14→0.2)
+    const dustBase = 0.12 + state.speed * 0.05;
+    wrapCloud(starPos, count, qInv[0], qInv[1], qInv[2], qInv[3], vz, dx, dy, 1.0, collapse);
+    wrapCloud(dustPos, DUST, qInv[0], qInv[1], qInv[2], qInv[3], vz, dx * 0.5, dy * 0.5, dustBase, collapse);
+
+    // Nebula: very slow bank (far-field parallax), almost frozen on boost
+    const nebRate = 0.12 * (1 - boostAmt * 0.85);
+    const nebSpin = quatFromEuler(pitchDelta * nebRate, yawDelta * nebRate);
+    nebQuat = quatMul(quatInvert(nebSpin), nebQuat);
+
+    const baseFov = (68 + boostAmt * 28) * Math.PI / 180;
+    const punchFov = punchT * punchT * 0.12;
+    const targetFov = baseFov + punchFov;
+    fov += (targetFov - fov) * (1 - Math.exp(-6.5 * dt));
+    const roll = -steerX * 0.22;
+
+    updateRings(dt, state.speed, boostAmt > 0.35);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, starPos.subarray(0, count * 3));
+    gl.bindBuffer(gl.ARRAY_BUFFER, dustPosBuf);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, dustPos);
+
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    perspective(proj, fov, canvas.width / Math.max(canvas.height, 1), 0.08, 900);
+    viewFromLook(view, roll, lookYaw, lookPitch);
+    quatToMat4(nebView, nebQuat);
+    const nebCombined = mat4();
+    multiply(nebCombined, view, nebView);
+
+    gl.useProgram(nebulaProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(nebulaProg, "uProj"), false, proj);
+    gl.uniformMatrix4fv(gl.getUniformLocation(nebulaProg, "uView"), false, nebCombined);
+    gl.bindBuffer(gl.ARRAY_BUFFER, nebBuf);
+    const nebLoc = gl.getAttribLocation(nebulaProg, "aPosition");
+    gl.enableVertexAttribArray(nebLoc);
+    gl.vertexAttribPointer(nebLoc, 3, gl.FLOAT, false, 0, 0);
+    gl.disable(gl.BLEND);
+    gl.drawArrays(gl.TRIANGLES, 0, nebulaData.length / 3);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+
+    gl.useProgram(dustProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(dustProg, "uProj"), false, proj);
+    gl.uniformMatrix4fv(gl.getUniformLocation(dustProg, "uView"), false, view);
+    gl.uniform1f(gl.getUniformLocation(dustProg, "uPixelRatio"), dpr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, dustPosBuf);
+    const dp = gl.getAttribLocation(dustProg, "aPosition");
+    gl.enableVertexAttribArray(dp);
+    gl.vertexAttribPointer(dp, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, dustColBuf);
+    const dc = gl.getAttribLocation(dustProg, "aColor");
+    gl.enableVertexAttribArray(dc);
+    gl.vertexAttribPointer(dc, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, dustSizeBuf);
+    const ds = gl.getAttribLocation(dustProg, "aSize");
+    gl.enableVertexAttribArray(ds);
+    gl.vertexAttribPointer(ds, 1, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.POINTS, 0, DUST);
+
+    const ext = gl.getExtension("ANGLE_instanced_arrays");
+    gl.useProgram(streakProg);
+    gl.uniformMatrix4fv(gl.getUniformLocation(streakProg, "uProj"), false, proj);
+    gl.uniformMatrix4fv(gl.getUniformLocation(streakProg, "uView"), false, view);
+    gl.uniform1f(gl.getUniformLocation(streakProg, "uStreak"), streakLen);
+    gl.uniform2f(gl.getUniformLocation(streakProg, "uResolution"), canvas.width, canvas.height);
+    gl.uniform1f(gl.getUniformLocation(streakProg, "uDensityScale"), densityScaleClamped);
+    gl.uniform1f(gl.getUniformLocation(streakProg, "uBoost"), boostAmt);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    const uvLoc = gl.getAttribLocation(streakProg, "aUv");
+    gl.enableVertexAttribArray(uvLoc);
+    gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
+    if (ext) ext.vertexAttribDivisorANGLE(uvLoc, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    const pLoc = gl.getAttribLocation(streakProg, "aPosition");
+    gl.enableVertexAttribArray(pLoc);
+    gl.vertexAttribPointer(pLoc, 3, gl.FLOAT, false, 0, 0);
+    if (ext) ext.vertexAttribDivisorANGLE(pLoc, 1);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
+    const cLoc = gl.getAttribLocation(streakProg, "aColor");
+    gl.enableVertexAttribArray(cLoc);
+    gl.vertexAttribPointer(cLoc, 3, gl.FLOAT, false, 0, 0);
+    if (ext) ext.vertexAttribDivisorANGLE(cLoc, 1);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
+    const sLoc = gl.getAttribLocation(streakProg, "aSize");
+    gl.enableVertexAttribArray(sLoc);
+    gl.vertexAttribPointer(sLoc, 1, gl.FLOAT, false, 0, 0);
+    if (ext) ext.vertexAttribDivisorANGLE(sLoc, 1);
+
+    if (ext) {
+      ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, count);
+      ext.vertexAttribDivisorANGLE(pLoc, 0);
+      ext.vertexAttribDivisorANGLE(cLoc, 0);
+      ext.vertexAttribDivisorANGLE(sLoc, 0);
+    } else {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // HUD
+    const warp = worldSpeed / 55;
+    warpVal.textContent = warp.toFixed(1);
+    distVal.textContent = distanceLy < 10
+      ? distanceLy.toFixed(2)
+      : distanceLy < 100
+        ? distanceLy.toFixed(1)
+        : distanceLy.toFixed(0);
+
+    vignette.style.opacity = String(0.42 + boostAmt * 0.32 + punchT * 0.15);
+    flash.classList.toggle("on", flashT > 0.15);
+    flash.style.opacity = String(Math.min(1, flashT * 1.2));
+    ring.style.transform = `translate(${(-steerX * 36).toFixed(1)}px, ${(steerY * 28).toFixed(1)}px)`;
+
+    updateAudio(state.speed, boosting, boostAmt);
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+
+  window.__starwake = {
+    getFps: () => fpsEma,
+    getSpeed: () => 36 + state.speed * 380,
+    getDistance: () => distanceLy,
+  };
+  window.__controlsTest = {
+    getYaw: () => headingYaw,
+    getSpeed: () => 36 + state.speed * 380,
+    setSteer: () => {},
+    setKeys: () => {},
+  };
+})();
+  </script>
+</body>
+</html>
