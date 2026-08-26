@@ -1,3 +1,5 @@
+> **Prototype only** (`starwake.html`). For the live Grok Build (Kepler worlds, planet wells, 10-bay docking) see **[PHYSICS_GROK_BUILD.md](PHYSICS_GROK_BUILD.md)**.
+
 # Flight Physics Analysis & Improvement Recommendations
 
 ## Executive Summary

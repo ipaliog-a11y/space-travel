@@ -1,3 +1,5 @@
+> **Prototype only** (`starwake.html`). The live Grok Build uses a different Kepler / well integrator — see **[PHYSICS_GROK_BUILD.md](PHYSICS_GROK_BUILD.md)**. Do not apply the 6DOF / KSP list below to `app/`.
+
 # Physics Improvement Recommendations - Executive Summary
 
 ## 📊 Current State Assessment

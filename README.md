@@ -27,7 +27,8 @@ The live Grok Build app is snapshotted in [`app/`](app/). It is ahead of the Pag
 cd app && npm install && npm run dev
 ```
 
-See [`app/README.md`](app/README.md) and [`docs/STATION_MODELS.md`](docs/STATION_MODELS.md).
+See [`app/README.md`](app/README.md), [`docs/STATION_MODELS.md`](docs/STATION_MODELS.md), and [`docs/PHYSICS_GROK_BUILD.md`](docs/PHYSICS_GROK_BUILD.md) (flight-handling recommendations, not yet coded).
+
 
 ## 🎯 Quick Start
 
@@ -76,11 +77,13 @@ See [`app/README.md`](app/README.md) and [`docs/STATION_MODELS.md`](docs/STATION
 
 ## 📖 Documentation
 
-- **[Physics Analysis](docs/PHYSICS_ANALYSIS.md)** - Technical deep-dive into flight model
-- **[Architecture](docs/ARCHITECTURE.md)** - Project structure and design
-- **[Ship Variants](docs/SHIP_VARIANTS.md)** - Ship specifications and balance
-- **[Prototype Notes](docs/PROTOTYPE_NOTES.md)** - Feature checklist
-- **[Grok Build Brief](docs/GROK_BUILD_BRIEF.md)** - Development roadmap
+- **[Grok Build flight physics](docs/PHYSICS_GROK_BUILD.md)** — current Kepler / well model and handling slices (not yet coded)
+- **[Physics Analysis](docs/PHYSICS_ANALYSIS.md)** — Pages prototype (`starwake.html`) only
+- **[Architecture](ARCHITECTURE.md)** - Project structure and design
+- **[Ship Variants](SHIP_VARIANTS.md)** - Ship specifications and balance
+- **[Prototype Notes](PROTOTYPE_NOTES.md)** - Feature checklist
+- **[Grok Build Brief](GROK_BUILD_BRIEF.md)** - Development roadmap
+
 
 ## 🎯 Ship Variants
 

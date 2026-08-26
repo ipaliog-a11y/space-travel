@@ -21,3 +21,6 @@ npm run dev
 Play route is `/`. Auth and the database stay off unless you opt in.
 
 `npm run build` must pass for deploy. The flight canvas is raw WebGL1 in `src/lib/starwake/engine.ts`.
+
+Flight-handling recommendations (softer well, camera bank, mass, regime HUD) are in [`../docs/PHYSICS_GROK_BUILD.md`](../docs/PHYSICS_GROK_BUILD.md). They are not implemented yet.
+
