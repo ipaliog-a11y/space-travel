@@ -14,6 +14,21 @@ Experience the feel of flying through deep space and hyperspace with realistic N
 
 No installation required! Works on Chrome, Firefox, and Edge.
 
+## Latest Grok Build (current)
+
+The live Grok Build app is snapshotted in [`app/`](app/). It is ahead of the Pages prototype:
+
+- Kepler galaxy, planet types, moons, belts, comets, nebulae
+- Courier / Hauler hangar, loadouts, jobs, surveys, T1 fuel
+- 10-bay docking at orbital locks
+- Five station models: Stanford wheel, O'Neill cylinder, Bernal habitat, truss array, drydock yard
+
+```bash
+cd app && npm install && npm run dev
+```
+
+See [`app/README.md`](app/README.md) and [`docs/STATION_MODELS.md`](docs/STATION_MODELS.md).
+
 ## 🎯 Quick Start
 
 ### Controls

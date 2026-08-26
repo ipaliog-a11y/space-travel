@@ -1,0 +1,37 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch({ args: ["--use-gl=angle", "--ignore-gpu-blocklist"] });
+const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+await page.addInitScript(() => { try { localStorage.removeItem("starwake-v2"); } catch {} });
+await page.goto("http://127.0.0.1:8080/", { waitUntil: "domcontentloaded", timeout: 20000 });
+await page.waitForSelector(".gate.menu", { timeout: 8000 });
+await page.getByRole("button", { name: "Engage" }).click();
+await page.waitForTimeout(1200);
+const dbg = await page.evaluate(() => {
+  const s = window.__starwake;
+  return { err: s?.getJumpDebug?.()?.err, mode: s?.getMode?.(), well: s?.getFlightDebug?.()?.well };
+});
+await page.screenshot({ path: "/workspace/screenshots/sky-stars.png" });
+const hud = await page.evaluate(() => {
+  const thr = document.querySelector(".throttle")?.getBoundingClientRect();
+  const acts = document.querySelector(".flight-actions")?.getBoundingClientRect();
+  const dock = document.querySelector(".drive-dock")?.getBoundingClientRect();
+  const overlap = thr && acts ? !(thr.right <= acts.left + 1 || thr.left >= acts.right - 1 || thr.bottom <= acts.top + 1 || thr.top >= acts.bottom - 1) : true;
+  return { thr: thr && {x:thr.x,y:thr.y,w:thr.width,h:thr.height}, acts: acts && {x:acts.x,y:acts.y,w:acts.width,h:acts.height}, dock: dock && {x:dock.x,y:dock.y,w:dock.width,h:dock.height}, overlap };
+});
+await page.getByRole("button", { name: "Map" }).click();
+await page.waitForTimeout(500);
+const mapW = await page.evaluate(() => document.querySelector(".map-panel")?.getBoundingClientRect().width ?? 0);
+await page.screenshot({ path: "/workspace/screenshots/map-system.png" });
+await page.getByRole("button", { name: "Galaxy" }).click();
+await page.waitForTimeout(400);
+await page.screenshot({ path: "/workspace/screenshots/map-galaxy.png" });
+await page.getByRole("button", { name: "Close map" }).click();
+const planets = await page.evaluate(() => window.__starwake.getScaleDebug().planets);
+await page.evaluate((id) => window.__starwake.goToBody({ kind: "planet", id }), planets[0].id);
+await page.waitForTimeout(800);
+await page.screenshot({ path: "/workspace/screenshots/planet-surface.png" });
+console.log(JSON.stringify({ dbg, hud, mapW, errors, planet: planets[0] }, null, 2));
+await browser.close();
