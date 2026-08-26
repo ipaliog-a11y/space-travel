@@ -21,7 +21,7 @@ export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }
     <div className="gate menu" data-ui>
       <header className="hangar-head">
         <h1>Starwake</h1>
-        <p className="lede">Ships live in the hangar. Haul lock to lock, or survey a wild world from orbit.</p>
+        <p className="lede">Four hulls in the hangar. Packet, bulk, pathfinder, runner. Fit a bay, then fly.</p>
         <p className="keys-hint">
           <kbd>A</kbd>/<kbd>Z</kbd> throttle
           <kbd>Q</kbd>/<kbd>E</kbd> roll
@@ -45,11 +45,12 @@ export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }
                 onHangar();
               }}
             >
-              <img src={`/ships/${id}.png`} alt="" className="hull-art" />
+              <img src={`/ships/${id}-thumb.png`} alt="" className="hull-art" />
               <h2>{SHIPS[id].name}</h2>
+              <span className="ship-role">{SHIPS[id].role}</span>
               <p>{SHIPS[id].blurb}</p>
               <span className="ship-meta">
-                {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u
+                {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u · turn {fit.turnRate.toFixed(2)}
                 {manifests[id] ? " · job" : ""}
               </span>
             </button>

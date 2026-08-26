@@ -23,7 +23,7 @@ const menuArt = await page.locator(".ship-card .hull-art").evaluateAll((imgs) =>
   imgs.map((i) => ({ src: i.getAttribute("src"), w: i.naturalWidth, h: i.naturalHeight })),
 );
 await page.screenshot({ path: "/workspace/screenshots/menu.png" });
-await page.getByRole("button", { name: "Hangar" }).click();
+await page.getByRole("button", { name: "Hangar" }).click({ force: true });
 await page.waitForSelector(".hull-bay canvas", { timeout: 8000 });
 await page.waitForTimeout(800);
 const hardpoints = await page.locator(".slot-tabs button").count();
@@ -48,7 +48,7 @@ await page.getByRole("button", { name: "Zoom in" }).click();
 await page.getByRole("button", { name: "Zoom in" }).click();
 await page.waitForTimeout(250);
 await page.screenshot({ path: "/workspace/screenshots/hangar-zoom.png" });
-await page.getByRole("tab", { name: "Hauler" }).click();
+await page.getByRole("tab", { name: "Hauler" }).click({ force: true });
 await page.waitForSelector(".hull-bay.hull-hauler", { timeout: 8000 });
 await page.waitForTimeout(700);
 const hauler = await page.locator(".hull-bay.hull-hauler").count();
@@ -59,9 +59,31 @@ const haulerPlate = await page.locator(".hull-plate").evaluate((i) => ({
 }));
 await page.screenshot({ path: "/workspace/screenshots/hangar-hauler.png" });
 
+await page.getByRole("tab", { name: "Scout" }).click({ force: true });
+await page.waitForSelector(".hull-bay.hull-scout", { timeout: 8000 });
+await page.waitForTimeout(500);
+const scout = await page.locator(".hull-bay.hull-scout").count();
+const scoutPlate = await page.locator(".hull-plate").evaluate((i) => ({
+  src: i.getAttribute("src"),
+  w: i.naturalWidth,
+  h: i.naturalHeight,
+}));
+await page.screenshot({ path: "/workspace/screenshots/hangar-scout.png" });
+
+await page.getByRole("tab", { name: "Clipper" }).click({ force: true });
+await page.waitForSelector(".hull-bay.hull-clipper", { timeout: 8000 });
+await page.waitForTimeout(500);
+const clipper = await page.locator(".hull-bay.hull-clipper").count();
+const clipperPlate = await page.locator(".hull-plate").evaluate((i) => ({
+  src: i.getAttribute("src"),
+  w: i.naturalWidth,
+  h: i.naturalHeight,
+}));
+await page.screenshot({ path: "/workspace/screenshots/hangar-clipper.png" });
+
 const mobile = await open({ width: 390, height: 844 });
 await mobile.screenshot({ path: "/workspace/screenshots/menu-mobile.png" });
-await mobile.getByRole("button", { name: "Hangar" }).click();
+await mobile.getByRole("button", { name: "Hangar" }).click({ force: true });
 await mobile.waitForSelector(".hull-bay canvas", { timeout: 8000 });
 await mobile.waitForTimeout(700);
 await mobile.screenshot({ path: "/workspace/screenshots/hangar-mobile.png" });
@@ -70,7 +92,7 @@ const overflow = await mobile.evaluate(
 );
 
 const ok =
-  menuArt.length === 2 &&
+  menuArt.length === 4 &&
   menuArt.every((a) => a.w > 200) &&
   hardpoints === 6 &&
   canvas === 1 &&
@@ -79,9 +101,15 @@ const ok =
   hauler === 1 &&
   /hauler\.png/.test(haulerPlate.src ?? "") &&
   haulerPlate.w > 200 &&
+  scout === 1 &&
+  /scout\.png/.test(scoutPlate.src ?? "") &&
+  scoutPlate.w > 200 &&
+  clipper === 1 &&
+  /clipper\.png/.test(clipperPlate.src ?? "") &&
+  clipperPlate.w > 200 &&
   !overflow &&
   errors.length === 0;
 
-console.log(JSON.stringify({ ok, menuArt, hardpoints, canvas, plate, hauler, haulerPlate, overflow, errors }, null, 2));
+console.log(JSON.stringify({ ok, menuArt, hardpoints, canvas, plate, hauler, haulerPlate, scout, scoutPlate, clipper, clipperPlate, overflow, errors }, null, 2));
 await browser.close();
 process.exit(ok ? 0 : 1);

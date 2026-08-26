@@ -1,7 +1,7 @@
 import { distLy, GALAXY, getPlanet, getStation, getSystem } from "./galaxy";
 import { hashu, mulberry32 } from "./math";
 import type { CargoJob, JobKind, JobStop, Manifest, ShipId } from "./types";
-import { fittedShip } from "./catalog";
+import { fittedShip, SHIP_ORDER } from "./catalog";
 import type { Loadout } from "./types";
 
 const COURIER_CARGO = ["sealed cores", "scan plates", "seed vault", "nav film", "med ice"];
@@ -132,10 +132,10 @@ export function sanitizeBoard(raw: unknown, systemId: string): CargoJob[] {
 }
 
 export function sanitizeManifests(raw: unknown): Record<ShipId, Manifest | null> {
-  const out: Record<ShipId, Manifest | null> = { courier: null, hauler: null };
+  const out = Object.fromEntries(SHIP_ORDER.map((id) => [id, null])) as Record<ShipId, Manifest | null>;
   if (!raw || typeof raw !== "object") return out;
   const rec = raw as Partial<Record<ShipId, Manifest | null>>;
-  for (const hull of ["courier", "hauler"] as ShipId[]) {
+  for (const hull of SHIP_ORDER) {
     const m = rec[hull];
     if (!m?.job?.id) continue;
     const from = coerceStop(m.job.from, "helion");

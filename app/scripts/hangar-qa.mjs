@@ -15,7 +15,7 @@ await page.waitForTimeout(500);
 const menu = await page.locator(".gate.menu").count();
 const menuArt = await page.locator(".ship-card .hull-art").count();
 await page.screenshot({ path: "/workspace/screenshots/menu.png" });
-await page.getByRole("button", { name: "Hangar" }).click();
+await page.getByRole("button", { name: "Hangar" }).click({ force: true });
 await page.waitForTimeout(900);
 
 const hangar = await page.locator(".hangar").count();
@@ -64,7 +64,7 @@ const farJump = await page.locator(".spec-list div").filter({ hasText: "Jump" })
 const farOn = await page.locator(".mod-card.on").innerText();
 await page.screenshot({ path: "/workspace/screenshots/hangar-farleg.png" });
 
-await page.getByRole("tab", { name: "Hauler" }).click();
+await page.getByRole("tab", { name: "Hauler" }).click({ force: true });
 await page.waitForTimeout(800);
 const haulerJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
 const haulerHold = await page.locator(".spec-list div").filter({ hasText: "Hold" }).locator(".spec-val").innerText();
@@ -77,7 +77,24 @@ await page.waitForTimeout(180);
 const deepHold = await page.locator(".spec-list div").filter({ hasText: "Hold" }).locator(".spec-val").innerText();
 await page.screenshot({ path: "/workspace/screenshots/hangar-hauler.png" });
 
-await page.getByRole("tab", { name: "Courier" }).click();
+await page.getByRole("tab", { name: "Scout" }).click({ force: true });
+await page.waitForTimeout(700);
+const scoutJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
+const scoutHold = await page.locator(".spec-list div").filter({ hasText: "Hold" }).locator(".spec-val").innerText();
+const scoutShip = await page.locator(".hull-bay.hull-scout").count();
+const scoutPlate = await page.locator(".hull-plate").getAttribute("src");
+const scoutRole = await page.locator(".hull-dossier-kicker").innerText();
+await page.screenshot({ path: "/workspace/screenshots/hangar-scout.png" });
+
+await page.getByRole("tab", { name: "Clipper" }).click({ force: true });
+await page.waitForTimeout(700);
+const clipperJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
+const clipperCruise = await page.locator(".spec-list div").filter({ hasText: "Cruise" }).locator(".spec-val").innerText();
+const clipperShip = await page.locator(".hull-bay.hull-clipper").count();
+const clipperPlate = await page.locator(".hull-plate").getAttribute("src");
+await page.screenshot({ path: "/workspace/screenshots/hangar-clipper.png" });
+
+await page.getByRole("tab", { name: "Courier" }).click({ force: true });
 await page.waitForTimeout(150);
 const courierBack = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
 await page.getByRole("button", { name: "Accept" }).first().click();
@@ -124,7 +141,7 @@ await page.waitForTimeout(250);
 await page.keyboard.press("Escape");
 await page.waitForTimeout(400);
 const backMenu = await page.locator(".gate.menu").count();
-await page.getByRole("button", { name: "Hangar" }).click();
+await page.getByRole("button", { name: "Hangar" }).click({ force: true });
 await page.waitForTimeout(250);
 const stillFar = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
 const stillHeat = await page.locator(".spec-list div").filter({ hasText: "Heat" }).locator(".spec-val").innerText();
@@ -134,14 +151,14 @@ mobile.on("pageerror", (e) => errors.push(String(e)));
 await mobile.addInitScript(() => { try { localStorage.removeItem("starwake-v2"); } catch {} });
 await mobile.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 await mobile.waitForTimeout(400);
-await mobile.getByRole("button", { name: "Hangar" }).click();
+await mobile.getByRole("button", { name: "Hangar" }).click({ force: true });
 await mobile.waitForTimeout(700);
 await mobile.screenshot({ path: "/workspace/screenshots/hangar-mobile.png" });
 const mobileOverflow = await mobile.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
 
 const ok =
   menu === 1 &&
-  menuArt === 2 &&
+  menuArt === 4 &&
   hangar === 1 &&
   hardpoints === 6 &&
   bayCanvas === 1 &&
@@ -161,6 +178,15 @@ const ok =
   /48/.test(haulerHold) &&
   /72/.test(deepHold) &&
   haulerShip === 1 &&
+  scoutShip === 1 &&
+  clipperShip === 1 &&
+  /22/.test(scoutJump) &&
+  /6/.test(scoutHold) &&
+  /Pathfinder/i.test(scoutRole) &&
+  /scout\.png/.test(scoutPlate ?? "") &&
+  /9/.test(clipperJump) &&
+  /7\.8/.test(clipperCruise) &&
+  /clipper\.png/.test(clipperPlate ?? "") &&
   /16/.test(courierBack) &&
   accepted === 1 &&
   fitted?.jumpRangeLy === 16 &&
@@ -184,7 +210,7 @@ const ok =
 
 console.log(JSON.stringify({
   ok, menu, menuArt, hangar, hardpoints, bayCanvas, courierBay, plateSrc, haulerPlate, stockJump, stockHold, stockHeat, stockTank, longTank, coldHeat, coldCool,
-  farJump, farOn, haulerJump, haulerHold, deepHold, haulerShip, courierBack, accepted,
+  farJump, farOn, haulerJump, haulerHold, deepHold, haulerShip, scoutJump, scoutHold, scoutShip, scoutPlate, scoutRole, clipperJump, clipperCruise, clipperShip, clipperPlate, courierBack, accepted,
   fitted, fuel0, fuelDry, fuelFull, manifest, chip, bay, loaded, delivered, backMenu, stillFar, stillHeat, mobileOverflow, errors,
 }, null, 2));
 await browser.close();

@@ -23,8 +23,8 @@ type Props = {
 const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: boolean }[] = [
   { key: "turnRate", label: "Turn", unit: "", max: 2.2 },
   { key: "cruiseSpeed", label: "Cruise", unit: "", max: 10 },
-  { key: "overdriveSpeed", label: "OD", unit: "", max: 80 },
-  { key: "jumpRangeLy", label: "Jump", unit: "ly", max: 28 },
+  { key: "overdriveSpeed", label: "OD", unit: "", max: 90 },
+  { key: "jumpRangeLy", label: "Jump", unit: "ly", max: 36 },
   { key: "cargoCap", label: "Hold", unit: "u", max: 80 },
   { key: "fuelCap", label: "Tank", unit: "t1", max: 180 },
   { key: "overdriveSec", label: "Heat", unit: "s", max: 18 },
@@ -69,7 +69,7 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
     <div className="gate hangar" data-ui>
       <header className="hangar-head">
         <h1>Hangar</h1>
-        <p className="lede">Two hulls live here. Fit the bay, haul lock to lock, or survey a wild world from orbit.</p>
+        <p className="lede">Four hulls. Pick a bay — packet, bulk, pathfinder, or runner — then fit it and fly.</p>
         <p className="keys-hint">
           {completed} run{completed === 1 ? "" : "s"}
           <span className="dot">·</span>
@@ -79,22 +79,72 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
         </p>
       </header>
 
-      <div className="hull-tabs" role="tablist" aria-label="Hull">
-        {SHIP_ORDER.map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={shipId === id}
-            className={shipId === id ? "on" : ""}
-            onClick={() => {
-              onPick(id);
-              setSlot("tank");
-            }}
-          >
-            {SHIPS[id].name}
-          </button>
-        ))}
+      <div className="ship-rail" role="tablist" aria-label="Hull">
+        {SHIP_ORDER.map((id) => {
+          const hull = SHIPS[id];
+          const fit = fittedShip(id, loadout);
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={shipId === id}
+              className={`ship-rail-card${shipId === id ? " on" : ""}`}
+              onClick={() => {
+                onPick(id);
+                setSlot("tank");
+              }}
+            >
+              <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
+              <span className="ship-rail-name">{hull.name}</span>
+              <span className="ship-rail-role">{hull.role}</span>
+              <span className="ship-rail-data">
+                {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="hull-dossier">
+        <img src={`/ships/${shipId}.png`} alt="" className="hull-dossier-art" />
+        <div>
+          <p className="hull-dossier-kicker">
+            {SHIPS[shipId].role}
+            <span className="dot">·</span>
+            {SHIPS[shipId].name}
+          </p>
+          <p className="hull-dossier-copy">{SHIPS[shipId].detail}</p>
+          <ul className="hull-chips">
+            <li>
+              <em>Jump</em>
+              <strong>{fitted.jumpRangeLy.toFixed(0)}</strong>
+              <span>ly</span>
+            </li>
+            <li>
+              <em>Hold</em>
+              <strong>{Math.round(fitted.cargoCap)}</strong>
+              <span>u</span>
+            </li>
+            <li>
+              <em>Turn</em>
+              <strong>{fitted.turnRate.toFixed(2)}</strong>
+            </li>
+            <li>
+              <em>Mass</em>
+              <strong>{fitted.mass.toFixed(2)}</strong>
+            </li>
+            <li>
+              <em>Cruise</em>
+              <strong>{fitted.cruiseSpeed.toFixed(1)}</strong>
+            </li>
+            <li>
+              <em>Survey</em>
+              <strong>{fitted.surveySec.toFixed(1)}</strong>
+              <span>s</span>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div className="hangar-grid">

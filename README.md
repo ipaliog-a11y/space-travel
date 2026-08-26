@@ -19,7 +19,7 @@ No installation required! Works on Chrome, Firefox, and Edge.
 The live Grok Build app is snapshotted in [`app/`](app/). It is ahead of the Pages prototype:
 
 - Kepler galaxy, planet types, moons, belts, comets, nebulae
-- Courier / Hauler hangar, loadouts, jobs, surveys, T1 fuel
+- Courier / Hauler / **Scout** / **Clipper** hangar, loadouts, jobs, surveys, T1 fuel
 - 10-bay docking at orbital locks
 - Five station models: Stanford wheel, O'Neill cylinder, Bernal habitat, truss array, drydock yard
 
@@ -27,7 +27,8 @@ The live Grok Build app is snapshotted in [`app/`](app/). It is ahead of the Pag
 cd app && npm install && npm run dev
 ```
 
-See [`app/README.md`](app/README.md), [`docs/STATION_MODELS.md`](docs/STATION_MODELS.md), and [`docs/PHYSICS_GROK_BUILD.md`](docs/PHYSICS_GROK_BUILD.md) (flight-handling recommendations, not yet coded).
+See [`app/README.md`](app/README.md), [`docs/STATION_MODELS.md`](docs/STATION_MODELS.md), [`docs/HULL_SET.md`](docs/HULL_SET.md), and [`docs/PHYSICS_GROK_BUILD.md`](docs/PHYSICS_GROK_BUILD.md) (flight-handling recommendations, not yet coded).
+
 
 
 ## 🎯 Quick Start
@@ -77,6 +78,7 @@ See [`app/README.md`](app/README.md), [`docs/STATION_MODELS.md`](docs/STATION_MO
 
 ## 📖 Documentation
 
+- **[Hangar hull set](docs/HULL_SET.md)** — Courier, Hauler, Scout, Clipper
 - **[Grok Build flight physics](docs/PHYSICS_GROK_BUILD.md)** — current Kepler / well model and handling slices (not yet coded)
 - **[Physics Analysis](docs/PHYSICS_ANALYSIS.md)** — Pages prototype (`starwake.html`) only
 - **[Architecture](ARCHITECTURE.md)** - Project structure and design

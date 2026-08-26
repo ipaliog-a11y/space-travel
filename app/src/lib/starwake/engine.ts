@@ -2344,7 +2344,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				const inWell = Boolean(pid && boundId === pid && mode === "local" && !inJump);
 				surveyPaused = !inWell;
 				if (inWell && pid) {
-					const dur = getStarwake().shipId === "hauler" ? 6.4 : 4.4;
+					const dur = Math.max(2.2, def.surveySec || 4.4);
 					surveyT = Math.min(1, surveyT + dt / dur);
 					if (surveyT >= 1) {
 						surveying = false;

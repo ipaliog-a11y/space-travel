@@ -1,4 +1,4 @@
-export type ShipId = "courier" | "hauler";
+export type ShipId = "courier" | "hauler" | "scout" | "clipper";
 
 export type FlightMode = "docked" | "local" | "boosting" | "charging" | "hyperspace" | "transit" | "dropping" | "docking" | "berthed";
 
@@ -29,7 +29,9 @@ export type StatKey =
 export type ShipDef = {
   id: ShipId;
   name: string;
+  role: string;
   blurb: string;
+  detail: string;
   mass: number;
   turnRate: number;
   cruiseSpeed: number;
@@ -42,6 +44,7 @@ export type ShipDef = {
   cargoCap: number;
   coolSec: number;
   fuelCap: number;
+  surveySec: number;
   accent: string;
   audioPitch: number;
 };
