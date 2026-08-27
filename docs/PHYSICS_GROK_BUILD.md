@@ -1,10 +1,9 @@
 # Grok Build flight physics — current model and recommendations
 
-**Applies to the live Starwake app** (`app/src/lib/starwake/engine.ts`, `orbit.ts`, `catalog.ts`).  
-The older `PHYSICS_*.md` files describe the GitHub Pages prototype (`starwake.html`) and **do not** match this integrator.
+**Applies to the live Starwake app** (`src/lib/starwake/engine.ts`, `orbit.ts`, `catalog.ts`).
 
-Genre stays **Elite-style flight-assist arcade on Kepler worlds**. Not Kerbal. Not 6DOF.  
-Non-goals until named: station interiors, planet landings, 6DOF, multiplayer (`app/BUILD.md`).
+Genre stays **Elite-style flight-assist arcade on Kepler worlds**. Not Kerbal. Not 6DOF.
+Non-goals until named: station interiors, planet landings, 6DOF, multiplayer (`BUILD.md`).
 
 Status: **review only**. Nothing in this file has been coded. Pick a slice before changing the integrator.
 
@@ -58,7 +57,7 @@ These are handling bugs, not “needs KSP.”
 
 ## Do not do
 
-The Pages-prototype recommendations (Newtonian from scratch, 6DOF thrusters, rocket equation, atmospheric drag, gravity wells as a new feature) **do not apply**. The Grok Build already has gravity, Kepler bodies, wells, and momentum. Implementing that list would throw away docking, surveys, and the current feel.
+The discarded list (Newtonian from scratch, 6DOF thrusters, rocket equation, atmospheric drag, gravity wells as a new feature) **does not apply**. This build already has gravity, Kepler bodies, wells, and momentum. Implementing that list would throw away docking, surveys, and the current feel.
 
 Out until named:
 
@@ -175,14 +174,13 @@ Leave docking, jump, transit, surveys, and station meshes untouched.
 
 | What | Where |
 |------|--------|
-| Integrator (three laws) | `app/src/lib/starwake/engine.ts` `tick`, ~2168–2309 |
+| Integrator (three laws) | `src/lib/starwake/engine.ts` `tick`, ~2168–2309 |
 | Camera roll dropped | same file, `const roll = 0` ~2369 |
 | Look-slaved thrust | `thrustDir()` ~796 |
 | Docking corridor | ~2105–2164 |
-| Kepler / gravity | `app/src/lib/starwake/orbit.ts` |
+| Kepler / gravity | `src/lib/starwake/orbit.ts` |
 | SOI / park / keep-out | `planetSOI` (`radius×16`), `planetPark` (`×1.52`), `planetKeepOut` (`×1.13`) |
-| Hull stats | `app/src/lib/starwake/catalog.ts` |
-| HUD Well/Free | `app/src/components/starwake/FlightChrome.tsx` |
-| Non-goals | `app/BUILD.md` |
+| Hull stats | `src/lib/starwake/catalog.ts` |
+| HUD Well/Free | `src/components/starwake/FlightChrome.tsx` |
+| Non-goals | `BUILD.md` |
 
-Prototype-only (ignore for this app): `docs/PHYSICS_ANALYSIS.md`, `PHYSICS_RECOMMENDATIONS.md`, `PHYSICS_COMPARISON.md`, `QUICK_START_PHYSICS.md`.

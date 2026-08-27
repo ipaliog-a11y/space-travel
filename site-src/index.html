@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Starwake</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07080c;
+      --fg: #ececef;
+      --muted: #8c8c96;
+      --line: #ececef18;
+      --card: #101218;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      padding: 48px 24px 80px;
+    }
+    main { max-width: 920px; margin: 0 auto; }
+    .kicker {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    h1 {
+      font-size: clamp(40px, 7vw, 64px);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      margin: 10px 0 12px;
+    }
+    .lead { color: var(--muted); max-width: 42em; line-height: 1.55; margin-bottom: 28px; }
+    .acts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 48px; }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 2px;
+      text-decoration: none;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    a.btn.solid { background: var(--fg); color: var(--bg); }
+    a.btn.ghost { border: 1px solid var(--line); color: var(--fg); }
+    h2 {
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+      margin: 0 0 14px;
+    }
+    .set { margin-bottom: 36px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    article {
+      background: var(--card);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    article img { width: 100%; height: 112px; object-fit: cover; display: block; background: #0b0c10; }
+    article .pad { padding: 12px 14px 14px; }
+    article h3 { font-size: 16px; font-weight: 500; }
+    article p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    article .data {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 11px;
+      color: #b4b4bc;
+      margin-top: 8px;
+    }
+    .note {
+      border-top: 1px solid var(--line);
+      padding-top: 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .note code {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--fg);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="kicker">Kepler flight</p>
+    <h1>Starwake</h1>
+    <p class="lead">
+      Hangar, jobs, orbital locks, FSD jumps. Six hulls in two sets.
+      Moons stay in the sky — you do not look, arrive, or jump onto satellites.
+    </p>
+    <div class="acts">
+      <a class="btn solid" href="https://github.com/ipaliog-a11y/space-travel">Source</a>
+      <a class="btn ghost" href="https://github.com/ipaliog-a11y/space-travel#fly">Run it</a>
+    </div>
+
+    <section class="set">
+      <h2>Line</h2>
+      <div class="grid">
+        <article>
+          <img src="ships/courier-thumb.png" alt="Courier" />
+          <div class="pad">
+            <h3>Courier</h3>
+            <p>Packet</p>
+            <div class="data">12 ly · 8 u · turn 1.35</div>
+          </div>
+        </article>
+        <article>
+          <img src="ships/hauler-thumb.png" alt="Hauler" />
+          <div class="pad">
+            <h3>Hauler</h3>
+            <p>Bulk</p>
+            <div class="data">18 ly · 48 u · turn 0.65</div>
+          </div>
+        </article>
+        <article>
+          <img src="ships/scout-thumb.png" alt="Scout" />
+          <div class="pad">
+            <h3>Scout</h3>
+            <p>Pathfinder</p>
+            <div class="data">22 ly · 6 u · turn 1.08</div>
+          </div>
+        </article>
+        <article>
+          <img src="ships/clipper-thumb.png" alt="Clipper" />
+          <div class="pad">
+            <h3>Clipper</h3>
+            <p>Runner</p>
+            <div class="data">9 ly · 10 u · turn 1.48</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="set">
+      <h2>Yard</h2>
+      <div class="grid">
+        <article>
+          <img src="ships/tender-thumb.png" alt="Tender" />
+          <div class="pad">
+            <h3>Tender</h3>
+            <p>Fuel</p>
+            <div class="data">14 ly · 20 u · 200 t1</div>
+          </div>
+        </article>
+        <article>
+          <img src="ships/tug-thumb.png" alt="Tug" />
+          <div class="pad">
+            <h3>Tug</h3>
+            <p>Harbor</p>
+            <div class="data">8 ly · 14 u · turn 1.58</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <p class="note">
+      Clone the repo, then <code>npm install && npm run dev</code>.
+      The old Pages prototype is gone. This is the Kepler build.
+    </p>
+  </main>
+</body>
+</html>

@@ -52,11 +52,11 @@ Clipper cannot plot every Helion-component hop in one lock (galaxy was tuned for
 
 ## Code
 
-- Stats / modules / sets: `app/src/lib/starwake/catalog.ts` (`SHIP_SETS`)
-- Ids: `app/src/lib/starwake/types.ts`
-- Selector: `app/src/components/starwake/Hangar.tsx`, `Gate.tsx`
-- 3D + hardpoints: `app/src/components/starwake/HullBay.tsx`
-- Portraits: `app/public/ships/{courier,hauler,scout,clipper,tender,tug}.png` and `-thumb.png`
+- Stats / modules / sets: `src/lib/starwake/catalog.ts` (`SHIP_SETS`)
+- Ids: `src/lib/starwake/types.ts`
+- Selector: `src/components/starwake/Hangar.tsx`, `Gate.tsx`
+- 3D + hardpoints: `src/components/starwake/HullBay.tsx`
+- Portraits: `public/ships/{courier,hauler,scout,clipper,tender,tug}.png` and `-thumb.png`
 - Save version **10** (older loadouts still load)
 
 Moons stay in the sky as scenery. Look, arrive, and jump no longer target satellites.

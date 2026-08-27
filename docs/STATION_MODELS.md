@@ -14,7 +14,7 @@ Helion showcases the three NASA habitats in one system: **Helion I Lock** (wheel
 
 ## Code
 
-- Layouts and hull/solar/dock/radiator shaders: `app/src/lib/starwake/station-mesh.ts`
-- Frame, gates, proximity: `app/src/lib/starwake/stations.ts`
-- Draw + LOD: `app/src/lib/starwake/engine.ts` (`drawStation`)
-- Kind assignment: `app/src/lib/starwake/galaxy.ts` (`makeStations`)
+- Layouts and hull/solar/dock/radiator shaders: `src/lib/starwake/station-mesh.ts`
+- Frame, gates, proximity: `src/lib/starwake/stations.ts`
+- Draw + LOD: `src/lib/starwake/engine.ts` (`drawStation`)
+- Kind assignment: `src/lib/starwake/galaxy.ts` (`makeStations`)
