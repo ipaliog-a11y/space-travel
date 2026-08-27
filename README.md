@@ -18,8 +18,10 @@ No installation required! Works on Chrome, Firefox, and Edge.
 
 The live Grok Build app is snapshotted in [`app/`](app/). It is ahead of the Pages prototype:
 
-- Kepler galaxy, planet types, moons, belts, comets, nebulae
-- Courier / Hauler / **Scout** / **Clipper** hangar, loadouts, jobs, surveys, T1 fuel
+- Kepler galaxy, planet types, moons (scenery only), belts, comets, nebulae
+- Two hangar sets: **Line** (Courier / Hauler / Scout / Clipper) and **Yard** (Tender / Tug)
+- Hangar selector with avatars, roles, and a short dossier
+- Loadouts, jobs, surveys, T1 fuel
 - 10-bay docking at orbital locks
 - Five station models: Stanford wheel, O'Neill cylinder, Bernal habitat, truss array, drydock yard
 

@@ -1,4 +1,4 @@
-export type ShipId = "courier" | "hauler" | "scout" | "clipper";
+export type ShipId = "courier" | "hauler" | "scout" | "clipper" | "tender" | "tug";
 
 export type FlightMode = "docked" | "local" | "boosting" | "charging" | "hyperspace" | "transit" | "dropping" | "docking" | "berthed";
 
@@ -64,7 +64,7 @@ export type Loadout = Record<ShipId, ShipLoadout>;
 
 export type MenuView = "menu" | "hangar";
 
-export type JobKind = "courier" | "hauler";
+export type JobKind = "courier" | "hauler" | "tender" | "tug";
 
 export type JobStop = { systemId: string; stationId: string };
 

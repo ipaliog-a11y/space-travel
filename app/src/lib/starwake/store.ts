@@ -4,7 +4,7 @@ import type { CargoJob, FlightMode, Loadout, Manifest, MapLayer, MenuView, ShipI
 import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, moduleById, sanitizeFuel, sanitizeLoadout } from "./catalog";
 import { atStop, jobFits, makeBoard, refillBoard, sanitizeBoard, sanitizeManifests } from "./jobs";
 
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 
 export type StarwakeState = {
   version: number;
@@ -92,11 +92,13 @@ export const useStarwake = create<StarwakeState>()(
         hauler: { ...STOCK_LOADOUT.hauler },
         scout: { ...STOCK_LOADOUT.scout },
         clipper: { ...STOCK_LOADOUT.clipper },
+        tender: { ...STOCK_LOADOUT.tender },
+        tug: { ...STOCK_LOADOUT.tug },
       },
       fuel: fullTanks(),
       menuView: "menu",
       board: makeBoard("helion", 0xc0de),
-      manifests: { courier: null, hauler: null, scout: null, clipper: null },
+      manifests: { courier: null, hauler: null, scout: null, clipper: null, tender: null, tug: null },
       completed: 0,
       jobSeed: 0xc0de,
       hasSave: false,

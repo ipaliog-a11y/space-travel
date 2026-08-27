@@ -6,8 +6,20 @@ import type { Loadout } from "./types";
 
 const COURIER_CARGO = ["sealed cores", "scan plates", "seed vault", "nav film", "med ice"];
 const HAULER_CARGO = ["ore", "water ice", "grain", "basalt", "volatiles"];
+const TENDER_CARGO = ["LH2", "reaction mass", "cell packs", "cryo feed", "depot water"];
+const TUG_CARGO = ["lock crates", "bay spares", "gantry parts", "dock film", "collar rings"];
 const COURIER_QTY = [2, 3, 4, 6];
 const HAULER_QTY = [16, 20, 24, 32];
+const TENDER_QTY = [10, 12, 14, 16];
+const TUG_QTY = [8, 10, 12];
+const JOB_KINDS: JobKind[] = ["courier", "hauler", "tender", "tug"];
+
+function cargoBag(kind: JobKind) {
+  if (kind === "hauler") return { bag: HAULER_CARGO, qtys: HAULER_QTY, range: 18 };
+  if (kind === "tender") return { bag: TENDER_CARGO, qtys: TENDER_QTY, range: 14 };
+  if (kind === "tug") return { bag: TUG_CARGO, qtys: TUG_QTY, range: 0 };
+  return { bag: COURIER_CARGO, qtys: COURIER_QTY, range: 12 };
+}
 
 function stopLabel(stop: JobStop) {
   const st = getStation(stop.systemId, stop.stationId);
@@ -40,13 +52,12 @@ function makeJob(kind: JobKind, fromSys: string, jump: boolean, rng: () => numbe
   if (!fromS) return null;
   let toSys = origin;
   if (jump) {
-    const hop = neighborPort(origin.id, kind === "courier" ? 12 : 18, rng);
+    const hop = neighborPort(origin.id, cargoBag(kind).range, rng);
     if (hop) toSys = hop;
   }
   const toS = pickStation(toSys.id, rng, toSys.id === origin.id ? fromS.id : undefined);
   if (!toS || (toS.id === fromS.id && toSys.id === origin.id)) return null;
-  const bag = kind === "courier" ? COURIER_CARGO : HAULER_CARGO;
-  const qtys = kind === "courier" ? COURIER_QTY : HAULER_QTY;
+  const { bag, qtys } = cargoBag(kind);
   const cargo = bag[Math.floor(rng() * bag.length)];
   const qty = qtys[Math.floor(rng() * qtys.length)];
   const from: JobStop = { systemId: origin.id, stationId: fromS.id };
@@ -70,6 +81,8 @@ export function makeBoard(systemId: string, seed = 0xc0de): CargoJob[] {
     { kind: "hauler", jump: false },
     { kind: "courier", jump: true },
     { kind: "hauler", jump: true },
+    { kind: "tender", jump: true },
+    { kind: "tug", jump: false },
   ];
   let n = 0;
   for (const row of plan) {
@@ -81,7 +94,7 @@ export function makeBoard(systemId: string, seed = 0xc0de): CargoJob[] {
 }
 
 export function refillBoard(board: CargoJob[], systemId: string, seed: number): CargoJob[] {
-  if (board.length >= 4) return board;
+  if (board.length >= 6) return board;
   const extra = makeBoard(systemId, seed);
   const have = new Set(board.map((j) => j.id));
   const next = [...board];
@@ -89,7 +102,7 @@ export function refillBoard(board: CargoJob[], systemId: string, seed: number): 
     if (have.has(j.id)) continue;
     next.push(j);
     have.add(j.id);
-    if (next.length >= 4) break;
+    if (next.length >= 6) break;
   }
   return next;
 }
@@ -120,7 +133,7 @@ export function sanitizeBoard(raw: unknown, systemId: string): CargoJob[] {
     if (typeof j.qty !== "number" || j.qty < 1) continue;
     out.push({
       id: String(j.id || hashu(`${from.stationId}-${to.stationId}`).toString(36)),
-      kind: j.kind === "hauler" ? "hauler" : "courier",
+      kind: JOB_KINDS.includes(j.kind) ? j.kind : "courier",
       title: String(j.title || j.cargo || "run"),
       cargo: String(j.cargo || "cargo"),
       qty: Math.round(j.qty),

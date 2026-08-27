@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  SHIP_ORDER,
+  SHIP_SETS,
   SHIPS,
   SLOT_TAB,
   SLOTS,
@@ -26,7 +26,7 @@ const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: 
   { key: "overdriveSpeed", label: "OD", unit: "", max: 90 },
   { key: "jumpRangeLy", label: "Jump", unit: "ly", max: 36 },
   { key: "cargoCap", label: "Hold", unit: "u", max: 80 },
-  { key: "fuelCap", label: "Tank", unit: "t1", max: 180 },
+  { key: "fuelCap", label: "Tank", unit: "t1", max: 280 },
   { key: "overdriveSec", label: "Heat", unit: "s", max: 18 },
   { key: "coolSec", label: "Cool", unit: "s", max: 12, invert: true },
   { key: "fsdChargeSec", label: "Spool", unit: "s", max: 5.2, invert: true },
@@ -69,7 +69,7 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
     <div className="gate hangar" data-ui>
       <header className="hangar-head">
         <h1>Hangar</h1>
-        <p className="lede">Four hulls. Pick a bay — packet, bulk, pathfinder, or runner — then fit it and fly.</p>
+        <p className="lede">Two sets. Line flies the routes. Yard fuels and shoves. Pick a bay, fit it, fly.</p>
         <p className="keys-hint">
           {completed} run{completed === 1 ? "" : "s"}
           <span className="dot">·</span>
@@ -79,32 +79,41 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
         </p>
       </header>
 
-      <div className="ship-rail" role="tablist" aria-label="Hull">
-        {SHIP_ORDER.map((id) => {
-          const hull = SHIPS[id];
-          const fit = fittedShip(id, loadout);
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={shipId === id}
-              className={`ship-rail-card${shipId === id ? " on" : ""}`}
-              onClick={() => {
-                onPick(id);
-                setSlot("tank");
-              }}
-            >
-              <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
-              <span className="ship-rail-name">{hull.name}</span>
-              <span className="ship-rail-role">{hull.role}</span>
-              <span className="ship-rail-data">
-                {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {SHIP_SETS.map((set) => (
+        <section key={set.id} className={`ship-set ship-set-${set.id}`}>
+          <div className="ship-set-head">
+            <h2>{set.label}</h2>
+            <p>{set.blurb}</p>
+          </div>
+          <div className="ship-rail" role="tablist" aria-label={set.label}>
+            {set.hulls.map((id) => {
+              const hull = SHIPS[id];
+              const fit = fittedShip(id, loadout);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={shipId === id}
+                  className={`ship-rail-card${shipId === id ? " on" : ""}`}
+                  onClick={() => {
+                    onPick(id);
+                    setSlot("tank");
+                  }}
+                >
+                  <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
+                  <span className="ship-rail-name">{hull.name}</span>
+                  <span className="ship-rail-role">{hull.role}</span>
+                  <span className="ship-rail-blurb">{hull.blurb}</span>
+                  <span className="ship-rail-data">
+                    {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
 
       <div className="hull-dossier">
         <img src={`/ships/${shipId}.png`} alt="" className="hull-dossier-art" />
@@ -137,6 +146,15 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
             <li>
               <em>Cruise</em>
               <strong>{fitted.cruiseSpeed.toFixed(1)}</strong>
+            </li>
+            <li>
+              <em>Tank</em>
+              <strong>{Math.round(fitted.fuelCap)}</strong>
+              <span>t1</span>
+            </li>
+            <li>
+              <em>Boost</em>
+              <strong>{fitted.boostCapacity}</strong>
             </li>
             <li>
               <em>Survey</em>

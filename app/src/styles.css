@@ -510,7 +510,8 @@ button:disabled { cursor: default; }
   padding:24px;
   display:flex;
   position:absolute;
-  inset:0
+  inset:0;
+  overflow:auto
 }
 .gate h1 {
   font-family:var(--font-display);
@@ -663,12 +664,45 @@ button:disabled { cursor: default; }
   margin:0 auto 14px;
   display:flex
 }
+.ship-set {
+  width:min(1080px,100%);
+  margin:0 auto 12px
+}
+.gate.menu .ship-set {
+  width:min(640px,100%)
+}
+.ship-set-head {
+  align-items:baseline;
+  gap:10px;
+  margin:0 0 8px;
+  display:flex
+}
+.ship-set-head h2 {
+  font-family:var(--font-sans);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--color-subtle);
+  margin:0;
+  font-size:11px;
+  font-weight:500;
+  line-height:1.2
+}
+.ship-set-head p {
+  color:var(--color-muted);
+  margin:0;
+  font-size:12px;
+  line-height:1.4
+}
 .ship-rail {
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:8px;
-  width:min(1080px,100%);
-  margin:0 auto 14px;
+  width:100%;
+  margin:0 auto 4px;
   display:grid
+}
+.ship-set-yard .ship-rail {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  max-width:540px
 }
 .ship-rail-card {
   text-align:left;
@@ -713,6 +747,16 @@ button:disabled { cursor: default; }
   margin-top:4px;
   font-size:10px;
   display:block
+}
+.ship-rail-blurb {
+  color:var(--color-muted);
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.35
 }
 .hull-dossier {
   grid-template-columns:minmax(96px,140px) minmax(0,1fr);
@@ -1742,6 +1786,9 @@ button:disabled { cursor: default; }
   .ship-rail {
     grid-template-columns:1fr 1fr
   }
+  .ship-set-yard .ship-rail {
+    max-width:none
+  }
   .hull-dossier {
     grid-template-columns:1fr
   }
@@ -2120,7 +2167,7 @@ button:disabled { cursor: default; }
   stroke-dasharray: 3 4;
 }
 .sys-belt.on .sys-belt-ring { stroke: #ececef6b; }
-.sys-moon { pointer-events: auto; }
+.sys-moon { pointer-events: none; }
 .map-row.moon { padding-left: 22px; }
 .map-row.moon .map-name { font-size: 12px; }
 .drive-dock {

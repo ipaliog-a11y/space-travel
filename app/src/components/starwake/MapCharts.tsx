@@ -438,11 +438,7 @@ export function SystemDiagram({ system, selectedId, onPick, showShip = true, int
                   cy={y + Math.sin(a) * md}
                   r="1.35"
                   fill={rgb(m.color)}
-                  className={selectedId === m.id ? "sys-moon on" : "sys-moon"}
-                  onClick={interactive ? (e) => {
-                    e.stopPropagation();
-                    onPick({ kind: "moon", id: m.id });
-                  } : undefined}
+                  className="sys-moon"
                 />
               );
             })}

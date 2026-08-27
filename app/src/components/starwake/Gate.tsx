@@ -1,4 +1,4 @@
-import { SHIP_ORDER, SHIPS, fittedShip } from "@/lib/starwake/catalog";
+import { SHIP_SETS, SHIPS, fittedShip } from "@/lib/starwake/catalog";
 import { holdUsed } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ShipId } from "@/lib/starwake/types";
@@ -21,7 +21,7 @@ export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }
     <div className="gate menu" data-ui>
       <header className="hangar-head">
         <h1>Starwake</h1>
-        <p className="lede">Four hulls in the hangar. Packet, bulk, pathfinder, runner. Fit a bay, then fly.</p>
+        <p className="lede">Two hangar sets. Line flies the routes. Yard fuels and shoves. Fit a bay, then fly.</p>
         <p className="keys-hint">
           <kbd>A</kbd>/<kbd>Z</kbd> throttle
           <kbd>Q</kbd>/<kbd>E</kbd> roll
@@ -31,32 +31,40 @@ export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }
         </p>
       </header>
 
-      <div className="ship-pick">
-        {SHIP_ORDER.map((id) => {
-          const fit = fittedShip(id, loadout);
-          const used = holdUsed(manifests[id]);
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`ship-card${shipId === id ? " on" : ""}`}
-              onClick={() => {
-                onPick(id);
-                onHangar();
-              }}
-            >
-              <img src={`/ships/${id}-thumb.png`} alt="" className="hull-art" />
-              <h2>{SHIPS[id].name}</h2>
-              <span className="ship-role">{SHIPS[id].role}</span>
-              <p>{SHIPS[id].blurb}</p>
-              <span className="ship-meta">
-                {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u · turn {fit.turnRate.toFixed(2)}
-                {manifests[id] ? " · job" : ""}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {SHIP_SETS.map((set) => (
+        <section key={set.id} className={`ship-set ship-set-${set.id}`}>
+          <div className="ship-set-head">
+            <h2>{set.label}</h2>
+            <p>{set.blurb}</p>
+          </div>
+          <div className="ship-pick">
+            {set.hulls.map((id) => {
+              const fit = fittedShip(id, loadout);
+              const used = holdUsed(manifests[id]);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`ship-card${shipId === id ? " on" : ""}`}
+                  onClick={() => {
+                    onPick(id);
+                    onHangar();
+                  }}
+                >
+                  <img src={`/ships/${id}-thumb.png`} alt="" className="hull-art" />
+                  <h2>{SHIPS[id].name}</h2>
+                  <span className="ship-role">{SHIPS[id].role}</span>
+                  <p>{SHIPS[id].blurb}</p>
+                  <span className="ship-meta">
+                    {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)}
+                    {manifests[id] ? " · job" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
 
       <div className="gate-acts">
         <button type="button" className="engage" onClick={onHangar}>

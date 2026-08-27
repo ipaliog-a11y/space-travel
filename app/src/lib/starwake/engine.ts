@@ -1083,6 +1083,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	function commitBody(target) {
 		navTarget = null;
 		navName = null;
+		if (!target || target.kind === "moon") return;
 		if (target.kind === "planet") placeAtPlanet(target.id);
 		else if (target.kind === "station") placeAtStation(target.id);
 		else if (target.kind === "moon") placeAtMoon(target.id);
@@ -1091,6 +1092,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		else placeInSystem(getStarwake().systemId);
 	}
 	function goToBody(target) {
+		if (!target || target.kind === "moon") return;
 		const st = getStarwake();
 		if (!st.entered) return;
 		if (mode === "charging" || mode === "hyperspace" || mode === "dropping" || mode === "docking" || mode === "berthed" || mode === "transit") return;
@@ -1132,6 +1134,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		audio.fireEngage(def.audioPitch * 1.06);
 	}
 	function lookAtBody(target, keepMap = false) {
+		if (!target || target.kind === "moon") return;
 		if (!getStarwake().entered) return;
 		if (mode === "charging" || mode === "hyperspace" || mode === "dropping" || mode === "docking" || mode === "berthed" || mode === "transit") return;
 		const now = performance.now();
@@ -1157,7 +1160,14 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		pushDrive();
 	}
 	function hopTarget() {
-		if (navTarget) return alreadyThere(navTarget) ? null : navTarget;
+		if (navTarget) {
+			if (navTarget.kind === "moon") {
+				navTarget = null;
+				navName = null;
+				return null;
+			}
+			return alreadyThere(navTarget) ? null : navTarget;
+		}
 		if (!focusId) return null;
 		const sysNow = getSystem(getStarwake().systemId);
 		let target;
@@ -1166,7 +1176,6 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		else if (sysNow.stations.find((s) => s.id === focusId)) target = { kind: "station", id: focusId };
 		else if (sysNow.planets.find((pl) => pl.id === focusId)) target = { kind: "planet", id: focusId };
 		else if (sysNow.comets.find((c) => c.id === focusId)) target = { kind: "comet", id: focusId };
-		else if (sysNow.planets.some((pl) => pl.moons.some((m) => m.id === focusId))) target = { kind: "moon", id: focusId };
 		else return null;
 		return alreadyThere(target) ? null : target;
 	}
@@ -1332,18 +1341,6 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				nearProx = prox;
 			}
 			consider(p.id, p.name, x, y, z, p.radius);
-			for (const m of p.moons) {
-				const [mx, my, mz] = moonWorld(p, m, worldTime);
-				const md = Math.hypot(mx - shipPos.x, my - shipPos.y, mz - shipPos.z);
-				const mprox = moonProximity(m);
-				if (md < mprox && md < nearDist) {
-					nearDist = md;
-					nearName = m.name;
-					nearId = m.id;
-					nearProx = mprox;
-				}
-				consider(m.id, m.name, mx, my, mz, m.radius);
-			}
 		}
 		for (const c of sysNow.comets) {
 			const [x, y, z] = cometWorld(c, worldTime);

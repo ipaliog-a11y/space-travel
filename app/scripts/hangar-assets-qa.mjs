@@ -12,7 +12,7 @@ async function open(viewport) {
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
   await page.addInitScript(() => { try { localStorage.removeItem("starwake-v2"); } catch {} });
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-  await page.waitForSelector(".gate.menu, .gate.hangar", { timeout: 8000 });
+  await page.waitForSelector(".ship-card, .ship-rail-card", { timeout: 20000 });
   await page.waitForTimeout(400);
   return page;
 }
@@ -81,6 +81,28 @@ const clipperPlate = await page.locator(".hull-plate").evaluate((i) => ({
 }));
 await page.screenshot({ path: "/workspace/screenshots/hangar-clipper.png" });
 
+await page.getByRole("tab", { name: "Tender" }).click({ force: true });
+await page.waitForSelector(".hull-bay.hull-tender", { timeout: 8000 });
+await page.waitForTimeout(500);
+const tender = await page.locator(".hull-bay.hull-tender").count();
+const tenderPlate = await page.locator(".hull-plate").evaluate((i) => ({
+  src: i.getAttribute("src"),
+  w: i.naturalWidth,
+  h: i.naturalHeight,
+}));
+await page.screenshot({ path: "/workspace/screenshots/hangar-tender.png" });
+
+await page.getByRole("tab", { name: "Tug" }).click({ force: true });
+await page.waitForSelector(".hull-bay.hull-tug", { timeout: 8000 });
+await page.waitForTimeout(500);
+const tug = await page.locator(".hull-bay.hull-tug").count();
+const tugPlate = await page.locator(".hull-plate").evaluate((i) => ({
+  src: i.getAttribute("src"),
+  w: i.naturalWidth,
+  h: i.naturalHeight,
+}));
+await page.screenshot({ path: "/workspace/screenshots/hangar-tug.png" });
+
 const mobile = await open({ width: 390, height: 844 });
 await mobile.screenshot({ path: "/workspace/screenshots/menu-mobile.png" });
 await mobile.getByRole("button", { name: "Hangar" }).click({ force: true });
@@ -92,7 +114,7 @@ const overflow = await mobile.evaluate(
 );
 
 const ok =
-  menuArt.length === 4 &&
+  menuArt.length === 6 &&
   menuArt.every((a) => a.w > 200) &&
   hardpoints === 6 &&
   canvas === 1 &&
@@ -107,9 +129,15 @@ const ok =
   clipper === 1 &&
   /clipper\.png/.test(clipperPlate.src ?? "") &&
   clipperPlate.w > 200 &&
+  tender === 1 &&
+  /tender\.png/.test(tenderPlate.src ?? "") &&
+  tenderPlate.w > 200 &&
+  tug === 1 &&
+  /tug\.png/.test(tugPlate.src ?? "") &&
+  tugPlate.w > 200 &&
   !overflow &&
   errors.length === 0;
 
-console.log(JSON.stringify({ ok, menuArt, hardpoints, canvas, plate, hauler, haulerPlate, scout, scoutPlate, clipper, clipperPlate, overflow, errors }, null, 2));
+console.log(JSON.stringify({ ok, menuArt, hardpoints, canvas, plate, hauler, haulerPlate, scout, scoutPlate, clipper, clipperPlate, tender, tenderPlate, tug, tugPlate, overflow, errors }, null, 2));
 await browser.close();
 process.exit(ok ? 0 : 1);

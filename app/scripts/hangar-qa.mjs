@@ -94,6 +94,23 @@ const clipperShip = await page.locator(".hull-bay.hull-clipper").count();
 const clipperPlate = await page.locator(".hull-plate").getAttribute("src");
 await page.screenshot({ path: "/workspace/screenshots/hangar-clipper.png" });
 
+await page.getByRole("tab", { name: "Tender" }).click({ force: true });
+await page.waitForTimeout(700);
+const tenderJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
+const tenderTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").innerText();
+const tenderShip = await page.locator(".hull-bay.hull-tender").count();
+const tenderPlate = await page.locator(".hull-plate").getAttribute("src");
+const tenderRole = await page.locator(".hull-dossier-kicker").innerText();
+await page.screenshot({ path: "/workspace/screenshots/hangar-tender.png" });
+
+await page.getByRole("tab", { name: "Tug" }).click({ force: true });
+await page.waitForTimeout(700);
+const tugJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
+const tugTurn = await page.locator(".spec-list div").filter({ hasText: "Turn" }).locator(".spec-val").innerText();
+const tugShip = await page.locator(".hull-bay.hull-tug").count();
+const tugPlate = await page.locator(".hull-plate").getAttribute("src");
+await page.screenshot({ path: "/workspace/screenshots/hangar-tug.png" });
+
 await page.getByRole("tab", { name: "Courier" }).click({ force: true });
 await page.waitForTimeout(150);
 const courierBack = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
@@ -158,7 +175,7 @@ const mobileOverflow = await mobile.evaluate(() => document.documentElement.scro
 
 const ok =
   menu === 1 &&
-  menuArt === 4 &&
+  menuArt === 6 &&
   hangar === 1 &&
   hardpoints === 6 &&
   bayCanvas === 1 &&
@@ -187,6 +204,15 @@ const ok =
   /9/.test(clipperJump) &&
   /7\.8/.test(clipperCruise) &&
   /clipper\.png/.test(clipperPlate ?? "") &&
+  tenderShip === 1 &&
+  tugShip === 1 &&
+  /14/.test(tenderJump) &&
+  /200/.test(tenderTank) &&
+  /Fuel/i.test(tenderRole) &&
+  /tender\.png/.test(tenderPlate ?? "") &&
+  /8/.test(tugJump) &&
+  /1\.58/.test(tugTurn) &&
+  /tug\.png/.test(tugPlate ?? "") &&
   /16/.test(courierBack) &&
   accepted === 1 &&
   fitted?.jumpRangeLy === 16 &&
@@ -210,7 +236,7 @@ const ok =
 
 console.log(JSON.stringify({
   ok, menu, menuArt, hangar, hardpoints, bayCanvas, courierBay, plateSrc, haulerPlate, stockJump, stockHold, stockHeat, stockTank, longTank, coldHeat, coldCool,
-  farJump, farOn, haulerJump, haulerHold, deepHold, haulerShip, scoutJump, scoutHold, scoutShip, scoutPlate, scoutRole, clipperJump, clipperCruise, clipperShip, clipperPlate, courierBack, accepted,
+  farJump, farOn, haulerJump, haulerHold, deepHold, haulerShip, scoutJump, scoutHold, scoutShip, scoutPlate, scoutRole, clipperJump, clipperCruise, clipperShip, clipperPlate, tenderJump, tenderTank, tenderShip, tenderPlate, tenderRole, tugJump, tugTurn, tugShip, tugPlate, courierBack, accepted,
   fitted, fuel0, fuelDry, fuelFull, manifest, chip, bay, loaded, delivered, backMenu, stillFar, stillHeat, mobileOverflow, errors,
 }, null, 2));
 await browser.close();

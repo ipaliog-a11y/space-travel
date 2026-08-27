@@ -4,7 +4,6 @@ import {
   catalogSystems,
   distLy,
   formatPeriodLine,
-  getMoon,
   getPlanet,
   getStation,
   getSystem,
@@ -103,7 +102,6 @@ export function MapPanel({
     if (!pick || pick === "star") return { kind: "star" };
     if (here.belt && pick === here.belt.id) return { kind: "belt" };
     if (here.comets.some((c) => c.id === pick)) return { kind: "comet", id: pick };
-    if (getMoon(systemId, pick)) return { kind: "moon", id: pick };
     if (getStation(systemId, pick)) return { kind: "station", id: pick };
     const p = getPlanet(systemId, pick);
     if (p?.stationId && pick === p.stationId) return { kind: "station", id: pick };
@@ -247,15 +245,11 @@ export function MapPanel({
                         </span>
                       </div>
                       {p.moons.map((m) => (
-                        <div key={m.id} className={`map-row moon${pick === m.id ? " locked" : ""}`}>
+                        <div key={m.id} className="map-row moon">
                           <button type="button" className="map-name" disabled={!scanned[m.id]} onClick={() => setFileId(m.id)}>
                             {m.name}
                             <em className="map-port">moon</em>
                           </button>
-                          <span className="row-acts">
-                            <button type="button" disabled={jumping} onClick={() => pickBody({ kind: "moon", id: m.id })}>look</button>
-                            <button type="button" disabled={jumping} onClick={() => onGoBody({ kind: "moon", id: m.id })}>arrive</button>
-                          </span>
                         </div>
                       ))}
                     </div>
