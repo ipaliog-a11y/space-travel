@@ -111,7 +111,19 @@ function main(argv) {
     process.exit(2);
   }
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
-  const child = spawn(command, args, { stdio: "inherit", env });
+  
+  // Resolve command to full path if it's in node_modules/.bin
+  const root = projectRoot();
+  const binPath = join(root, 'node_modules', '.bin');
+  const commandPath = command === 'vite' ? join(binPath, command + '.cmd') : command;
+  
+  // On Windows, need shell: true for .cmd files
+  const isWindows = process.platform === 'win32';
+  const child = spawn(commandPath, args, { 
+    stdio: "inherit", 
+    env,
+    shell: isWindows
+  });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.on(signal, () => child.kill(signal));

@@ -1,0 +1,5 @@
+{
+  "VITE_AUTH_ENABLED": "false",
+  "VITE_APP_NAME": "Starwake",
+  "VITE_APP_ENV": "development"
+}
