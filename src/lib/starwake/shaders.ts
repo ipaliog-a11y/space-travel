@@ -383,15 +383,33 @@ uniform float uEmissive;
 uniform float uKind;
 uniform float uSeed;
 
-float hash13(vec3 p) {
-  p = fract(p * 0.1031 + uSeed);
-  p += dot(p, p.yzx + 33.33);
-  return fract((p.x + p.y) * p.z);
+// ============================================================================
+// ENHANCED PROCEDURAL TEXTURE FUNCTIONS
+// ============================================================================
+
+float hash11(float p) {
+  p = fract(p * 0.1031);
+  p *= p + 33.33;
+  p *= p + p;
+  return fract(p);
 }
+
+float hash12(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float hash13(vec3 p3) {
+  p3 = fract(p3 * 0.1031);
+  p3 += dot(p3, p3.zyx + 31.32);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
 float vnoise(vec3 p) {
   vec3 i = floor(p);
   vec3 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
+  f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
   float n000 = hash13(i);
   float n100 = hash13(i + vec3(1.0, 0.0, 0.0));
   float n010 = hash13(i + vec3(0.0, 1.0, 0.0));
@@ -404,16 +422,181 @@ float vnoise(vec3 p) {
   float nx10 = mix(n010, n110, f.x);
   float nx01 = mix(n001, n101, f.x);
   float nx11 = mix(n011, n111, f.x);
-  return mix(mix(nx00, nx10, f.y), mix(nx01, nx11, f.y), f.z);
+  float nxy0 = mix(nx00, nx10, f.y);
+  float nxy1 = mix(nx01, nx11, f.y);
+  return mix(nxy0, nxy1, f.z);
 }
+
 float fbm(vec3 p) {
   float s = 0.0;
   float a = 0.5;
   s += a * vnoise(p); p *= 2.05; a *= 0.5;
   s += a * vnoise(p); p *= 2.03; a *= 0.5;
   s += a * vnoise(p); p *= 2.07; a *= 0.5;
+  s += a * vnoise(p); p *= 2.01; a *= 0.5;
   s += a * vnoise(p);
   return s;
+}
+
+float ridgedFbm(vec3 p) {
+  float value = 0.0;
+  float amplitude = 1.0;
+  float frequency = 1.0;
+  for (int i = 0; i < 4; i++) {
+    float n = vnoise(p * frequency);
+    n = 1.0 - abs(n);
+    n = n * n;
+    value += amplitude * n;
+    amplitude *= 0.5;
+    frequency *= 2.0;
+  }
+  return value;
+}
+
+vec3 warpDomain(vec3 p, float strength, float scale) {
+  vec3 warp = vec3(
+    vnoise(p * scale),
+    vnoise(p * scale + vec3(5.2, 1.3, 9.1)),
+    vnoise(p * scale + vec3(1.8, 7.4, 3.2))
+  );
+  return p + warp * strength;
+}
+
+vec3 warpDomainAdvanced(vec3 p, float strength1, float strength2, float scale1, float scale2) {
+  vec3 warp1 = vec3(
+    vnoise(p * scale1),
+    vnoise(p * scale1 + vec3(5.2, 1.3, 9.1)),
+    vnoise(p * scale1 + vec3(1.8, 7.4, 3.2))
+  );
+  p = p + warp1 * strength1;
+  vec3 warp2 = vec3(
+    vnoise(p * scale2 + vec3(8.3, 2.1, 4.7)),
+    vnoise(p * scale2 + vec3(3.9, 6.5, 1.2)),
+    vnoise(p * scale2 + vec3(7.4, 9.8, 5.6))
+  );
+  return p + warp2 * strength2;
+}
+
+float crater(vec2 uv, vec2 center, float radius, float depth) {
+  float d = length(uv - center);
+  float craterShape = smoothstep(radius, radius * 0.7, d);
+  float rim = smoothstep(radius * 1.1, radius, d) * smoothstep(radius * 0.9, radius * 1.1, d);
+  float bowl = smoothstep(radius * 0.6, 0.0, d);
+  return craterShape * depth + rim * 0.3 + bowl * 0.5;
+}
+
+float craterNoise(vec3 p, float density, float seed) {
+  vec2 uv = vec2(atan(p.z, p.x), asin(p.y));
+  float craters = 0.0;
+  vec2 grid = floor(uv * density);
+  for (float x = -1.0; x <= 1.0; x++) {
+    for (float y = -1.0; y <= 1.0; y++) {
+      vec2 cell = grid + vec2(x, y);
+      float h = hash12(cell * seed);
+      if (h > 0.7) {
+        vec2 pos = cell / density + (hash12(cell * (seed + 1.0)) - 0.5) * 0.8 / density;
+        float r = (hash12(cell * (seed + 2.0)) * 0.5 + 0.5) * 0.8 / density;
+        float d = hash12(cell * (seed + 3.0));
+        craters += crater(uv, pos, r, d);
+      }
+    }
+  }
+  return craters;
+}
+
+float stormVortex(vec3 p, vec2 stormPos, float size, float seed) {
+  vec2 uv = vec2(atan(p.z, p.x), asin(p.y));
+  vec2 d = uv - stormPos;
+  float dist = length(d);
+  if (dist > size * 2.0) return 0.0;
+  float angle = atan(d.y, d.x);
+  float swirl = sin(angle * 8.0 + dist * 4.0 - seed * 10.0);
+  float vortex = exp(-dist * dist * 4.0 / (size * size));
+  return vortex * (0.5 + 0.5 * swirl);
+}
+
+float gasBands(vec3 p, float latitude, float seed) {
+  float bands = sin(latitude * 18.0 + seed * 6.283);
+  bands += sin(latitude * 9.0 + seed * 3.14) * 0.5;
+  bands += sin(latitude * 36.0 + seed * 9.42) * 0.25;
+  return bands * 0.5 + 0.5;
+}
+
+float granulation(vec3 p, float scale, float seed) {
+  float g1 = vnoise(p * scale + seed * 10.0);
+  float g2 = vnoise(p * scale * 0.5 + vec3(5.2, 1.3, 9.1) + seed * 5.0);
+  float g3 = vnoise(p * scale * 2.0 + vec3(1.8, 7.4, 3.2) + seed * 15.0);
+  return g1 * 0.6 + g2 * 0.3 + g3 * 0.1;
+}
+
+float sunspot(vec3 p, vec2 spotPos, float size, float seed) {
+  vec2 uv = vec2(atan(p.z, p.x), asin(p.y));
+  vec2 d = uv - spotPos;
+  float dist = length(d);
+  if (dist > size) return 0.0;
+  float umbra = smoothstep(size * 0.4, 0.0, dist);
+  float penumbra = smoothstep(size, size * 0.3, dist);
+  float angle = atan(d.y, d.x);
+  float striations = sin(angle * 12.0 + dist * 8.0) * 0.1 + 0.5;
+  return umbra * 0.7 + penumbra * striations * 0.3;
+}
+
+float freshCrater(vec2 uv, vec2 center, float radius) {
+  float d = length(uv - center);
+  float rim = smoothstep(radius * 1.15, radius * 0.85, d);
+  float bowl = smoothstep(radius * 0.7, 0.0, d);
+  float rays = 0.0;
+  for (float i = 0.0; i < 8.0; i++) {
+    float angle = i * 0.785 + 0.1;
+    vec2 rayDir = vec2(cos(angle), sin(angle));
+    float rayDist = dot(uv - center, rayDir);
+    float rayWidth = 0.03 + hash11(i) * 0.02;
+    float crossProd = (uv.x - center.x) * rayDir.y - (uv.y - center.y) * rayDir.x;
+    rays += smoothstep(rayWidth, 0.0, abs(crossProd)) 
+            * smoothstep(radius * 3.0, 0.0, rayDist)
+            * (hash11(i + 2.0) * 0.5 + 0.5);
+  }
+  return rim * 0.8 + bowl * 0.4 + rays * 0.3;
+}
+
+float erodedCrater(vec2 uv, vec2 center, float radius) {
+  float d = length(uv - center);
+  float rim = smoothstep(radius * 1.2, radius * 0.7, d) * 0.4;
+  float bowl = smoothstep(radius * 0.8, 0.0, d) * 0.2;
+  return rim + bowl;
+}
+
+vec3 moonSurface(vec3 p, vec3 baseColor, float seed, float craterDensity) {
+  vec2 uv = vec2(atan(p.z, p.x), asin(p.y));
+  float terrain = fbm(p * 3.0);
+  vec3 highland = mix(baseColor, vec3(0.72, 0.68, 0.62), 0.35);
+  vec3 lowland = baseColor * 0.75;
+  vec3 color = mix(lowland, highland, terrain);
+  float youngRegion = smoothstep(0.3, 0.7, vnoise(p * 2.0 + seed * 5.0));
+  float density = mix(craterDensity * 0.5, craterDensity * 1.5, youngRegion);
+  float craters = 0.0;
+  vec2 grid = floor(uv * density);
+  for (float x = -1.0; x <= 1.0; x++) {
+    for (float y = -1.0; y <= 1.0; y++) {
+      vec2 cell = grid + vec2(x, y);
+      float h = hash12(cell * seed);
+      if (h > 0.6) {
+        vec2 pos = cell / density + (hash12(cell * (seed + 1.0)) - 0.5) * 0.8 / density;
+        float r = (hash12(cell * (seed + 2.0)) * 0.6 + 0.4) * 0.8 / density;
+        float age = hash12(cell * (seed + 3.0));
+        float rayStrength = hash11(seed + 5.0);
+        if (age > 0.7 && rayStrength > 0.5) {
+          craters += freshCrater(uv, pos, r);
+        } else {
+          craters += erodedCrater(uv, pos, r);
+        }
+      }
+    }
+  }
+  color *= 1.0 - craters * 0.35;
+  float maria = smoothstep(0.68, 0.85, vnoise(p * 4.0 + seed * 8.0));
+  color = mix(color, baseColor * 0.55, maria * 0.5);
+  return color;
 }
 
 void main() {
@@ -423,83 +606,177 @@ void main() {
   float ndl = max(0.0, dot(n, L));
   vec3 V = normalize(uCamPos - vW);
   float rim = pow(1.0 - max(0.0, dot(n, V)), 2.4);
+  
   vec3 col = uColor;
   float kind = uKind;
   vec3 p = o * 4.0 + uSeed * 12.0;
-
+  
+  // Enhanced texture generation based on planet kind
   if (kind < 0.5) {
-    float g = fbm(o * 5.5);
-    col = uColor * (0.92 + g * 0.12);
+    // Star (kind 0) - Enhanced with granulation and sunspots
+    float gran = granulation(o, 12.0, uSeed);
+    col = uColor * (0.92 + gran * 0.12);
+    
+    // Sunspots
+    float spot1 = sunspot(o, vec2(0.3, 0.15), 0.2, uSeed);
+    float spot2 = sunspot(o, vec2(-0.8, -0.2), 0.15, uSeed + 3.0);
+    float spots = max(spot1, spot2);
+    col = mix(col, uColor * 0.6, spots * 0.7);
+    
+    // Limb darkening
+    float r = length(o.xz);
+    float limbFactor = pow(r, 2.0);
+    col *= mix(1.0, 0.6, 0.5 * limbFactor);
+    
     vec3 sunLit = col * (0.55 + ndl * 0.5);
     sunLit += col * (1.8 + uEmissive);
     sunLit += vec3(1.0, 0.96, 0.88) * rim * 0.35;
     gl_FragColor = vec4(sunLit, 1.0);
     return;
+    
   } else if (kind < 1.5) {
-    float land = fbm(p);
-    float crat = smoothstep(0.62, 0.78, vnoise(o * 18.0 + 3.0));
-    vec3 dirt = uColor * 0.72;
-    vec3 high = mix(uColor, vec3(0.62, 0.58, 0.5), 0.45);
-    col = mix(dirt, high, smoothstep(0.38, 0.62, land));
-    col *= 1.0 - crat * 0.28;
+    // Rocky world (kind 1) - Enhanced with craters and maria
+    float terrain = fbm(p * 4.0);
+    vec3 lowland = uColor * 0.7;
+    vec3 highland = mix(uColor, vec3(0.62, 0.58, 0.5), 0.45);
+    col = mix(lowland, highland, smoothstep(0.38, 0.62, terrain));
+    
+    float craters = craterNoise(p, 8.0, uSeed);
+    col *= 1.0 - craters * 0.28;
+    
+    float maria = smoothstep(0.72, 0.88, vnoise(p * 6.0 + uSeed * 5.0));
+    col = mix(col, uColor * 0.6, maria * 0.4);
+    
   } else if (kind < 2.5) {
-    float dune = 0.5 + 0.5 * sin(o.z * 28.0 + fbm(p) * 8.0);
+    // Desert world (kind 2) - Enhanced with dunes and canyons
+    float dune1 = sin(o.z * 28.0 + fbm(p * 2.0) * 8.0);
+    float dune2 = sin(o.x * 14.0 + fbm(p * 4.0) * 4.0);
+    float dune = 0.5 + 0.5 * ((dune1 + dune2 * 0.5) / 1.5);
+    dune += fbm(p * 6.0) * 0.3;
+    dune = clamp(dune, 0.0, 1.0);
+    
     vec3 sand = mix(uColor, vec3(0.82, 0.55, 0.28), 0.35);
-    vec3 dark = uColor * 0.55;
-    col = mix(dark, sand, dune);
+    vec3 bedrock = uColor * 0.55;
+    col = mix(bedrock, sand, dune);
+    
+    float canyon = ridgedFbm(p * 8.0);
+    col = mix(col, uColor * 0.4, canyon * 0.5);
+    
     col *= 0.85 + fbm(p * 1.6) * 0.3;
+    
   } else if (kind < 3.5) {
-    float land = fbm(p * 0.9);
+    // Ocean world (kind 3) - Enhanced with continents and clouds
+    float land = fbm(p * 3.0);
     float coast = smoothstep(0.46, 0.54, land);
-    vec3 sea = mix(vec3(0.02, 0.12, 0.28), uColor, 0.45);
-    vec3 deep = vec3(0.01, 0.05, 0.14);
+    
+    vec3 deepOcean = vec3(0.02, 0.12, 0.28);
+    vec3 shallowSea = mix(deepOcean, uColor, 0.45);
+    vec3 water = mix(deepOcean, shallowSea, 0.7 + 0.3 * fbm(p * 6.0));
+    
     vec3 shore = vec3(0.18, 0.28, 0.22);
-    vec3 landC = mix(uColor, vec3(0.22, 0.38, 0.18), 0.4);
-    col = mix(mix(deep, sea, 0.7 + 0.3 * fbm(p * 2.0)), mix(shore, landC, smoothstep(0.52, 0.7, land)), coast);
-    float cloud = smoothstep(0.55, 0.78, fbm(p * 1.4 + vec3(2.1, 0.0, 1.4)));
+    vec3 landColor = mix(uColor, vec3(0.22, 0.38, 0.18), 0.4);
+    vec3 highLand = mix(landColor, vec3(0.35, 0.32, 0.28), smoothstep(0.6, 0.8, land));
+    vec3 landFinal = mix(shore, highLand, smoothstep(0.52, 0.7, land));
+    
+    col = mix(water, landFinal, coast);
+    
+    float cloud = smoothstep(0.55, 0.78, fbm(p * 5.0 + vec3(2.1, 0.0, 1.4)));
     col = mix(col, vec3(0.92, 0.94, 0.97), cloud * 0.45 * (0.4 + ndl));
+    
   } else if (kind < 4.5) {
-    float ice = fbm(p * 1.2);
+    // Ice world (kind 4) - Enhanced with fractures and polar caps
+    float ice = fbm(p * 4.0);
     vec3 snow = mix(vec3(0.86, 0.92, 0.96), uColor, 0.25);
-    vec3 rock = mix(uColor, vec3(0.35, 0.42, 0.48), 0.5);
-    col = mix(rock, snow, smoothstep(0.32, 0.58, ice));
-    float crack = smoothstep(0.72, 0.88, vnoise(o * 22.0));
+    vec3 exposedIce = mix(uColor, vec3(0.35, 0.42, 0.48), 0.5);
+    col = mix(exposedIce, snow, smoothstep(0.32, 0.58, ice));
+    
+    vec3 warped = warpDomain(p, 0.2, 4.0);
+    float crack = smoothstep(0.72, 0.88, vnoise(warped * 22.0));
     col = mix(col, vec3(0.2, 0.35, 0.48), crack * 0.35);
+    
+    float latitude = abs(o.y);
+    float polarCap = smoothstep(0.7, 0.9, latitude);
+    col = mix(col, snow, polarCap * 0.6);
+    
   } else if (kind < 5.5) {
-    float crust = fbm(p);
-    vec3 basalt = mix(uColor, vec3(0.12, 0.1, 0.1), 0.55);
+    // Volcanic world (kind 5) - Enhanced with lava flows
+    float crust = fbm(p * 4.0);
+    vec3 basalt = uColor * 0.55;
     vec3 ash = vec3(0.28, 0.22, 0.18);
     col = mix(basalt, ash, smoothstep(0.4, 0.7, crust));
-    float vent = pow(max(0.0, 0.55 - crust), 2.2);
-    col += vec3(1.0, 0.28, 0.05) * vent * 1.4;
-    col += vec3(1.0, 0.7, 0.15) * pow(vent, 2.0) * 0.8;
-  } else if (kind < 7.5) {
-    float lat = o.y;
-    float warp = lat + (fbm(p) - 0.5) * 0.28;
+    
+    float heat = fbm(p * 2.0 + uSeed * 3.0);
+    float ventDensity = pow(max(0.0, 0.55 - heat), 2.2);
+    
+    float flowNoise = vnoise(p * 8.0 + vec3(uSeed * 10.0, 0.0, uSeed * 5.0));
+    float flows = smoothstep(0.65, 0.85, flowNoise) * ventDensity;
+    
+    col += vec3(1.0, 0.32, 0.06) * flows * 1.4;
+    col += vec3(1.0, 0.7, 0.15) * pow(flows, 2.0) * 0.8;
+    
+  } else if (kind < 6.5) {
+    // Gas giant (kind 6) - Enhanced with storms and bands
+    float latitude = o.y;
+    float warp = latitude + (fbm(p) - 0.5) * 0.28;
     float bands = 0.5 + 0.5 * sin(warp * 18.0 + uSeed * 6.0);
-    vec3 dark = uColor * 0.45;
-    vec3 light = mix(uColor, vec3(1.0, 0.92, 0.78), 0.28);
-    col = mix(dark, light, bands);
-    col *= 0.85 + fbm(vec3(o.x * 3.0, warp * 8.0, o.z * 3.0)) * 0.35;
-    float storm = smoothstep(0.72, 0.9, vnoise(vec3(o.x, lat, o.z) * 6.0 + 4.0));
-    col = mix(col, uColor * 0.35, storm * 0.4);
-  } else if (kind < 8.5) {
-    col = uColor * (0.55 + 0.45 * vnoise(o * 10.0));
-  } else if (kind < 9.5) {
-    float lat = o.y;
-    float warp = lat + (fbm(p) - 0.5) * 0.22;
+    bands += 0.25 * sin(warp * 36.0 + uSeed * 12.0);
+    
+    vec3 darkBand = uColor * 0.45;
+    vec3 lightBand = mix(uColor, vec3(1.0, 0.92, 0.78), 0.28);
+    col = mix(darkBand, lightBand, bands);
+    
+    vec3 warped = warpDomainAdvanced(p, 0.3, 0.15, 3.0, 8.0);
+    float turbulence = fbm(warped);
+    col *= 0.85 + turbulence * 0.35;
+    
+    float storm1 = stormVortex(p, vec2(0.5, 0.2), 0.15, uSeed);
+    float storm2 = stormVortex(p, vec2(-1.2, -0.15), 0.1, uSeed + 2.0);
+    float storms = max(storm1, storm2);
+    col = mix(col, uColor * 0.35, storms * 0.4);
+    
+  } else if (kind < 7.5) {
+    // Ringed giant (kind 7)
+    float latitude = o.y;
+    float warp = latitude + (fbm(p) - 0.5) * 0.22;
     float bands = 0.5 + 0.5 * sin(warp * 14.0 + uSeed * 4.0);
-    vec3 deep = mix(uColor, vec3(0.12, 0.22, 0.4), 0.45);
-    vec3 haze = mix(uColor, vec3(0.55, 0.82, 0.78), 0.4);
-    col = mix(deep, haze, bands);
+    
+    vec3 darkBand = uColor * 0.5;
+    vec3 lightBand = mix(uColor, vec3(0.95, 0.88, 0.75), 0.3);
+    col = mix(darkBand, lightBand, bands);
+    
     col *= 0.88 + fbm(p * 1.4) * 0.25;
+    
+  } else if (kind < 8.5) {
+    // Ice giant (kind 8/9)
+    float latitude = o.y;
+    float warp = latitude + (fbm(p) - 0.5) * 0.22;
+    float bands = 0.5 + 0.5 * sin(warp * 14.0 + uSeed * 4.0);
+    
+    vec3 deepColor = mix(uColor, vec3(0.12, 0.22, 0.4), 0.45);
+    vec3 hazeColor = mix(uColor, vec3(0.55, 0.82, 0.78), 0.4);
+    col = mix(deepColor, hazeColor, bands);
+    
+    col *= 0.88 + fbm(p * 1.4) * 0.25;
+    
+    float polarHood = smoothstep(0.75, 0.95, abs(latitude));
+    col = mix(col, vec3(0.7, 0.8, 0.9), polarHood * 0.4);
+    
+  } else if (kind < 9.5) {
+    // Comet (kind 10)
+    float noise = fbm(p * 2.0);
+    col = uColor * (0.55 + 0.45 * noise);
+    
   } else if (kind < 10.5) {
-    float ice = fbm(p * 1.6);
-    vec3 snow = mix(vec3(0.9, 0.94, 0.98), uColor, 0.3);
-    vec3 dust = mix(uColor, vec3(0.4, 0.42, 0.38), 0.5);
-    col = mix(dust, snow, smoothstep(0.3, 0.62, ice));
-    col += vec3(0.45, 0.7, 0.9) * 0.2;
+    // Moon - rocky variant (kind 11)
+    float craterDensity = 0.6 + 0.4 * hash11(uSeed);
+    col = moonSurface(p, uColor, uSeed, craterDensity);
+    
   } else if (kind < 11.5) {
+    // Moon - icy variant (kind 12)
+    col = moonSurface(p, uColor, uSeed + 10.0, 0.8);
+    
+  } else if (kind < 12.5) {
+    // Station - metallic (kind 13)
     float gy = o.y;
     float ang = atan(o.z, o.x);
     float panel = vnoise(floor(o * 12.0 + 1.7));
@@ -520,7 +797,9 @@ void main() {
     litH += col * uEmissive * 0.35;
     gl_FragColor = vec4(litH, 1.0);
     return;
-  } else if (kind < 12.5) {
+    
+  } else if (kind < 13.5) {
+    // Additional station/structure types
     float grid = max(step(0.9, fract(o.x * 16.0)), step(0.9, fract(o.y * 16.0)));
     vec3 cell = mix(vec3(0.04, 0.07, 0.14), vec3(0.10, 0.22, 0.40), vnoise(o * 9.0));
     col = mix(cell * uColor * 1.4, vec3(0.16, 0.18, 0.22), grid);
@@ -530,33 +809,37 @@ void main() {
     litS += col * rim * 0.12;
     gl_FragColor = vec4(litS, 1.0);
     return;
-  } else if (kind < 13.5) {
-    col = mix(uColor, vec3(0.82, 0.92, 1.0), 0.45);
-    vec3 litD = col * mix(0.22, 1.05, ndl) + col * uEmissive * 1.55;
-    litD += vec3(0.7, 0.85, 1.0) * rim * 0.35;
-    gl_FragColor = vec4(litD, 1.0);
-    return;
+    
+  } else if (kind < 14.5) {
+    // Generic icy body
+    float ice = fbm(p * 1.6);
+    vec3 snow = mix(vec3(0.9, 0.94, 0.98), uColor, 0.3);
+    vec3 dust = mix(uColor, vec3(0.4, 0.42, 0.38), 0.5);
+    col = mix(dust, snow, smoothstep(0.3, 0.62, ice));
+    
   } else {
-    float heat = pow(max(0.0, 1.0 - abs(o.x) * 1.8), 2.2) + vnoise(o * 6.0) * 0.25;
-    vec3 cool = vec3(0.10, 0.09, 0.09);
-    vec3 hot = vec3(0.92, 0.38, 0.12);
-    col = mix(cool, mix(uColor, hot, 0.7), clamp(heat, 0.0, 1.0));
-    vec3 litR = col * mix(0.12, 0.7, ndl) + hot * heat * (0.18 + uEmissive);
-    litR += col * rim * 0.1;
-    gl_FragColor = vec4(litR, 1.0);
-    return;
+    // Fallback
+    col = uColor * (0.55 + 0.45 * vnoise(o * 10.0));
   }
-
+  
+  // Lighting calculation
   vec3 lit = col * mix(0.07, 1.0, ndl);
+  
+  // Add volcanic glow for appropriate kinds
   if (kind > 4.5 && kind < 5.5) {
-    float crust = fbm(p);
-    float vent = pow(max(0.0, 0.55 - crust), 2.2);
-    lit += vec3(1.0, 0.32, 0.06) * vent * 0.85;
+    float heat = pow(max(0.0, 1.0 - abs(o.x) * 1.8), 2.2) + vnoise(o * 6.0) * 0.25;
+    lit += vec3(1.0, 0.32, 0.06) * heat * 0.85;
   }
+  
+  // Rim lighting
   lit += col * rim * 0.22;
+  
+  // Emissive glow
   lit += col * uEmissive;
+  
   gl_FragColor = vec4(lit, 1.0);
-}`;
+}
+`;
 
 export const RING_VS = `attribute vec2 aUnit;
 uniform mat4 uProj;
