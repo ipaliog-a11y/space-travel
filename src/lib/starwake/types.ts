@@ -23,8 +23,9 @@ export type StatKey =
   | "fsdChargeSec"
   | "jumpRangeLy"
   | "cargoCap"
-  | "coolSec"
-  | "fuelCap";
+    | "coolSec"
+    | "fuelCap"
+    | "fuelCap2";
 
 export type ShipDef = {
   id: ShipId;
@@ -44,6 +45,7 @@ export type ShipDef = {
   cargoCap: number;
   coolSec: number;
   fuelCap: number;
+  fuelCap2: number;
   surveySec: number;
   accent: string;
   audioPitch: number;

@@ -273,6 +273,26 @@ export const payJobDelivery = createServerFn({ method: "POST" })
     return { credits: profile.credits, paid };
   });
 
+export const buyFuel = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { t1: number; t2: number }) => data)
+  .handler(async ({ context, data }): Promise<{ credits: number; cost: number }> => {
+    const { refuelQuote } = await import("../starwake/catalog.ts");
+    const { ensurePlayerRow, modifyCredits, getPlayerProfile } = await import(
+      "../player-profile/server.ts"
+    );
+    const t1 = Math.max(0, data.t1);
+    const t2 = Math.max(0, data.t2);
+    const { cost } = refuelQuote(t1, t2);
+    await ensurePlayerRow(context.userId);
+    if (cost <= 0) {
+      const profile = await getPlayerProfile(context.userId);
+      return { credits: profile?.credits ?? 0, cost: 0 };
+    }
+    const profile = await modifyCredits(context.userId, -cost);
+    return { credits: profile.credits, cost };
+  });
+
 export const buyModuleFit = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { moduleId: string }) => data)

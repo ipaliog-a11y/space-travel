@@ -298,6 +298,44 @@ Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The li
 
 ---
 
+## Decision #007: Economy, Mining, Fleet, Galaxy (28 Aug chat)
+
+**Date:** 2026-08-28  
+**Status:** ✅ Approved (not implemented)  
+**Session:** [session-2026-08-28-progress-review](sessions/session-2026-08-28-progress-review.md)
+
+### Context
+Week 1 hangar / haul loop is in play. Need a build order for the next economy flavour without skipping fuel / saves.
+
+### Decision
+- **Keep** contract jobs. **Add** a merchant loop: own cargo, store, speculate. Market watch with history charts, not a one-line ticker.
+- **Fleet:** NPC ships on contracts only (not merchant trading). Overlapping loops, not one activity at a time.
+- **Mining:** hub-less worlds are resource planets (gas / liquid / solid). New **Extractor** hull, then pads. Feeds merchant + watch.
+- **Hulls:** Clipper → passenger / VIP; Tug → salvage; Tender stays fuel. Do not grow the roster blindly. Combat later. 3D Grok hulls are too low-poly vs 2D art.
+- **Risk:** pirates / interdiction and market shocks. Reputation / factions deprioritized.
+- **Stations:** player can buy a station (storage first, then price leverage).
+- **Galaxy:** one shared skybox; expand this galaxy before adding more.
+- **Scale:** keep radii; fix close-up with camera (FOV / near-plane). Then 30 s day, ~2× speeds, half wells.
+- **Code first:** save slots → T2 jump fuel → paid T1/T2 refuel. Then 7–12 in [`BUILD.md`](../BUILD.md).
+
+---
+
+## Decision #008: Save Slots, T2, Fuel Prices (28 Aug live loop)
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented  
+**Session:** live-loop 1–3
+
+### Context
+BUILD items 1–3 were still pending: one persist blob, one T1 tank, free Refuel. Credits and owned hulls already live on the server player, not in Zustand.
+
+### Decision
+- **Three named slots** on Gate / Options. New wipes the active slot. Copy / delete per slot. Each slot keeps ship, fuel (T1+T2), board, diary, local fits. **Credits and owned hulls stay account-wide.** A v13 `starwake-v2` blob migrates into slot 1.
+- **T2** is FSD fuel. Burn = charge sip (`0.6`) + hop (`max(1.4, ly × 0.22)`). Jump lock gated by remaining T2. Stock tanks: Courier 24, Hauler 48, Scout 32, Clipper 16, Tender 56, Tug 12. Tank alts scale T2 with T1. HUD shows both.
+- **Pump prices** are flat at every hub: T1 ₡2 / unit, T2 ₡8 / unit. Station and Hangar Refuel debit via `buyFuel`. In-flight F / HUD fill is no longer a free cheat. Scoop later.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -308,19 +346,7 @@ Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The li
 **When:** Week 2 implementation  
 **Question:** Premium rates and coverage levels?
 
-### Save State Slots
-**When:** Next live-loop pass  
-**Question:** How many named slots, and does each slot own its own hangar / credits / diary?
-
-### T2 Jump Fuel
-**When:** Next live-loop pass  
-**Question:** T2 burn per ly vs per hop? Courier vs hauler tank sizes?
-
-### Resource Fuel Prices
-**When:** Next live-loop pass (with T2)  
-**Question:** Credits per T1 / T2 unit at a hub, and whether prices vary by station?
-
 ---
 
 **Last Updated:** 2026-08-28  
-**Total Decisions:** 7 approved, 5 pending
+**Total Decisions:** 9 approved, 2 pending

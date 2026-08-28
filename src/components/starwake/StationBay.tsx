@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fittedShip } from "@/lib/starwake/catalog";
+import { fittedShip, refuelQuote } from "@/lib/starwake/catalog";
 import { hubBoard } from "@/lib/starwake/job-hub";
 import { formatHaul, formatStop, holdUsed, jobFits, jobIsRetired, jobPayout } from "@/lib/starwake/jobs";
 import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
@@ -7,6 +7,7 @@ import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations"
 import { useStarwake } from "@/lib/starwake/store";
 import type { CargoJob } from "@/lib/starwake/types";
 import {
+  buyFuel,
   loadRepairStatus,
   payJobDelivery,
   repairCurrentHull,
@@ -30,6 +31,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const shipId = useStarwake((s) => s.shipId);
   const loadout = useStarwake((s) => s.loadout);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
+  const fuel2 = useStarwake((s) => s.fuel2[s.shipId]);
   const retired = useStarwake((s) => s.retiredJobs);
   const board = hubBoard(useStarwake((s) => s.board), systemId, stationId).filter(
     (j) => !jobIsRetired(j, retired),
@@ -40,15 +42,22 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const loadCargo = useStarwake((s) => s.loadCargo);
   const deliverCargo = useStarwake((s) => s.deliverCargo);
   const dropJob = useStarwake((s) => s.dropJob);
-  const cap = fittedShip(shipId, loadout).fuelCap;
+  const fit = fittedShip(shipId, loadout);
+  const cap = fit.fuelCap;
+  const cap2 = fit.fuelCap2;
+  const needT1 = Math.max(0, cap - (fuel ?? 0));
+  const needT2 = Math.max(0, cap2 - (fuel2 ?? 0));
+  const quote = refuelQuote(needT1, needT2);
+  const tanksFull = needT1 < 0.2 && needT2 < 0.2;
   const used = holdUsed(man);
-  const hold = fittedShip(shipId, loadout).cargoCap;
+  const hold = fit.cargoCap;
   const canLoad = Boolean(man && !man.loaded && man.job.from.stationId === stationId && man.job.from.systemId === systemId);
   const canDeliver = Boolean(man?.loaded && man.job.to.stationId === stationId && man.job.to.systemId === systemId);
   const [credits, setCredits] = useState<number | null>(null);
   const [repairCost, setRepairCost] = useState(0);
   const [hardpointTier, setHardpointTier] = useState<HardpointTier>("stock");
   const [repairing, setRepairing] = useState(false);
+  const [fueling, setFueling] = useState(false);
   const [paying, setPaying] = useState(false);
   const [repairError, setRepairError] = useState<string | null>(null);
   const deliverPay = man ? jobPayout(man.job) : 0;
@@ -73,6 +82,25 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
       window.clearTimeout(later);
     };
   }, [shipId, stationId]);
+
+  async function onPump() {
+    if (tanksFull || fueling) return;
+    if (quote.cost > 0 && credits != null && credits < quote.cost) {
+      setRepairError(`Need ₡${quote.cost.toLocaleString()} to fill`);
+      return;
+    }
+    setFueling(true);
+    setRepairError(null);
+    try {
+      const result = await buyFuel({ data: { t1: needT1, t2: needT2 } });
+      setCredits(result.credits);
+      onRefuel();
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : "Refuel failed");
+    } finally {
+      setFueling(false);
+    }
+  }
 
   async function onRepair() {
     if (repairCost <= 0 || repairing) return;
@@ -128,14 +156,26 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
       </header>
       <div className="station-stats">
         <span>T1 {Math.round(fuel)}/{Math.round(cap)}</span>
+        <span>T2 {Math.round(fuel2 ?? 0)}/{Math.round(cap2)}</span>
         <span>Hold {used}/{Math.round(hold)} u</span>
         {credits != null && <span>₡{Math.round(credits).toLocaleString()}</span>}
         <span>HP {HARDPOINT_TIER_NAMES[hardpointTier]}</span>
       </div>
       {repairError && <p className="station-repair-err">{repairError}</p>}
       <div className="station-acts">
-        <button type="button" className="engage ghost" onClick={onRefuel} disabled={fuel >= cap - 0.2}>
-          Refuel
+        <button
+          type="button"
+          className="engage ghost"
+          onClick={() => void onPump()}
+          disabled={fueling || tanksFull || (quote.cost > 0 && credits != null && credits < quote.cost)}
+        >
+          {tanksFull
+            ? "Tanks full"
+            : fueling
+              ? "Fueling"
+              : quote.cost > 0
+                ? `Refuel ₡${quote.cost.toLocaleString()}`
+                : "Refuel"}
         </button>
         <button
           type="button"

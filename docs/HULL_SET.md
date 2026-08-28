@@ -15,6 +15,8 @@ Research (Elite explorer vs interceptor roles, NASA long-range probes vs crew-tr
 
 They are not combat ships. Combat stays a later slice.
 
+**Planned role swaps** (after T2 / fuel prices; see [`BUILD.md`](../BUILD.md) item 8): Clipper → passenger / VIP; Tug → salvage. **Add Extractor** for hub-less resource worlds. Tender stays fuel. 2D portraits in `public/ships/` stay the quality bar; current generated 3D is too low-poly.
+
 ## Yard (new)
 
 Fuel and harbor. The Line ships still fly; these two keep the locks alive.

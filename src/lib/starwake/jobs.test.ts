@@ -38,6 +38,7 @@ describe("wear on fitted hull", () => {
     assert.ok(live.coolSec > stock.coolSec);
     assert.equal(live.cargoCap, stock.cargoCap);
     assert.equal(live.fuelCap, stock.fuelCap);
+    assert.equal(live.fuelCap2, stock.fuelCap2);
     assert.ok(Math.abs(live.cruiseSpeed - stock.cruiseSpeed * 0.75) < 0.02);
   });
 

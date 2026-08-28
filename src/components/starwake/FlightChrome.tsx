@@ -10,6 +10,7 @@ import { useFlightWear } from "@/lib/starwake/use-flight-wear";
 import { calculateWearPenalty } from "@/lib/ship-ownership/types";
 import { Dossier } from "./Dossier";
 import { LogBook } from "./LogBook";
+import { SaveSlots } from "./SaveSlots";
 import { StationBay } from "./StationBay";
 
 type Props = {
@@ -47,7 +48,10 @@ const IDLE_DRIVE: DriveHud = {
   well: null,
   fuel: 100,
   fuelCap: 100,
+  fuel2: 24,
+  fuelCap2: 24,
   dry: false,
+  dry2: false,
   atStation: null,
   atStationId: null,
   docking: false,
@@ -159,7 +163,7 @@ export function FlightChrome({
       }
       const x = dx / maxR;
       const y = dy / maxR;
-      engine?.setStick(x, y);
+      engine?.setStick(x, y, true);
       if (knobRef.current) {
         knobRef.current.style.transform = `translate(${(x * 32).toFixed(1)}px, ${(y * 32).toFixed(1)}px)`;
       }
@@ -186,7 +190,7 @@ export function FlightChrome({
     };
     const endStick = () => {
       stickOn = false;
-      engine?.setStick(0, 0);
+      engine?.setStick(0, 0, false);
       if (knobRef.current) knobRef.current.style.transform = "translate(0px, 0px)";
     };
 
@@ -346,6 +350,10 @@ export function FlightChrome({
         <strong>{Math.max(0, Math.round(drive.fuel))}</strong>
         <span>t1</span>
       </div>
+      <div className={`fuel-read t2${drive.dry2 ? " dry" : ""}`} aria-label="Type two fuel">
+        <strong>{Math.max(0, Math.round(drive.fuel2))}</strong>
+        <span>t2</span>
+      </div>
       {wear && (
         <div
           className={`wear-read${wear.wearPercentage > 20 ? " worn" : ""}`}
@@ -495,10 +503,11 @@ export function FlightChrome({
           </button>
           <button
             type="button"
-            className={`refill${drive.dry ? " dry" : ""}`}
-            onClick={() => engine?.refuel()}
+            className={`refill${drive.dry || drive.dry2 ? " dry" : ""}`}
+            disabled
+            title="Fill at a lock"
           >
-            Refuel
+            Pump
           </button>
         </div>
       </div>
@@ -565,6 +574,7 @@ export function FlightChrome({
             <span>Planet orbit lines</span>
             <input type="checkbox" checked={showOrbits} onChange={() => useStarwake.getState().toggleOrbits()} />
           </label>
+          <SaveSlots compact />
           <div className="opt-keys" aria-label="Key bindings">
             <div><kbd>A</kbd> <kbd>Z</kbd><span>throttle</span></div>
             <div><kbd>Q</kbd> <kbd>E</kbd><span>roll</span></div>
@@ -572,7 +582,6 @@ export function FlightChrome({
             <div><kbd>←</kbd> <kbd>→</kbd><span>yaw</span></div>
             <div><kbd>Space</kbd><span>boost</span></div>
             <div><kbd>R</kbd><span>boosts</span></div>
-            <div><kbd>F</kbd><span>refuel</span></div>
             <div><kbd>N</kbd><span>map</span></div>
             <div><kbd>J</kbd><span>jump</span></div>
             <div><kbd>Esc</kbd><span>menu</span></div>

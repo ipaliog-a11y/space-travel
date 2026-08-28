@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CargoJob, FlightMode, JobLogEntry, Loadout, Manifest, MapLayer, MenuView, ShipId, SlotId } from "./types";
-import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, liveShip, moduleById, sanitizeFuel, sanitizeLoadout } from "./catalog";
+import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, fullTanks2, liveShip, moduleById } from "./catalog";
 import { hubBoard } from "./job-hub";
 import {
   atStop,
@@ -18,8 +18,71 @@ import {
   sanitizeManifests,
   sanitizeRetired,
 } from "./jobs";
+import {
+  SAVE_SLOT_IDS,
+  emptySlot,
+  isSaveSlotId,
+  liveFromSlot,
+  migrateSlots,
+  slotFromLive,
+  type SaveSlotId,
+  type SaveSlotSnapshot,
+  type SlotLive,
+} from "./saves";
 
-const SAVE_VERSION = 13;
+export type { SaveSlotId, SaveSlotSnapshot } from "./saves";
+
+const SAVE_VERSION = 14;
+
+function captureLive(s: {
+  hasSave: boolean;
+  lastSaveAt: number;
+  shipId: ShipId;
+  systemId: string;
+  scanned: Record<string, true>;
+  surveys: Record<string, true>;
+  visited: Record<string, true>;
+  visitedPlanets: Record<string, { systemId: string; at: number }>;
+  loadout: Loadout;
+  fuel: Record<ShipId, number>;
+  fuel2: Record<ShipId, number>;
+  board: CargoJob[];
+  boardStationId: string | null;
+  manifests: Record<ShipId, Manifest | null>;
+  completed: number;
+  retiredJobs: string[];
+  jobLog: JobLogEntry[];
+  jobSeed: number;
+  ownedModules: string[];
+  boostCharges: number;
+}): SlotLive {
+  return {
+    hasSave: s.hasSave,
+    lastSaveAt: s.lastSaveAt,
+    shipId: s.shipId,
+    systemId: s.systemId,
+    scanned: s.scanned,
+    surveys: s.surveys,
+    visited: s.visited,
+    visitedPlanets: s.visitedPlanets,
+    loadout: s.loadout,
+    fuel: s.fuel,
+    fuel2: s.fuel2,
+    board: s.board,
+    boardStationId: s.boardStationId,
+    manifests: s.manifests,
+    completed: s.completed,
+    retiredJobs: s.retiredJobs,
+    jobLog: s.jobLog,
+    jobSeed: s.jobSeed,
+    ownedModules: s.ownedModules,
+    boostCharges: s.boostCharges,
+  };
+}
+
+function applyLive(live: SlotLive) {
+  return { ...live };
+}
 
 export type StarwakeState = {
   version: number;
@@ -43,6 +106,7 @@ export type StarwakeState = {
   visitedPlanets: Record<string, { systemId: string; at: number }>;
   loadout: Loadout;
   fuel: Record<ShipId, number>;
+  fuel2: Record<ShipId, number>;
   menuView: MenuView;
   board: CargoJob[];
   boardStationId: string | null;
@@ -55,6 +119,8 @@ export type StarwakeState = {
   ownedModules: string[];
   hasSave: boolean;
   lastSaveAt: number;
+  activeSlotId: SaveSlotId;
+  slots: Record<SaveSlotId, SaveSlotSnapshot>;
   setEntered: (v: boolean) => void;
   setMenuView: (v: MenuView) => void;
   setShipId: (id: ShipId) => void;
@@ -85,8 +151,14 @@ export type StarwakeState = {
   setWearPenalty: (v: number) => void;
   ownModule: (id: string) => void;
   setFuel: (v: number) => void;
+  setFuel2: (v: number) => void;
   refuel: () => void;
   markSave: () => void;
+  setActiveSlot: (id: SaveSlotId) => void;
+  newSlot: (id: SaveSlotId) => void;
+  copySlot: (from: SaveSlotId, to: SaveSlotId) => void;
+  deleteSlot: (id: SaveSlotId) => void;
+  renameSlot: (id: SaveSlotId, name: string) => void;
 };
 
 export const useStarwake = create<StarwakeState>()(
@@ -120,6 +192,7 @@ export const useStarwake = create<StarwakeState>()(
         tug: { ...STOCK_LOADOUT.tug },
       },
       fuel: fullTanks(),
+      fuel2: fullTanks2(),
       menuView: "menu",
       board: [],
       boardStationId: null,
@@ -132,6 +205,12 @@ export const useStarwake = create<StarwakeState>()(
       ownedModules: [],
       hasSave: false,
       lastSaveAt: 0,
+      activeSlotId: "1",
+      slots: {
+        "1": emptySlot("1"),
+        "2": emptySlot("2"),
+        "3": emptySlot("3"),
+      },
       setEntered: (v) => set({ entered: v, mode: v ? "local" : "docked", menuView: v ? get().menuView : "menu" }),
       setMenuView: (v) => set({ menuView: v }),
       setShipId: (id) => {
@@ -200,10 +279,11 @@ export const useStarwake = create<StarwakeState>()(
           ...st.loadout,
           [st.shipId]: { ...st.loadout[st.shipId], [slot]: id },
         };
-        const cap = fittedShip(st.shipId, loadout).fuelCap;
+        const fit = fittedShip(st.shipId, loadout);
         set({
           loadout,
-          fuel: { ...st.fuel, [st.shipId]: Math.min(st.fuel[st.shipId], cap) },
+          fuel: { ...st.fuel, [st.shipId]: Math.min(st.fuel[st.shipId], fit.fuelCap) },
+          fuel2: { ...st.fuel2, [st.shipId]: Math.min(st.fuel2[st.shipId] ?? fit.fuelCap2, fit.fuelCap2) },
           hasSave: true,
           lastSaveAt: Date.now(),
         });
@@ -323,83 +403,172 @@ export const useStarwake = create<StarwakeState>()(
         if (Math.abs(next - st.fuel[st.shipId]) < 0.02) return;
         set({ fuel: { ...st.fuel, [st.shipId]: next } });
       },
+      setFuel2: (v) => {
+        const st = get();
+        const cap = fittedShip(st.shipId, st.loadout).fuelCap2;
+        const next = Math.max(0, Math.min(cap, v));
+        if (Math.abs(next - (st.fuel2[st.shipId] ?? 0)) < 0.02) return;
+        set({ fuel2: { ...st.fuel2, [st.shipId]: next } });
+      },
       refuel: () => {
         const st = get();
-        const cap = fittedShip(st.shipId, st.loadout).fuelCap;
+        const fit = fittedShip(st.shipId, st.loadout);
         set({
-          fuel: { ...st.fuel, [st.shipId]: cap },
+          fuel: { ...st.fuel, [st.shipId]: fit.fuelCap },
+          fuel2: { ...st.fuel2, [st.shipId]: fit.fuelCap2 },
           hasSave: true,
           lastSaveAt: Date.now(),
         });
       },
       markSave: () => set({ hasSave: true, lastSaveAt: Date.now() }),
-    }),
-    {
-      name: "starwake-v2",
-      partialize: (s) => ({
-        version: SAVE_VERSION,
-        shipId: s.shipId,
-        systemId: s.systemId,
-        invertY: s.invertY,
-        invertX: s.invertX,
-        muted: s.muted,
-        gyro: s.gyro,
-        showOrbits: s.showOrbits,
-        scanned: s.scanned,
-        surveys: s.surveys,
-        visited: s.visited,
-        visitedPlanets: s.visitedPlanets,
-        loadout: s.loadout,
-        fuel: s.fuel,
-        board: s.board,
-        boardStationId: s.boardStationId,
-        manifests: s.manifests,
-        completed: s.completed,
-        retiredJobs: s.retiredJobs,
-        jobLog: s.jobLog,
-        jobSeed: s.jobSeed,
-        ownedModules: s.ownedModules,
-        boostCharges: s.boostCharges,
-        hasSave: s.hasSave,
-        lastSaveAt: s.lastSaveAt,
-      }),
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Partial<StarwakeState>;
-        const shipId = p.shipId && SHIPS[p.shipId] ? p.shipId : current.shipId;
-        return {
-          ...current,
-          ...p,
-          version: SAVE_VERSION,
-          shipId,
+      setActiveSlot: (id) => {
+        if (!isSaveSlotId(id)) return;
+        const st = get();
+        if (id === st.activeSlotId) return;
+        const parked = slotFromLive(captureLive(st), st.slots[st.activeSlotId].name);
+        const next = st.slots[id];
+        set({
+          ...applyLive(liveFromSlot(next)),
+          slots: { ...st.slots, [st.activeSlotId]: parked },
+          activeSlotId: id,
           entered: false,
           menuView: "menu",
           mode: "docked",
           mapOpen: false,
           lockedSystemId: null,
           charge01: 0,
-          scanned: p.scanned ?? {},
-          surveys: p.surveys ?? {},
-          visited: p.visited ?? {},
-          visitedPlanets: p.visitedPlanets ?? {},
-          loadout: sanitizeLoadout(p.loadout),
-          fuel: sanitizeFuel(p.fuel, sanitizeLoadout(p.loadout)),
-          board: sanitizeBoard(p.board, p.systemId ?? current.systemId, p.boardStationId).filter(
-            (j) => !jobIsRetired(j, sanitizeRetired(p.retiredJobs)),
-          ),
-          boardStationId: typeof p.boardStationId === "string" ? p.boardStationId : null,
-          manifests: sanitizeManifests(p.manifests),
-          completed: typeof p.completed === "number" ? p.completed : 0,
-          retiredJobs: sanitizeRetired(p.retiredJobs),
-          jobLog: sanitizeJobLog(p.jobLog),
-          jobSeed: typeof p.jobSeed === "number" ? p.jobSeed : current.jobSeed,
           wearPenalty: 0,
-          ownedModules: Array.isArray(p.ownedModules)
-            ? p.ownedModules.filter((id): id is string => typeof id === "string")
-            : [],
+        });
+      },
+      newSlot: (id) => {
+        if (!isSaveSlotId(id)) return;
+        const st = get();
+        const parked = slotFromLive(captureLive(st), st.slots[st.activeSlotId].name);
+        const fresh = emptySlot(id, st.slots[id].name);
+        const slots = { ...st.slots, [st.activeSlotId]: parked, [id]: fresh };
+        set({
+          ...applyLive(liveFromSlot(fresh)),
+          slots,
+          activeSlotId: id,
+          entered: false,
+          menuView: "menu",
+          mode: "docked",
+          mapOpen: false,
+          lockedSystemId: null,
+          charge01: 0,
+          wearPenalty: 0,
+        });
+      },
+      copySlot: (from, to) => {
+        if (!isSaveSlotId(from) || !isSaveSlotId(to) || from === to) return;
+        const st = get();
+        const source =
+          from === st.activeSlotId
+            ? slotFromLive(captureLive(st), st.slots[from].name)
+            : st.slots[from];
+        const copy: SaveSlotSnapshot = {
+          ...source,
+          name: st.slots[to].name,
+          lastSaveAt: Date.now(),
+          hasSave: source.hasSave,
+        };
+        const slots = { ...st.slots, [to]: copy };
+        if (from === st.activeSlotId) slots[from] = source;
+        if (to === st.activeSlotId) {
+          set({
+            ...applyLive(liveFromSlot(copy)),
+            slots,
+          });
+          return;
+        }
+        set({ slots });
+      },
+      deleteSlot: (id) => {
+        if (!isSaveSlotId(id)) return;
+        const st = get();
+        const wiped = emptySlot(id, st.slots[id].name);
+        const slots = { ...st.slots, [id]: wiped };
+        if (id === st.activeSlotId) {
+          set({
+            ...applyLive(liveFromSlot(wiped)),
+            slots,
+            entered: false,
+            menuView: "menu",
+            mode: "docked",
+            mapOpen: false,
+            lockedSystemId: null,
+            charge01: 0,
+            wearPenalty: 0,
+          });
+          return;
+        }
+        set({ slots });
+      },
+      renameSlot: (id, name) => {
+        if (!isSaveSlotId(id)) return;
+        const trimmed = name.trim().slice(0, 24);
+        if (!trimmed) return;
+        const st = get();
+        set({
+          slots: {
+            ...st.slots,
+            [id]: { ...st.slots[id], name: trimmed },
+          },
+        });
+      },
+    }),
+    {
+      name: "starwake-v2",
+      partialize: (s) => {
+        const parked = slotFromLive(captureLive(s), s.slots[s.activeSlotId].name);
+        return {
+          version: SAVE_VERSION,
+          invertY: s.invertY,
+          invertX: s.invertX,
+          muted: s.muted,
+          gyro: s.gyro,
+          showOrbits: s.showOrbits,
+          activeSlotId: s.activeSlotId,
+          slots: { ...s.slots, [s.activeSlotId]: parked },
+        };
+      },
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Record<string, unknown>;
+        const migrated = migrateSlots(p);
+        const slots = {} as Record<SaveSlotId, SaveSlotSnapshot>;
+        for (const id of SAVE_SLOT_IDS) {
+          const slot = migrated.slots[id];
+          const retired = sanitizeRetired(slot.retiredJobs);
+          slots[id] = {
+            ...slot,
+            board: sanitizeBoard(slot.board, slot.systemId, slot.boardStationId ?? undefined).filter(
+              (j) => !jobIsRetired(j, retired),
+            ),
+            manifests: sanitizeManifests(slot.manifests),
+            jobLog: sanitizeJobLog(slot.jobLog),
+            retiredJobs: retired,
+          };
+        }
+        const activeSlotId = migrated.activeSlotId;
+        const live = liveFromSlot(slots[activeSlotId]);
+        return {
+          ...current,
+          ...applyLive(live),
+          version: SAVE_VERSION,
+          activeSlotId,
+          slots,
+          invertY: Boolean(p.invertY ?? current.invertY),
           invertX: Boolean(p.invertX),
+          muted: Boolean(p.muted),
+          gyro: Boolean(p.gyro),
           showOrbits: Boolean(p.showOrbits),
-          boostCharges: typeof p.boostCharges === "number" ? p.boostCharges : SHIPS[shipId].boostCapacity,
-          hasSave: Boolean(p.hasSave || (p.scanned && Object.keys(p.scanned).length) || (p.surveys && Object.keys(p.surveys).length)),
+          entered: false,
+          menuView: "menu",
+          mode: "docked",
+          mapOpen: false,
+          lockedSystemId: null,
+          charge01: 0,
+          wearPenalty: 0,
         };
       },
     },

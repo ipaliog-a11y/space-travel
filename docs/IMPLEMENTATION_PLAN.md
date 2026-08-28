@@ -908,17 +908,31 @@ This document provides a prioritized, phased implementation plan for all researc
 
 ## Immediate Next Steps
 
-Week 1 hangar / haul loop is in play. Do **not** start Week 2 commodities until these three land.
+Canonical short list: [`BUILD.md`](../BUILD.md). Flavour from [`docs/sessions/session-2026-08-28-progress-review.md`](sessions/session-2026-08-28-progress-review.md).
 
-### Next (after Week 1 playtest)
-1. [ ] **Save state slots** — named slots (at least 3) on Gate / Options. New, Continue into a slot, copy, delete. Persist ship, fuel, board, diary, hangar, credits per slot. One active slot for Play.
-2. [ ] **T2 fuel for jumps** — second tank. T1 stays in-system (cruise / boost). T2 burns on FSD charge and each hop. HUD shows both. Jump lock gated by T2.
-3. [ ] **Resource fuel prices** — station Refuel costs credits per T1 / T2 unit. Paid from job earnings. Scoop later.
+Week 1 hangar / haul loop is in play. **Do not skip 1–3.**
 
-### Then (Week 2 commodities)
-1. [ ] Materials / station market (hold cargo beyond jobs)
-2. [ ] Insurance design (still pending)
-3. [ ] Wear-rate balance after the debug HUD has been play-tested
+### Live loop (now)
+1. [x] **Save state slots** — 3 named slots; per-slot persist (ship, fuel, board, diary, local fits)
+2. [x] **T2 fuel for jumps** — second tank; HUD; lock gated by T2
+3. [x] **Resource fuel prices** — credits per T1 / T2 at the lock
+
+### Travel / sky (can overlap 1–3)
+4. [ ] **Shared galaxy skybox** — one background for all systems
+5. [ ] **Close-up scale** — camera FOV / near-plane; do not grow planet radii
+6. [ ] **Travel feel** — 30 s day, ~2× speeds, half wells; 15–30 s between POIs
+
+### Economy (after 1–3)
+7. [ ] **Merchant + market watch** — own cargo, hold, speculate; history charts per hub
+8. [ ] **Hull roles** — Clipper → passenger, Tug → salvage, add Extractor; 3D art pass
+9. [ ] **Planet mining** — hub-less worlds, gas/liquid/solid, Extractor then pads
+10. [ ] **Fleet** — NPC ships on contracts only; upkeep
+11. [ ] **Risk / events** — pirates, market shocks (feeds the watch)
+12. [ ] **Player station** — buy storage, then price leverage
+
+### Still pending from earlier
+- [ ] Insurance design
+- [ ] Wear-rate balance after the debug HUD has been play-tested
 
 ---
 
@@ -942,7 +956,7 @@ This implementation plan provides a clear, actionable roadmap from current state
 
 ---
 
-**Last Updated:** 2026-08-27  
-**Version:** 1.0  
-**Status:** Ready for Implementation  
-**Next Review:** End of Phase 1 (Week 10)
+**Last Updated:** 2026-08-28  
+**Version:** 1.1  
+**Status:** Live-loop 1–3 in play (slots, T2, paid pump). Next is shared sky / camera scale.  
+**Next Review:** After travel / sky (BUILD 4–6)

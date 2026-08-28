@@ -19,6 +19,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     cargoCap: 8,
     coolSec: 8,
     fuelCap: 100,
+    fuelCap2: 24,
     surveySec: 4.4,
     accent: "#d7dde4",
     audioPitch: 1.08,
@@ -41,6 +42,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     cargoCap: 48,
     coolSec: 9,
     fuelCap: 120,
+    fuelCap2: 48,
     surveySec: 6.4,
     accent: "#b7c0c8",
     audioPitch: 0.9,
@@ -63,6 +65,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     cargoCap: 6,
     coolSec: 7,
     fuelCap: 88,
+    fuelCap2: 32,
     surveySec: 3.1,
     accent: "#d2d8d0",
     audioPitch: 1.16,
@@ -85,6 +88,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     cargoCap: 10,
     coolSec: 6,
     fuelCap: 72,
+    fuelCap2: 16,
     surveySec: 4.6,
     accent: "#d8d2c8",
     audioPitch: 1.22,
@@ -107,6 +111,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     cargoCap: 20,
     coolSec: 10,
     fuelCap: 200,
+    fuelCap2: 56,
     surveySec: 5.8,
     accent: "#c4c8c0",
     audioPitch: 0.84,
@@ -129,6 +134,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     cargoCap: 14,
     coolSec: 7.5,
     fuelCap: 90,
+    fuelCap2: 12,
     surveySec: 5.2,
     accent: "#c8c4bc",
     audioPitch: 0.98,
@@ -173,9 +179,18 @@ export function moduleFitCost(mod: ModuleDef): number {
   return mod.cost ?? SLOT_FIT_COST[mod.slot];
 }
 
-/** Type-1 (planetary) fuel. Stock courier tank covers ~2 systems of planet hops. Type-2 FSD fuel comes later. */
+/** Type-1 (in-system) fuel. Stock courier tank covers ~2 systems of planet hops. */
 export const T1_RANGE = 33600;
 export const T1_PER_DIST = SHIPS.courier.fuelCap / T1_RANGE;
+
+/** Type-2 (FSD) fuel. Charge sip + hop cost. Courier ~6 hops; hauler ~8. */
+export const T2_CHARGE = 0.6;
+export const T2_PER_LY = 0.22;
+export const T2_HOP_FLOOR = 1.4;
+
+/** Credits per unit at every hub. Scoop / station variance later. */
+export const T1_CREDIT_PER_UNIT = 2;
+export const T2_CREDIT_PER_UNIT = 8;
 
 export const MODULES: Record<string, ModuleDef> = {
   "c-thr-stock": { id: "c-thr-stock", slot: "thruster", hull: "courier", name: "Gimbal Mk I", blurb: "Stock RCS. Snaps clean.", stock: true, delta: {} },
@@ -190,9 +205,9 @@ export const MODULES: Record<string, ModuleDef> = {
   "c-hld-stock": { id: "c-hld-stock", slot: "hold", hull: "courier", name: "Pouch", blurb: "Sealed bay. Samples and data.", stock: true, delta: {} },
   "c-hld-rack": { id: "c-hld-rack", slot: "hold", hull: "courier", name: "Sample Rack", blurb: "More volume. Heavier stick.", delta: { cargoCap: 6, mass: 0.06, turnRate: -0.08 } },
   "c-hld-seal": { id: "c-hld-seal", slot: "hold", hull: "courier", name: "Sealed Bay", blurb: "Small. Light. Courier-grade.", delta: { cargoCap: -4, mass: -0.04 } },
-  "c-tnk-stock": { id: "c-tnk-stock", slot: "tank", hull: "courier", name: "Cell A", blurb: "Stock T1. Two systems of hops.", stock: true, delta: {} },
-  "c-tnk-long": { id: "c-tnk-long", slot: "tank", hull: "courier", name: "Long Cell", blurb: "More T1. Heavier cell.", delta: { fuelCap: 40, mass: 0.08 } },
-  "c-tnk-light": { id: "c-tnk-light", slot: "tank", hull: "courier", name: "Light Cell", blurb: "Less range. Lighter frame.", delta: { fuelCap: -30, mass: -0.05 } },
+  "c-tnk-stock": { id: "c-tnk-stock", slot: "tank", hull: "courier", name: "Cell A", blurb: "Stock T1 / T2. Two systems of hops.", stock: true, delta: {} },
+  "c-tnk-long": { id: "c-tnk-long", slot: "tank", hull: "courier", name: "Long Cell", blurb: "More T1 and T2. Heavier cell.", delta: { fuelCap: 40, fuelCap2: 8, mass: 0.08 } },
+  "c-tnk-light": { id: "c-tnk-light", slot: "tank", hull: "courier", name: "Light Cell", blurb: "Less range. Lighter frame.", delta: { fuelCap: -30, fuelCap2: -6, mass: -0.05 } },
   "c-hx-stock": { id: "c-hx-stock", slot: "hx", hull: "courier", name: "Radiator", blurb: "Stock sink. Holds the last quarter.", stock: true, delta: {} },
   "c-hx-cold": { id: "c-hx-cold", slot: "hx", hull: "courier", name: "Cold Sink", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 4, coolSec: -2, mass: 0.06 } },
   "c-hx-vent": { id: "c-hx-vent", slot: "hx", hull: "courier", name: "Thin Fin", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -3, coolSec: -3, mass: -0.03 } },
@@ -208,9 +223,9 @@ export const MODULES: Record<string, ModuleDef> = {
   "h-hld-stock": { id: "h-hld-stock", slot: "hold", hull: "hauler", name: "Hold A", blurb: "Open bay. Bulk first.", stock: true, delta: {} },
   "h-hld-deep": { id: "h-hld-deep", slot: "hold", hull: "hauler", name: "Deep Hold", blurb: "Fat bay. Costs turn and cruise.", delta: { cargoCap: 24, mass: 0.2, turnRate: -0.1, cruiseSpeed: -0.4 } },
   "h-hld-light": { id: "h-hld-light", slot: "hold", hull: "hauler", name: "Light Rack", blurb: "Less volume. The brick turns.", delta: { cargoCap: -16, mass: -0.1, turnRate: 0.06 } },
-  "h-tnk-stock": { id: "h-tnk-stock", slot: "tank", hull: "hauler", name: "Tank A", blurb: "Stock T1. Two systems, plus slack.", stock: true, delta: {} },
-  "h-tnk-deep": { id: "h-tnk-deep", slot: "tank", hull: "hauler", name: "Deep Cell", blurb: "Fat tank. Costs mass.", delta: { fuelCap: 50, mass: 0.16 } },
-  "h-tnk-light": { id: "h-tnk-light", slot: "tank", hull: "hauler", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -40, mass: -0.1 } },
+  "h-tnk-stock": { id: "h-tnk-stock", slot: "tank", hull: "hauler", name: "Tank A", blurb: "Stock T1 / fat T2. Two systems, plus slack.", stock: true, delta: {} },
+  "h-tnk-deep": { id: "h-tnk-deep", slot: "tank", hull: "hauler", name: "Deep Cell", blurb: "Fat T1 and T2. Costs mass.", delta: { fuelCap: 50, fuelCap2: 16, mass: 0.16 } },
+  "h-tnk-light": { id: "h-tnk-light", slot: "tank", hull: "hauler", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -40, fuelCap2: -12, mass: -0.1 } },
   "h-hx-stock": { id: "h-hx-stock", slot: "hx", hull: "hauler", name: "Mass Rad", blurb: "Stock brick sink.", stock: true, delta: {} },
   "h-hx-deep": { id: "h-hx-deep", slot: "hx", hull: "hauler", name: "Deep Sink", blurb: "Fat thermal mass. Slow to dump.", delta: { overdriveSec: 6, coolSec: 2, mass: 0.14 } },
   "h-hx-vent": { id: "h-hx-vent", slot: "hx", hull: "hauler", name: "Vent Array", blurb: "Bleeds heat. Shorter OD.", delta: { overdriveSec: -2, coolSec: -4 } },
@@ -226,9 +241,9 @@ export const MODULES: Record<string, ModuleDef> = {
   "s-hld-stock": { id: "s-hld-stock", slot: "hold", hull: "scout", name: "Drawer", blurb: "Sample tube. Nothing bulk.", stock: true, delta: {} },
   "s-hld-rack": { id: "s-hld-rack", slot: "hold", hull: "scout", name: "Sample Rack", blurb: "More volume. Heavier stick.", delta: { cargoCap: 4, mass: 0.05, turnRate: -0.06 } },
   "s-hld-seal": { id: "s-hld-seal", slot: "hold", hull: "scout", name: "Empty Tube", blurb: "Lighter. Almost no hold.", delta: { cargoCap: -2, mass: -0.03 } },
-  "s-tnk-stock": { id: "s-tnk-stock", slot: "tank", hull: "scout", name: "Cell A", blurb: "Stock T1. Sips on hops.", stock: true, delta: {} },
-  "s-tnk-long": { id: "s-tnk-long", slot: "tank", hull: "scout", name: "Long Cell", blurb: "More T1. Heavier cell.", delta: { fuelCap: 32, mass: 0.07 } },
-  "s-tnk-light": { id: "s-tnk-light", slot: "tank", hull: "scout", name: "Light Cell", blurb: "Less range. Lighter frame.", delta: { fuelCap: -24, mass: -0.04 } },
+  "s-tnk-stock": { id: "s-tnk-stock", slot: "tank", hull: "scout", name: "Cell A", blurb: "Stock T1 / T2. Sips on hops.", stock: true, delta: {} },
+  "s-tnk-long": { id: "s-tnk-long", slot: "tank", hull: "scout", name: "Long Cell", blurb: "More T1 and T2. Heavier cell.", delta: { fuelCap: 32, fuelCap2: 10, mass: 0.07 } },
+  "s-tnk-light": { id: "s-tnk-light", slot: "tank", hull: "scout", name: "Light Cell", blurb: "Less range. Lighter frame.", delta: { fuelCap: -24, fuelCap2: -8, mass: -0.04 } },
   "s-hx-stock": { id: "s-hx-stock", slot: "hx", hull: "scout", name: "Cold Fin", blurb: "Stock quiet sink.", stock: true, delta: {} },
   "s-hx-deep": { id: "s-hx-deep", slot: "hx", hull: "scout", name: "Deep Sink", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 3, coolSec: 1, mass: 0.05 } },
   "s-hx-vent": { id: "s-hx-vent", slot: "hx", hull: "scout", name: "Thin Fin", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -2, coolSec: -2, mass: -0.02 } },
@@ -244,9 +259,9 @@ export const MODULES: Record<string, ModuleDef> = {
   "k-hld-stock": { id: "k-hld-stock", slot: "hold", hull: "clipper", name: "Pouch", blurb: "Packets only.", stock: true, delta: {} },
   "k-hld-rack": { id: "k-hld-rack", slot: "hold", hull: "clipper", name: "Packet Rack", blurb: "More volume. Heavier stick.", delta: { cargoCap: 6, mass: 0.06, turnRate: -0.08 } },
   "k-hld-seal": { id: "k-hld-seal", slot: "hold", hull: "clipper", name: "Slim Bay", blurb: "Small. Light.", delta: { cargoCap: -4, mass: -0.04 } },
-  "k-tnk-stock": { id: "k-tnk-stock", slot: "tank", hull: "clipper", name: "Cell A", blurb: "Stock T1. Hungry OD.", stock: true, delta: {} },
-  "k-tnk-long": { id: "k-tnk-long", slot: "tank", hull: "clipper", name: "Long Cell", blurb: "More T1. Heavier cell.", delta: { fuelCap: 28, mass: 0.07 } },
-  "k-tnk-light": { id: "k-tnk-light", slot: "tank", hull: "clipper", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -20, mass: -0.05 } },
+  "k-tnk-stock": { id: "k-tnk-stock", slot: "tank", hull: "clipper", name: "Cell A", blurb: "Stock T1 / thin T2. Hungry OD.", stock: true, delta: {} },
+  "k-tnk-long": { id: "k-tnk-long", slot: "tank", hull: "clipper", name: "Long Cell", blurb: "More T1 and T2. Heavier cell.", delta: { fuelCap: 28, fuelCap2: 6, mass: 0.07 } },
+  "k-tnk-light": { id: "k-tnk-light", slot: "tank", hull: "clipper", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -20, fuelCap2: -4, mass: -0.05 } },
   "k-hx-stock": { id: "k-hx-stock", slot: "hx", hull: "clipper", name: "Hot Fin", blurb: "Stock sprint sink.", stock: true, delta: {} },
   "k-hx-cold": { id: "k-hx-cold", slot: "hx", hull: "clipper", name: "Cold Block", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 3, coolSec: 1, mass: 0.06 } },
   "k-hx-vent": { id: "k-hx-vent", slot: "hx", hull: "clipper", name: "Bleed", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -2, coolSec: -2 } },
@@ -262,9 +277,9 @@ export const MODULES: Record<string, ModuleDef> = {
   "n-hld-stock": { id: "n-hld-stock", slot: "hold", hull: "tender", name: "Cell Bay", blurb: "Fuel first. Some crates.", stock: true, delta: {} },
   "n-hld-deep": { id: "n-hld-deep", slot: "hold", hull: "tender", name: "Deep Cell", blurb: "More volume. Costs turn.", delta: { cargoCap: 10, mass: 0.14, turnRate: -0.08 } },
   "n-hld-light": { id: "n-hld-light", slot: "hold", hull: "tender", name: "Light Rack", blurb: "Less volume. Lighter mule.", delta: { cargoCap: -8, mass: -0.08, turnRate: 0.06 } },
-  "n-tnk-stock": { id: "n-tnk-stock", slot: "tank", hull: "tender", name: "Sphere A", blurb: "Stock fat T1.", stock: true, delta: {} },
-  "n-tnk-deep": { id: "n-tnk-deep", slot: "tank", hull: "tender", name: "Twin Sphere", blurb: "More T1. Costs mass.", delta: { fuelCap: 60, mass: 0.18 } },
-  "n-tnk-light": { id: "n-tnk-light", slot: "tank", hull: "tender", name: "Drop Sphere", blurb: "Lighter. Shorter sips.", delta: { fuelCap: -50, mass: -0.12 } },
+  "n-tnk-stock": { id: "n-tnk-stock", slot: "tank", hull: "tender", name: "Sphere A", blurb: "Stock fat T1 / T2.", stock: true, delta: {} },
+  "n-tnk-deep": { id: "n-tnk-deep", slot: "tank", hull: "tender", name: "Twin Sphere", blurb: "More T1 and T2. Costs mass.", delta: { fuelCap: 60, fuelCap2: 18, mass: 0.18 } },
+  "n-tnk-light": { id: "n-tnk-light", slot: "tank", hull: "tender", name: "Drop Sphere", blurb: "Lighter. Shorter sips.", delta: { fuelCap: -50, fuelCap2: -14, mass: -0.12 } },
   "n-hx-stock": { id: "n-hx-stock", slot: "hx", hull: "tender", name: "Cryo Fin", blurb: "Stock depot sink.", stock: true, delta: {} },
   "n-hx-deep": { id: "n-hx-deep", slot: "hx", hull: "tender", name: "Deep Sink", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 4, coolSec: 2, mass: 0.1 } },
   "n-hx-vent": { id: "n-hx-vent", slot: "hx", hull: "tender", name: "Bleed Fin", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -3, coolSec: -3 } },
@@ -280,9 +295,9 @@ export const MODULES: Record<string, ModuleDef> = {
   "g-hld-stock": { id: "g-hld-stock", slot: "hold", hull: "tug", name: "Crate Bay", blurb: "Lock crates. Nothing bulk.", stock: true, delta: {} },
   "g-hld-rack": { id: "g-hld-rack", slot: "hold", hull: "tug", name: "Crate Rack", blurb: "More volume. Heavier stick.", delta: { cargoCap: 6, mass: 0.06, turnRate: -0.08 } },
   "g-hld-seal": { id: "g-hld-seal", slot: "hold", hull: "tug", name: "Slim Bay", blurb: "Small. Light.", delta: { cargoCap: -4, mass: -0.04 } },
-  "g-tnk-stock": { id: "g-tnk-stock", slot: "tank", hull: "tug", name: "Cell A", blurb: "Stock T1. Harbor sips.", stock: true, delta: {} },
-  "g-tnk-long": { id: "g-tnk-long", slot: "tank", hull: "tug", name: "Long Cell", blurb: "More T1. Heavier cell.", delta: { fuelCap: 28, mass: 0.07 } },
-  "g-tnk-light": { id: "g-tnk-light", slot: "tank", hull: "tug", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -20, mass: -0.05 } },
+  "g-tnk-stock": { id: "g-tnk-stock", slot: "tank", hull: "tug", name: "Cell A", blurb: "Stock T1 / thin T2. Harbor sips.", stock: true, delta: {} },
+  "g-tnk-long": { id: "g-tnk-long", slot: "tank", hull: "tug", name: "Long Cell", blurb: "More T1 and T2. Heavier cell.", delta: { fuelCap: 28, fuelCap2: 4, mass: 0.07 } },
+  "g-tnk-light": { id: "g-tnk-light", slot: "tank", hull: "tug", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -20, fuelCap2: -4, mass: -0.05 } },
   "g-hx-stock": { id: "g-hx-stock", slot: "hx", hull: "tug", name: "Bay Fin", blurb: "Stock harbor sink.", stock: true, delta: {} },
   "g-hx-cold": { id: "g-hx-cold", slot: "hx", hull: "tug", name: "Cold Block", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 3, coolSec: 1, mass: 0.05 } },
   "g-hx-vent": { id: "g-hx-vent", slot: "hx", hull: "tug", name: "Bleed", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -2, coolSec: -2 } },
@@ -335,6 +350,7 @@ const FLOOR: Record<StatKey, number> = {
   cargoCap: 2,
   coolSec: 3,
   fuelCap: 36,
+  fuelCap2: 6,
 };
 
 export function fittedShip(shipId: ShipId, loadout: Loadout = STOCK_LOADOUT): ShipDef {
@@ -390,6 +406,12 @@ export function fullTanks(loadout: Loadout = STOCK_LOADOUT): Record<ShipId, numb
   return out;
 }
 
+export function fullTanks2(loadout: Loadout = STOCK_LOADOUT): Record<ShipId, number> {
+  const out = {} as Record<ShipId, number>;
+  for (const hull of SHIP_ORDER) out[hull] = fittedShip(hull, loadout).fuelCap2;
+  return out;
+}
+
 export function sanitizeFuel(raw: unknown, loadout: Loadout): Record<ShipId, number> {
   const cap = fullTanks(loadout);
   const out = { ...cap };
@@ -401,4 +423,32 @@ export function sanitizeFuel(raw: unknown, loadout: Loadout): Record<ShipId, num
     out[hull] = Math.max(0, Math.min(cap[hull], v));
   }
   return out;
+}
+
+export function sanitizeFuel2(raw: unknown, loadout: Loadout): Record<ShipId, number> {
+  const cap = fullTanks2(loadout);
+  const out = { ...cap };
+  if (!raw || typeof raw !== "object") return out;
+  const rec = raw as Partial<Record<ShipId, number>>;
+  for (const hull of SHIP_ORDER) {
+    const v = rec[hull];
+    if (typeof v !== "number" || Number.isNaN(v)) continue;
+    out[hull] = Math.max(0, Math.min(cap[hull], v));
+  }
+  return out;
+}
+
+export function jumpT2Cost(ly: number): number {
+  const dist = Math.max(0, ly);
+  return +(T2_CHARGE + Math.max(T2_HOP_FLOOR, dist * T2_PER_LY)).toFixed(2);
+}
+
+export function refuelQuote(needT1: number, needT2: number): { t1: number; t2: number; cost: number } {
+  const t1 = Math.max(0, needT1);
+  const t2 = Math.max(0, needT2);
+  return {
+    t1,
+    t2,
+    cost: Math.round(t1 * T1_CREDIT_PER_UNIT + t2 * T2_CREDIT_PER_UNIT),
+  };
 }

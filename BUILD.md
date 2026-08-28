@@ -1,59 +1,86 @@
 # Starwake — build list
 
-Intergalactic flight sim. **Slice 1 is in progress.** Later slices stay listed here so they are not lost.
+Intergalactic flight sim. **Week 1 hangar / haul loop is in play.** Later work stays listed here so it is not lost.
 
-## Slice 1 (now)
+Source for economy / mining / fleet flavour: [`docs/sessions/session-2026-08-28-progress-review.md`](docs/sessions/session-2026-08-28-progress-review.md). Do not skip the numbered order.
+
+## Slice 1 (shipped)
 
 - Port prototype starfield, stick / throttle / look, procedural audio
-- Two ships: Courier, Hauler (handling only)
+- Hangar sets: Line (Courier, Hauler, Scout, Clipper) and Yard (Tender, Tug)
 - Local **boost** = in-system hops (no tunnel)
 - Compact system: sun in frame + seeded planet spheres (no landings)
 - **Jump** = lock a star first, then charge → tunnel → drop
-- Jump from galaxy map or in-flight Jump once locked
 - Maps: **System** (planets) and **Galaxy** (stars). Intergalactic held
-- Thin chrome only (gate, sticks, map, jump, lock line)
+- Hub-local jobs, diary, Rel, Pilot, Market, wear HUD
 
-## Next (live loop)
+## Build order
 
-Do these after the Week 1 hangar / haul loop holds in play. Do not start Week 2 commodities until these land.
+Do not start merchant, mining, or fleet until **1–3** land in Play.
 
-### Save state slots
-One persist blob (`starwake-v2`) today. Add named save slots (at least 3) on Gate / Options: New, Continue into a slot, copy, delete. Each slot keeps ship, fuel, board, diary, hangar, and credits. Active slot is the one Play writes.
+### 1. Save state slots — in play
+Three named slots on Gate / Options: Continue, New (wipes the active slot), copy, delete. Each slot keeps ship, fuel, board, diary, and local hangar fits. Credits and owned hulls stay on the account. Active slot is the one Play writes. Old `starwake-v2` blobs migrate into slot 1.
 
-### T2 fuel for jumps
-T1 stays in-system (cruise / boost). Add a second tank, **T2**, spent on FSD charge and each interstellar hop. Jump range + lock stay gated by T2 remaining. HUD shows T1 and T2. Courier: small T2, sips T1. Hauler: fat T2, hungry T1.
+### 2. T2 fuel for jumps — in play
+T1 stays in-system (cruise / boost). T2 is spent on FSD charge + the hop (floor + ly). Jump lock is gated by T2 remaining. HUD shows T1 and T2. Courier: small T2, sips T1. Hauler: fat T2, hungrier T1.
 
-### Resource fuel prices
-Station Refuel is free today. Price T1 and T2 at the lock (credits per unit). Hub boards already pay; fuel spend should come out of those earnings. Scoop / orbital refill can wait.
+### 3. Resource fuel prices — in play
+Station / Hangar Refuel costs credits per unit (T1 ₡2, T2 ₡8), same at every hub. Hub boards already pay; fuel spend comes out of those earnings. Scoop / orbital refill can wait.
 
-## Later
+### 4. Shared galaxy sky
+Every system currently has its own galactic skybox. Wrong: they sit in **one** galaxy. One shared background. Expand **this** galaxy (more systems, more depth) before adding more galaxies.
 
-### Planet types
-Taxonomy beyond colored spheres: rocky, desert, ocean, ice, gas giant, volcanic, ringed. Drives look, approach distance, and later mission tags. No landings.
+### 5. Close-up scale (camera, not radius)
+Keep current planet radii and AU spacing. Close-up planets feel small because of FOV / near-plane, not because meshes are too small. Fix with camera: FOV ~90–100, near plane ~0.01 / 0.001; optional pull-in, distant-disk LOD, haze. Do **not** grow radii. See [`docs/SCALE_ANALYSIS.md`](docs/SCALE_ANALYSIS.md).
 
-### Objects and materials to transfer
-Courier / hauler cargo: packets, ore, water ice, rare metals, biologics, machine parts. Transfer is proximity at a planet (orbital drop), not a landing. Feeds garage unlocks — still no cash shop.
+### 6. Travel feel
+After the camera pass: `GAME_DAY_SEC` 120 → 30, ~2× cruise / overdrive, gravity wells ~half radius. Target ~15–30 s between in-system POIs, still feels vast.
 
-### Fuel economy (2 types)
-Two tanks, not one:
+### 7. Merchant + market watch
+Keep contract jobs (safe loop). Add a merchant path: buy cargo, **own** it, haul it, store it, sell it. Prices move with supply / demand per hub over time. Holding is play.
 
-1. **T2 / jump fuel** — spent on FSD charge and interstellar jump. Range + lock gated by this.
-2. **T1 / reaction mass** — spent on in-system cruise and boost.
+**Market watch** (not a one-line ticker): live values per commodity / hub, history charts, trends / volatility. Sit and watch the tape, then fly or wait. Jobs stay safe; merchant is risky and higher-skill.
 
-Courier: small jump tank, sips boost. Hauler: fat jump tank, hungry boost. Hub prices first; star scoop later.
+### 8. Hull roles
+Keep Courier / Hauler (cargo) and Scout (range). Tender stays fuel.
+
+- **Clipper → passenger / VIP** (people, not packets)
+- **Tug → salvage** (recovery, not just harbor crates)
+- **Add Extractor** (mining hull). Do not grow the roster blindly; swap weak roles, then add the miner.
+
+3D Grok hulls are too low-poly vs `public/ships/` 2D art. Higher-detail 3D or a different pipeline; 2D portraits stay the quality bar. Combat still later.
+
+### 9. Planet mining
+Hub-less worlds are **resource planets**, not stations. Each gets a couple of extractable elements (gas / liquid / solid). Harvest with the Extractor (direct pull) and later a pad on that world. Mined product feeds the merchant hold and the watch (local surplus → cheaper there, haul it out).
+
+### 10. Fleet
+Small transport company: a couple of NPC ships on **contracts only** (not merchant trading). Steady, lower-rate income; routes + upkeep so it is not free money. Player can fly jobs, trade, and run the fleet at the same time.
+
+### 11. Risk and events
+Pirate / interdiction on hauls. Market shocks (spikes / crashes that feed the watch). Reputation / faction contracts stay deprioritized.
+
+### 12. Player station
+Buy a station somewhere. Storage first, then price / hold leverage for the merchant loop. Upgrades over time. Extractor pads on resource worlds can share this track.
+
+## Loops (run together)
+
+| Loop | What you do | Income |
+|------|-------------|--------|
+| Jobs | Haul someone else’s cargo | Safe, per trip |
+| Merchant | Buy, own, store, sell on the watch | Risky, timing |
+| Fleet | NPC ships on contracts | Lower, steady |
+| Mining | Extractor on hub-less worlds | Raw supply for merchant |
+| Station | Own a pad / storage | Leverage on price and hold |
+| Risk | Pirates, shocks | Threaten all of the above |
 
 ## Later
 
 | Slice | What |
 |-------|------|
-| 2 | Garage + loadout unlocks (no prices) |
-| 3 | Courier and hauler jobs |
-| 4 | HUD polish |
-| — | Intergalactic map |
-| — | Credits / economy |
+| — | Intergalactic map (after this galaxy is deep enough) |
 | — | Combat |
 | — | Android wrap (Capacitor / Play) — keep WebGL1 + touch-first |
 
 ## Non-goals (until named)
 
-Station interiors, planet landings, 6DOF, multiplayer.
+Station interiors as walkable spaces, planet landings, 6DOF, multiplayer, faction reputation contracts.

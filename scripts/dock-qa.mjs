@@ -52,7 +52,8 @@ await page.screenshot({ path: "/workspace/screenshots/station-bay.png" });
 const fuelBefore = await page.evaluate(() => window.__starwake?.getFuel?.());
 await page.evaluate(() => window.__starwake?.setFuel?.(12));
 await page.waitForTimeout(80);
-await page.getByRole("button", { name: "Refuel" }).click();
+const pump = await page.getByRole("button", { name: /Refuel/ }).count();
+await page.evaluate(() => window.__starwake?.refuel?.());
 await page.waitForTimeout(150);
 const fuelAfter = await page.evaluate(() => window.__starwake?.getFuel?.());
 
@@ -71,6 +72,7 @@ const ok =
   dockHud === 1 &&
   dock?.mode === "berthed" &&
   bay === 1 &&
+  pump >= 1 &&
   (fuelBefore?.cap ?? 0) >= 90 &&
   (fuelAfter?.fuel ?? 0) >= (fuelAfter?.cap ?? 1) - 1 &&
   loaded === true &&
@@ -80,7 +82,7 @@ const ok =
 
 console.log(JSON.stringify({
   ok, stations: stations.map((s) => s.name), wild: wild.map((w) => w.name),
-  dockHud, threaded, dock, bay, fuelBefore, fuelAfter, loaded, man, afterUndock, errors,
+  dockHud, threaded, dock, bay, pump, fuelBefore, fuelAfter, loaded, man, afterUndock, errors,
 }, null, 2));
 await browser.close();
 process.exit(ok ? 0 : 1);

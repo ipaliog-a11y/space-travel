@@ -188,9 +188,10 @@ Then Week 2 commodities can absorb merchant, watch, mining, fleet, events, stati
 
 ## Pointers
 
+- Canonical build order: [`BUILD.md`](../../BUILD.md)
 - Scale / camera: [`docs/SCALE_ANALYSIS.md`](../SCALE_ANALYSIS.md)
 - Hulls: [`docs/HULL_SET.md`](../HULL_SET.md)
-- Older 12-month plan (generic; this chat overrides economy flavour): [`docs/IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md)
-- Decision log (wear / resale / slots / job pay): [`docs/DECISION_LOG.md`](../DECISION_LOG.md)
+- 12-month plan (Immediate Next Steps now matches this chat): [`docs/IMPLEMENTATION_PLAN.md`](../IMPLEMENTATION_PLAN.md)
+- Decision log: [`docs/DECISION_LOG.md`](../DECISION_LOG.md) (#007)
 
 **Last updated:** 2026-08-28 (full chat extract)  

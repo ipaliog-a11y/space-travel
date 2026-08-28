@@ -176,15 +176,19 @@ Build the user interface for ship ownership and hangar management, integrating t
 4. Add ship detail modal
 5. Test with backend API
 
-## Next after hangar (live loop)
+## Next after hangar
 
-Do not start Week 2 commodities until these land in Play.
+Canonical order is in [`BUILD.md`](../BUILD.md). Do not start merchant / mining / fleet until 1–3 land.
 
-1. **Save state slots** — named slots (at least 3) on Gate / Options. New, Continue into a slot, copy, delete. Persist ship, fuel, board, diary, hangar, credits per slot.
-2. **T2 fuel for jumps** — second tank. T1 stays in-system. T2 burns on FSD charge and each hop. HUD shows both. Jump lock gated by T2.
-3. **Resource fuel prices** — station Refuel costs credits per T1 / T2 unit. Paid from job earnings. Scoop later.
+1. Save state slots
+2. T2 fuel for jumps
+3. Resource fuel prices
+4. Shared galaxy sky → close-up camera scale → travel feel
+5. Merchant + market watch
+6. Hull roles (Clipper passenger, Tug salvage, Extractor) then planet mining
+7. Fleet (NPC contracts) → risk/events → player station
 
 ---
 
-**Status:** Hangar / haul loop in play. Next: save slots, T2 jump fuel, fuel prices.
-**Priority:** Live loop first, then Week 2 commodities
+**Status:** Hangar / haul loop plus save slots, T2, and paid pump in play. Next: shared sky / camera scale.
+**Priority:** Live loop first, then merchant / mining / fleet (see BUILD.md)

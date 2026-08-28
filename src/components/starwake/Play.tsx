@@ -74,6 +74,13 @@ export function Play() {
     st.setEntered(true);
   }
 
+  function startNew() {
+    if (ownedHulls !== null && ownedHulls.length === 0) return;
+    const st = useStarwake.getState();
+    st.newSlot(st.activeSlotId);
+    engage();
+  }
+
   function cont() {
     engine?.unlockAudio();
     useStarwake.getState().setEntered(true);
@@ -125,7 +132,7 @@ export function Play() {
           onHangar={() => useStarwake.getState().setMenuView("hangar")}
           onProfile={() => useStarwake.getState().setMenuView("profile")}
           onMarket={() => useStarwake.getState().setMenuView("market")}
-          onEngage={engage}
+          onEngage={startNew}
           onContinue={cont}
         />
       )}

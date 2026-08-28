@@ -8,12 +8,13 @@ import {
   moduleById,
   moduleFitCost,
   modulesFor,
+  refuelQuote,
 } from "@/lib/starwake/catalog";
 import { planetLog } from "@/lib/starwake/galaxy";
 import { diaryEarnings, formatHaul, formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
-import { buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
+import { buyFuel, buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
 import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
 import {
   HARDPOINT_BONUSES,
@@ -45,6 +46,7 @@ const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: 
   { key: "jumpRangeLy", label: "Jump", unit: "ly", max: 36 },
   { key: "cargoCap", label: "Hold", unit: "u", max: 80 },
   { key: "fuelCap", label: "Tank", unit: "t1", max: 280 },
+  { key: "fuelCap2", label: "T2", unit: "t2", max: 80 },
   { key: "overdriveSec", label: "Heat", unit: "s", max: 18 },
   { key: "coolSec", label: "Cool", unit: "s", max: 12, invert: true },
   { key: "fsdChargeSec", label: "Spool", unit: "s", max: 5.2, invert: true },
@@ -65,13 +67,19 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
   const visits = useStarwake((s) => s.visitedPlanets);
   const dropJob = useStarwake((s) => s.dropJob);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
+  const fuel2 = useStarwake((s) => s.fuel2[s.shipId]);
   const refuel = useStarwake((s) => s.refuel);
   const [slot, setSlot] = useState<FitTab>("tank");
   const [credits, setCredits] = useState<number | null>(null);
   const [hardpointTier, setHardpointTier] = useState<HardpointTier>("stock");
   const [fitError, setFitError] = useState<string | null>(null);
   const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [fueling, setFueling] = useState(false);
   const fitted = fittedShip(shipId, loadout);
+  const needT1 = Math.max(0, fitted.fuelCap - (fuel ?? 0));
+  const needT2 = Math.max(0, fitted.fuelCap2 - (fuel2 ?? 0));
+  const pumpQuote = refuelQuote(needT1, needT2);
+  const tanksFull = needT1 < 0.2 && needT2 < 0.2;
   const hullSlot = slot === RELIABILITY_TAB ? "tank" : slot;
   const parts = slot === RELIABILITY_TAB ? [] : modulesFor(shipId, slot);
   const fittedId = slot === RELIABILITY_TAB ? "" : loadout[shipId][slot];
@@ -153,6 +161,25 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
     }
   }
 
+  async function onPump() {
+    if (tanksFull || fueling) return;
+    if (pumpQuote.cost > 0 && credits != null && credits < pumpQuote.cost) {
+      setFitError(`Need ₡${pumpQuote.cost.toLocaleString()} to fill`);
+      return;
+    }
+    setFueling(true);
+    setFitError(null);
+    try {
+      const result = await buyFuel({ data: { t1: needT1, t2: needT2 } });
+      setCredits(result.credits);
+      refuel();
+    } catch (err) {
+      setFitError(err instanceof Error ? err.message : "Refuel failed");
+    } finally {
+      setFueling(false);
+    }
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Escape") return;
@@ -230,7 +257,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
                   <span className="ship-rail-role">{hull.role}</span>
                   <span className="ship-rail-blurb">{hull.blurb}</span>
                   <span className="ship-rail-data">
-                    {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)}
+                    {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)} · t2 {Math.round(fit.fuelCap2)}
                   </span>
                 </button>
               );
@@ -274,9 +301,12 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
               <strong>{fitted.cruiseSpeed.toFixed(1)}</strong>
             </li>
             <li>
-              <em>Tank</em>
+              <em>T1</em>
               <strong>{Math.round(fitted.fuelCap)}</strong>
-              <span>t1</span>
+            </li>
+            <li>
+              <em>T2</em>
+              <strong>{Math.round(fitted.fuelCap2)}</strong>
             </li>
             <li>
               <em>Boost</em>
@@ -366,10 +396,12 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
                         ? `${used}/${Math.round(v)}`
                         : s.key === "fuelCap"
                           ? `${Math.round(fuel)}/${Math.round(v)}`
+                          : s.key === "fuelCap2"
+                            ? `${Math.round(fuel2 ?? 0)}/${Math.round(v)}`
                           : s.unit === "ly" || s.unit === "s"
                             ? v.toFixed(1)
                             : v.toFixed(2)}
-                      {s.key === "cargoCap" ? " u" : s.key === "fuelCap" ? " t1" : s.unit ? ` ${s.unit}` : ""}
+                      {s.key === "cargoCap" ? " u" : s.key === "fuelCap" ? " t1" : s.key === "fuelCap2" ? " t2" : s.unit ? ` ${s.unit}` : ""}
                     </span>
                   </dd>
                 </div>
@@ -469,8 +501,19 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot
         </button>
-        <button type="button" className="engage ghost" onClick={refuel} disabled={fuel >= fitted.fuelCap - 0.2}>
-          Refuel
+        <button
+          type="button"
+          className="engage ghost"
+          onClick={() => void onPump()}
+          disabled={fueling || tanksFull || (pumpQuote.cost > 0 && credits != null && credits < pumpQuote.cost)}
+        >
+          {tanksFull
+            ? "Tanks full"
+            : fueling
+              ? "Fueling"
+              : pumpQuote.cost > 0
+                ? `Refuel ₡${pumpQuote.cost.toLocaleString()}`
+                : "Refuel"}
         </button>
         <button
           type="button"
@@ -497,6 +540,7 @@ function formatDelta(m: { delta: Partial<Record<StatKey, number>> }) {
     fsdChargeSec: "spool",
     cargoCap: "hold",
     fuelCap: "t1",
+    fuelCap2: "t2",
     mass: "mass",
   };
   for (const [k, v] of Object.entries(m.delta) as [StatKey, number][]) {

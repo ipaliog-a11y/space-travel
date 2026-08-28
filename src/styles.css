@@ -229,6 +229,9 @@ button:disabled { cursor: default; }
 .fuel-read {
   left:calc(50% + 76px)
 }
+.fuel-read.t2 {
+  left:calc(50% + 148px)
+}
 .wear-read {
   left:calc(50% - 148px)
 }
@@ -687,6 +690,66 @@ button:disabled { cursor: default; }
   justify-content:center;
   gap:10px;
   display:flex
+}
+.save-slots {
+  width:min(640px,100%);
+  margin:0 auto 16px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px
+}
+.save-slots.compact {
+  width:100%;
+  margin:4px 0 8px;
+  grid-template-columns:1fr
+}
+.save-slot {
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  background:0 0;
+  overflow:hidden
+}
+.save-slot.on {
+  border-color:var(--color-fg)
+}
+.save-slot-pick {
+  width:100%;
+  text-align:left;
+  color:var(--color-fg);
+  background:0 0;
+  border:0;
+  padding:10px 12px 8px;
+  cursor:pointer
+}
+.save-slot-pick strong {
+  display:block;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-size:11px
+}
+.save-slot-pick span {
+  display:block;
+  color:var(--color-muted);
+  font-size:11px;
+  margin-top:4px
+}
+.save-slot-acts {
+  display:flex;
+  gap:4px;
+  padding:0 8px 8px
+}
+.save-slot-act {
+  color:var(--color-muted);
+  background:0 0;
+  border:0;
+  padding:4px 6px;
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  cursor:pointer
+}
+.save-slot-act:hover {
+  color:var(--color-fg)
 }
 .engage:hover {
   filter:brightness(1.06)
@@ -1623,9 +1686,11 @@ button:disabled { cursor: default; }
   border:1px solid var(--color-border);
   z-index:8;
   background:#0c0c10eb;
-  width:min(18rem,100vw - 24px);
+  width:min(20rem,100vw - 24px);
   padding:8px 8px 12px;
-  position:absolute
+  position:absolute;
+  max-height:min(80vh, 36rem);
+  overflow:auto
 }
 .opt-title {
   letter-spacing:.16em;
@@ -1873,10 +1938,17 @@ button:disabled { cursor: default; }
   .ship-pick {
     grid-template-columns:1fr
   }
+  .save-slots {
+    grid-template-columns:1fr
+  }
   .fuel-read {
     left:auto;
     right:max(64px, env(safe-area-inset-right));
     bottom:max(168px, calc(env(safe-area-inset-bottom) + 150px))
+  }
+  .fuel-read.t2 {
+    right:max(64px, env(safe-area-inset-right));
+    bottom:max(204px, calc(env(safe-area-inset-bottom) + 186px))
   }
   .wear-read {
     left:max(64px, env(safe-area-inset-left));

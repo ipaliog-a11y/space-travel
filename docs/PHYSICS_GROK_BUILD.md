@@ -34,7 +34,7 @@ Integrator: `engine.ts` ~2168–2309. Gravity helper: `orbit.ts` `gravityAt` / `
 
 - Throttle 0–75% maps onto `cruiseSpeed`. Above 75% is overdrive toward `overdriveSpeed`, then heat.
 - Boost is discrete charges (5), not a second tank.
-- T1 burns whenever `drive > 0.04`: `drive × dt × T1_PER_DIST`. BUILD.md still plans **two tanks** (jump hydrogen + boost reaction mass). Not built.
+- T1 burns whenever `drive > 0.04`: `drive × dt × T1_PER_DIST`. T2 is FSD fuel (charge sip + hop). Boost stays discrete charges, not a second reaction-mass tank.
 - Courier `mass 0.7` / Hauler `mass 1.7` plus module deltas. **`def.mass` is only returned to the HUD.** Hauler already feels heavier via lower `turnRate` and `cruiseSpeed`.
 
 ### Docking (leave this alone)

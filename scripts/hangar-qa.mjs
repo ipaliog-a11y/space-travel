@@ -26,7 +26,7 @@ const plateSrc = await page.locator(".hull-plate").getAttribute("src");
 const stockJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
 const stockHold = await page.locator(".spec-list div").filter({ hasText: "Hold" }).locator(".spec-val").innerText();
 const stockHeat = await page.locator(".spec-list div").filter({ hasText: "Heat" }).locator(".spec-val").innerText();
-const stockTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").innerText();
+const stockTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").first().innerText();
 await page.screenshot({ path: "/workspace/screenshots/hangar.png" });
 
 const box = await page.locator(".hull-bay canvas").boundingBox();
@@ -46,7 +46,7 @@ await page.locator(".slot-tabs").getByRole("button", { name: "Tank" }).click();
 await page.waitForTimeout(120);
 await page.getByRole("button", { name: /Long Cell/ }).click();
 await page.waitForTimeout(150);
-const longTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").innerText();
+const longTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").first().innerText();
 
 await page.locator(".hull-bay .hardpoint").nth(0).click({ force: true }).catch(() => {});
 await page.locator(".slot-tabs").getByRole("button", { name: "HX" }).click();
@@ -97,7 +97,7 @@ await page.screenshot({ path: "/workspace/screenshots/hangar-clipper.png" });
 await page.getByRole("tab", { name: "Tender" }).click({ force: true });
 await page.waitForTimeout(700);
 const tenderJump = await page.locator(".spec-list div").filter({ hasText: "Jump" }).locator(".spec-val").innerText();
-const tenderTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").innerText();
+const tenderTank = await page.locator(".spec-list div").filter({ hasText: "Tank" }).locator(".spec-val").first().innerText();
 const tenderShip = await page.locator(".hull-bay.hull-tender").count();
 const tenderPlate = await page.locator(".hull-plate").getAttribute("src");
 const tenderRole = await page.locator(".hull-dossier-kicker").innerText();

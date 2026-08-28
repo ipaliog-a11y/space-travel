@@ -2,6 +2,7 @@ import { SHIP_SETS, SHIPS, fittedShip } from "@/lib/starwake/catalog";
 import { diaryEarnings, holdUsed } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ShipId } from "@/lib/starwake/types";
+import { SaveSlots } from "./SaveSlots";
 
 type Props = {
   shipId: ShipId;
@@ -42,7 +43,6 @@ export function Gate({
           <kbd>A</kbd>/<kbd>Z</kbd> throttle
           <kbd>Q</kbd>/<kbd>E</kbd> roll
           <kbd>R</kbd> boosts
-          <kbd>F</kbd> refuel
           <kbd>Esc</kbd> menu
         </p>
       </header>
@@ -84,7 +84,7 @@ export function Gate({
                   <span className="ship-role">{SHIPS[id].role}</span>
                   <p>{SHIPS[id].blurb}</p>
                   <span className="ship-meta">
-                    {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)}
+                    {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)} · t2 {Math.round(fit.fuelCap2)}
                     {manifests[id] ? " · job" : ""}
                   </span>
                 </button>
@@ -94,6 +94,8 @@ export function Gate({
         </section>
         );
       })}
+
+      <SaveSlots />
 
       <div className="gate-acts">
         <button type="button" className="engage" onClick={onHangar}>

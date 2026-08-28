@@ -2,6 +2,17 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.12] - 2026-08-28
+
+### Added
+- Three named save slots on Gate and Options. Continue into a slot, New wipes the active one, copy, delete. Old `starwake-v2` progress becomes slot 1.
+- T2 jump fuel. FSD charge plus hop spend it. Jump lock is gated by remaining T2. HUD shows T1 and T2.
+- Paid Refuel at Hangar and station: T1 ₡2 / unit, T2 ₡8 / unit, same at every hub.
+
+### Changed
+- Persist version 14. Each slot keeps ship, tanks, board, diary, and local fits. Credits and owned hulls stay on the account.
+- Free in-flight F / HUD fill is gone. Fill at a lock.
+
 ## [v0.1.11] - 2026-08-28
 
 ### Added
