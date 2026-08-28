@@ -1,6 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { applyWearToShip, fittedShip, MODULES, moduleFitCost, SLOT_FIT_COST } from "./catalog.ts";
+import { hubBoard, jobLeavesHub } from "./job-hub.ts";
+import { diaryEarnings, jobIsRetired, logDelivery, retireContract, retireJob } from "./job-log.ts";
 import { jobPayoutFor } from "./job-pay.ts";
 import { HARDPOINT_COSTS, repairCreditCost, WEAR_RATES } from "../ship-ownership/types.ts";
 import type { CargoJob } from "./types.ts";
@@ -48,29 +50,22 @@ describe("wear on fitted hull", () => {
 });
 
 describe("job payout", () => {
-  it("pays at least ₡1,000 for a local courier lock-to-lock", () => {
-    const paid = jobPayoutFor(job({ kind: "courier", qty: 4 }));
-    assert.ok(paid >= 1000);
-    assert.ok(paid <= 4000);
+  it("scales linearly with cargo mass", () => {
+    const light = jobPayoutFor(job({ kind: "courier", qty: 2 }), { au: 1, ly: 0 });
+    const heavy = jobPayoutFor(job({ kind: "courier", qty: 6 }), { au: 1, ly: 0 });
+    assert.equal(heavy, light * 3);
   });
 
-  it("pays more for a heavier hold of the same kind", () => {
-    const light = jobPayoutFor(job({ kind: "courier", qty: 2 }), 0);
-    const heavy = jobPayoutFor(job({ kind: "courier", qty: 6 }), 0);
-    const hop = jobPayoutFor(job({ kind: "courier", qty: 4 }), 8);
-    assert.ok(heavy > light);
-    assert.ok(hop > jobPayoutFor(job({ kind: "courier", qty: 4 }), 0));
+  it("scales linearly with haul distance", () => {
+    const near = jobPayoutFor(job({ kind: "courier", qty: 4 }), { au: 1, ly: 0 });
+    const far = jobPayoutFor(job({ kind: "courier", qty: 4 }), { au: 2, ly: 0 });
+    const hop = jobPayoutFor(job({ kind: "courier", qty: 4 }), { au: 0, ly: 8 });
+    assert.equal(far, near * 2);
+    assert.equal(hop, near * 8);
   });
 
-  it("four typical courier deliveries from ₡1,000 fund Mk I", () => {
-    const start = 1000;
-    const mk1 = 5000;
-    const paid = jobPayoutFor(job({ kind: "courier", qty: 4 }));
-    assert.ok(start + paid * 4 >= mk1, `4× ${paid} from ${start} should reach ${mk1}`);
-  });
-
-  it("one courier job covers a typical lock-to-lock repair", () => {
-    const paid = jobPayoutFor(job({ kind: "courier", qty: 4 }));
+  it("pays a 1 AU 4u courier enough to cover a typical lock-to-lock repair", () => {
+    const paid = jobPayoutFor(job({ kind: "courier", qty: 4 }), { au: 1, ly: 0 });
     const wear =
       WEAR_RATES.normal_flight * 3 +
       WEAR_RATES.docking * 2;
@@ -89,5 +84,47 @@ describe("hangar fit costs", () => {
     assert.ok(fsd <= 15000, `FSD alt ₡${fsd} should stay at or under Mk II`);
     assert.ok(SLOT_FIT_COST.thruster >= HARDPOINT_COSTS.mk1 * 0.5);
     assert.ok(SLOT_FIT_COST.fsd <= HARDPOINT_COSTS.mk2);
+  });
+});
+
+describe("job diary", () => {
+  it("keeps a finished job out of circulation", () => {
+    const retired = retireJob(retireJob([], "job-a"), "job-b");
+    assert.deepEqual(retired, ["job-a", "job-b"]);
+    assert.deepEqual(retireJob(retired, "job-a"), ["job-a", "job-b"]);
+  });
+
+  it("retires the same cargo and route even if the listing id changes", () => {
+    const haul = job({ id: "job-a" });
+    const retired = retireContract([], haul);
+    const twin = job({ id: "job-z" });
+    assert.ok(jobIsRetired(haul, retired));
+    assert.ok(jobIsRetired(twin, retired));
+    assert.equal(jobIsRetired(job({ id: "job-other", cargo: "ore", qty: 16 }), retired), false);
+  });
+
+  it("records pay and sums earnings without duplicating a haul", () => {
+    const haul = job();
+    const first = logDelivery([], haul, 880, "courier", 1);
+    assert.equal(first[0].pay, 880);
+    assert.equal(diaryEarnings(first), 880);
+    const again = logDelivery(first, haul, 880, "courier", 2);
+    assert.equal(again.length, 1);
+    assert.equal(again[0].at, 2);
+  });
+});
+
+describe("hub board", () => {
+  it("keeps hauls that leave this lock and drops the rest", () => {
+    const here = { systemId: "helion", stationId: "st-a" };
+    const other = { systemId: "helion", stationId: "st-b" };
+    const far = { systemId: "vega", stationId: "st-v" };
+    const local = job({ from: here, to: other });
+    const hop = job({ from: here, to: far });
+    const inbound = job({ from: other, to: here });
+    const elsewhere = job({ from: far, to: other });
+    const board = hubBoard([local, hop, inbound, elsewhere], "helion", "st-a");
+    assert.equal(board.length, 2);
+    assert.ok(board.every((j) => jobLeavesHub(j.from, j.to, "helion", "st-a")));
   });
 });

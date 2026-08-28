@@ -256,13 +256,13 @@ CREATE TABLE player_ships (
 
 **Date:** 2026-08-28  
 **Status:** ✅ Implemented (placeholder until Week 2 market)  
-**Session:** Week 1 close
+**Session:** Week 1 close / playtest
 
 ### Context
-Mk I hardpoints cost ₡5,000. Players start with ₡1,000. Jobs completed but paid nothing, so the upgrade UI was dead.
+Mk I hardpoints cost ₡5,000. Players start with ₡1,000. Jobs completed but paid nothing, so the upgrade UI was dead. The first formula used a ₡1,000 floor and ₡4,000 cap, which flattened local lock-to-lock runs.
 
 ### Decision
-Pay on Deliver in the live station bay. Formula is a floor of ₡1,000 plus cargo and jump distance, capped at ₡4,000. Four typical courier lock-to-lock runs fund Mk I. Replace with a real market in Week 2.
+Pay on Deliver in the live station bay. Earnings scale with cargo units × haul distance: local AU (planet orbit gap) plus jump ly, at a kind rate (courier ₡220 / u / AU). Same-planet docks use 0.25 AU. Soft bounds ₡1–₡50,000 so listed jobs stay linear. Replace with a real market in Week 2.
 
 ---
 
@@ -308,7 +308,19 @@ Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The li
 **When:** Week 2 implementation  
 **Question:** Premium rates and coverage levels?
 
+### Save State Slots
+**When:** Next live-loop pass  
+**Question:** How many named slots, and does each slot own its own hangar / credits / diary?
+
+### T2 Jump Fuel
+**When:** Next live-loop pass  
+**Question:** T2 burn per ly vs per hop? Courier vs hauler tank sizes?
+
+### Resource Fuel Prices
+**When:** Next live-loop pass (with T2)  
+**Question:** Credits per T1 / T2 unit at a hub, and whether prices vary by station?
+
 ---
 
 **Last Updated:** 2026-08-28  
-**Total Decisions:** 7 approved, 2 pending
+**Total Decisions:** 7 approved, 5 pending

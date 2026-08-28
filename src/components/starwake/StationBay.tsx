@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fittedShip } from "@/lib/starwake/catalog";
-import { formatStop, holdUsed, jobFits, jobPayout } from "@/lib/starwake/jobs";
+import { hubBoard } from "@/lib/starwake/job-hub";
+import { formatHaul, formatStop, holdUsed, jobFits, jobIsRetired, jobPayout } from "@/lib/starwake/jobs";
 import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
 import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
@@ -29,9 +30,13 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const shipId = useStarwake((s) => s.shipId);
   const loadout = useStarwake((s) => s.loadout);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
-  const board = useStarwake((s) => s.board);
+  const retired = useStarwake((s) => s.retiredJobs);
+  const board = hubBoard(useStarwake((s) => s.board), systemId, stationId).filter(
+    (j) => !jobIsRetired(j, retired),
+  );
   const man = useStarwake((s) => s.manifests[s.shipId]);
   const acceptJob = useStarwake((s) => s.acceptJob);
+  const refreshHubBoard = useStarwake((s) => s.refreshHubBoard);
   const loadCargo = useStarwake((s) => s.loadCargo);
   const deliverCargo = useStarwake((s) => s.deliverCargo);
   const dropJob = useStarwake((s) => s.dropJob);
@@ -96,12 +101,12 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
           job: {
             kind: man.job.kind,
             qty: man.job.qty,
-            from: { systemId: man.job.from.systemId },
-            to: { systemId: man.job.to.systemId },
+            from: man.job.from,
+            to: man.job.to,
           },
         },
       });
-      deliverCargo(systemId, stationId);
+      deliverCargo(systemId, stationId, result.paid);
       setCredits(result.credits);
     } catch (err) {
       setRepairError(err instanceof Error ? err.message : "Payout failed");
@@ -161,14 +166,19 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
       <section className="job-board station-board" aria-label="Station board">
         <div className="job-board-head">
           <h2>Board</h2>
-          <span>Hauls run lock to lock.</span>
+          <span>From this lock to another hub.</span>
+          {!man && (
+            <button type="button" className="job-drop" onClick={refreshHubBoard}>
+              Refresh
+            </button>
+          )}
         </div>
         {man ? (
           <div className="job-card on">
             <span className="job-kind">{man.loaded ? "loaded" : "accepted"} · {man.job.kind}</span>
             <span className="job-title">{man.job.title}</span>
             <span className="job-route">
-              {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u · ₡{jobPayout(man.job).toLocaleString()}
+              {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u · {formatHaul(man.job)} · ₡{jobPayout(man.job).toLocaleString()}
             </span>
             {!man.loaded && (
               <button type="button" className="job-drop" onClick={dropJob}>Drop</button>
@@ -176,14 +186,18 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
           </div>
         ) : (
           <div className="job-grid">
-            {board.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                fits={jobFits(job, shipId, loadout, man)}
-                onAccept={() => acceptJob(job.id)}
-              />
-            ))}
+            {board.length === 0 ? (
+              <p className="bay-caption">No listings. Refresh for a new slate from this lock.</p>
+            ) : (
+              board.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  fits={jobFits(job, shipId, loadout, man)}
+                  onAccept={() => acceptJob(job.id)}
+                />
+              ))
+            )}
           </div>
         )}
       </section>
@@ -194,7 +208,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
 function JobCard({ job, fits, onAccept }: { job: CargoJob; fits: boolean; onAccept: () => void }) {
   return (
     <article className={`job-card${fits ? "" : " tight"}`}>
-      <span className="job-kind">{job.kind} · {job.qty} u · ₡{jobPayout(job).toLocaleString()}</span>
+      <span className="job-kind">{job.kind} · {job.qty} u · {formatHaul(job)} · ₡{jobPayout(job).toLocaleString()}</span>
       <span className="job-title">{job.title}</span>
       <span className="job-route">{formatStop(job.from)} → {formatStop(job.to)}</span>
       <button type="button" className="job-take" disabled={!fits} onClick={onAccept}>

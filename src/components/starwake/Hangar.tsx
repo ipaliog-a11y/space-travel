@@ -10,9 +10,9 @@ import {
   modulesFor,
 } from "@/lib/starwake/catalog";
 import { planetLog } from "@/lib/starwake/galaxy";
-import { formatStop, holdUsed, jobFits, jobPayout } from "@/lib/starwake/jobs";
+import { diaryEarnings, formatHaul, formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
-import type { CargoJob, ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
+import type { ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
 import { buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
 import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
 import {
@@ -56,13 +56,13 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
   const setModule = useStarwake((s) => s.setModule);
   const ownedModules = useStarwake((s) => s.ownedModules);
   const ownModule = useStarwake((s) => s.ownModule);
-  const board = useStarwake((s) => s.board);
   const manifests = useStarwake((s) => s.manifests);
   const completed = useStarwake((s) => s.completed);
+  const jobLog = useStarwake((s) => s.jobLog);
+  const earned = diaryEarnings(jobLog);
   const surveys = useStarwake((s) => s.surveys);
   const scanned = useStarwake((s) => s.scanned);
   const visits = useStarwake((s) => s.visitedPlanets);
-  const acceptJob = useStarwake((s) => s.acceptJob);
   const dropJob = useStarwake((s) => s.dropJob);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
   const refuel = useStarwake((s) => s.refuel);
@@ -171,6 +171,12 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
         <p className="lede">Two sets. Line flies the routes. Yard fuels and shoves. Pick a bay, fit it, fly.</p>
         <p className="keys-hint">
           {completed} run{completed === 1 ? "" : "s"}
+          {earned > 0 && (
+            <>
+              <span className="dot">·</span>
+              ₡{earned.toLocaleString()} earned
+            </>
+          )}
           <span className="dot">·</span>
           {log.length} logged
           <span className="dot">·</span>
@@ -297,15 +303,15 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
           <p className="bay-caption">{SHIPS[shipId].blurb}</p>
           <section className="job-board" aria-label="Cargo jobs">
             <div className="job-board-head">
-              <h2>Board</h2>
-              {man ? <span>Active on {SHIPS[shipId].name}</span> : <span>Hauls run lock to lock.</span>}
+              <h2>Haul</h2>
+              {man ? <span>Active on {SHIPS[shipId].name}</span> : <span>Pick jobs on a hub board after you dock.</span>}
             </div>
             {man ? (
               <div className="job-card on" aria-label={`Active ${man.job.title}`}>
                 <span className="job-kind">{man.loaded ? "loaded" : "accepted"} · {man.job.kind}</span>
                 <span className="job-title">{man.job.title}</span>
                 <span className="job-route">
-                  {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u
+                  {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u · {formatHaul(man.job)} · ₡{jobPayout(man.job).toLocaleString()}
                 </span>
                 {!man.loaded && (
                   <button type="button" className="job-drop" onClick={dropJob}>
@@ -314,16 +320,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
                 )}
               </div>
             ) : (
-              <div className="job-grid">
-                {board.map((job) => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    fits={jobFits(job, shipId, loadout, man)}
-                    onAccept={() => acceptJob(job.id)}
-                  />
-                ))}
-              </div>
+              <p className="bay-caption">Hub boards list hauls that leave that lock.</p>
             )}
           </section>
           <section className="job-board survey-log" aria-label="Ship log">
@@ -485,21 +482,6 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
         </button>
       </div>
     </div>
-  );
-}
-
-function JobCard({ job, fits, onAccept }: { job: CargoJob; fits: boolean; onAccept: () => void }) {
-  return (
-    <article className={`job-card${fits ? "" : " tight"}`}>
-      <span className="job-kind">{job.kind} · {job.qty} u · ₡{jobPayout(job).toLocaleString()}</span>
-      <span className="job-title">{job.title}</span>
-      <span className="job-route">
-        {formatStop(job.from)} → {formatStop(job.to)}
-      </span>
-      <button type="button" className="job-take" disabled={!fits} onClick={onAccept}>
-        {fits ? "Accept" : "Won't fit"}
-      </button>
-    </article>
   );
 }
 

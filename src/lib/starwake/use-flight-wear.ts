@@ -16,7 +16,26 @@ function flying(mode: FlightMode) {
   );
 }
 
-export type WearHud = WearSnapshot & { pendingPoints: number };
+export type WearHud = WearSnapshot & {
+  pendingPoints: number;
+  ratePerMin: number;
+  activity: "idle" | "cruise" | "boost" | "jump" | "dock";
+};
+
+function activityOf(mode: FlightMode, boosting: boolean): WearHud["activity"] {
+  if (mode === "hyperspace" || mode === "charging") return "jump";
+  if (mode === "docking") return "dock";
+  if (!flying(mode)) return "idle";
+  return boosting ? "boost" : "cruise";
+}
+
+function ratePerMin(activity: WearHud["activity"]): number {
+  if (activity === "boost") return WEAR_RATES.boosting;
+  if (activity === "cruise") return WEAR_RATES.normal_flight;
+  if (activity === "jump") return WEAR_RATES.hyperspace;
+  if (activity === "dock") return WEAR_RATES.docking;
+  return 0;
+}
 
 export function useFlightWear(shipId: ShipId, mode: FlightMode, boosting: boolean) {
   const [saved, setSaved] = useState<WearSnapshot | null>(null);
@@ -148,12 +167,15 @@ export function useFlightWear(shipId: ShipId, mode: FlightMode, boosting: boolea
     setSaved(next);
   }
 
+  const activity = activityOf(mode, boosting);
   const wear: WearHud | null = saved
     ? {
         ...saved,
         wearPoints: saved.wearPoints + pendingPoints,
         wearPercentage: ((saved.wearPoints + pendingPoints) / saved.maxWearPool) * 100,
         pendingPoints,
+        activity,
+        ratePerMin: ratePerMin(activity),
       }
     : null;
 

@@ -244,7 +244,14 @@ export const upgradeCurrentHardpoint = createServerFn({ method: "POST" })
 
 export const payJobDelivery = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((data: { job: { kind: string; qty: number; from: { systemId: string }; to: { systemId: string } } }) => data)
+  .validator((data: {
+    job: {
+      kind: string;
+      qty: number;
+      from: { systemId: string; stationId: string };
+      to: { systemId: string; stationId: string };
+    };
+  }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
     const { jobPayout } = await import("../starwake/jobs.ts");
     const { ensurePlayerRow, modifyCredits } = await import("../player-profile/server.ts");
@@ -258,8 +265,8 @@ export const payJobDelivery = createServerFn({ method: "POST" })
       title: "",
       cargo: "",
       qty: data.job.qty,
-      from: { systemId: data.job.from.systemId, stationId: "" },
-      to: { systemId: data.job.to.systemId, stationId: "" },
+      from: data.job.from,
+      to: data.job.to,
     });
     await ensurePlayerRow(context.userId);
     const profile = await modifyCredits(context.userId, paid);

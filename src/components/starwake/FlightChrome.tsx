@@ -353,9 +353,28 @@ export function FlightChrome({
         >
           <strong>{Math.max(0, 100 - wear.wearPercentage).toFixed(2)}</strong>
           <span>
-            {wear.wearPercentage > 20
-              ? `-${Math.round(calculateWearPenalty(wear.wearPoints, wear.maxWearPool) * 100)}%`
-              : "hull"}
+            {wear.activity === "jump" || wear.activity === "dock"
+              ? `${wear.ratePerMin.toFixed(1)}/evt`
+              : `${wear.ratePerMin.toFixed(2)}/min`}
+          </span>
+          {wear.wearPercentage > 20 && (
+            <span>
+              -{Math.round(calculateWearPenalty(wear.wearPoints, wear.maxWearPool) * 100)}%
+            </span>
+          )}
+        </div>
+      )}
+      {wear && (
+        <div className="wear-debug" aria-label="Wear rate debug">
+          <span>{wear.activity}</span>
+          <strong>
+            {wear.activity === "jump" || wear.activity === "dock"
+              ? `${wear.ratePerMin.toFixed(1)}/evt`
+              : `${wear.ratePerMin.toFixed(2)}/min`}
+          </strong>
+          <span>+{wear.pendingPoints.toFixed(3)} pend</span>
+          <span>
+            {wear.wearPoints.toFixed(2)}/{Math.round(wear.maxWearPool)}
           </span>
         </div>
       )}

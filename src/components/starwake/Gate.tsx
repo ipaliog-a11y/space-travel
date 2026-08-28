@@ -1,5 +1,5 @@
 import { SHIP_SETS, SHIPS, fittedShip } from "@/lib/starwake/catalog";
-import { holdUsed } from "@/lib/starwake/jobs";
+import { diaryEarnings, holdUsed } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ShipId } from "@/lib/starwake/types";
 
@@ -31,6 +31,7 @@ export function Gate({
   const loadout = useStarwake((s) => s.loadout);
   const manifests = useStarwake((s) => s.manifests);
   const completed = useStarwake((s) => s.completed);
+  const earned = diaryEarnings(useStarwake((s) => s.jobLog));
 
   return (
     <div className="gate menu" data-ui>
@@ -113,7 +114,12 @@ export function Gate({
           {hasSave ? "New" : "Engage"}
         </button>
       </div>
-      {completed > 0 && <p className="menu-runs">{completed} run{completed === 1 ? "" : "s"} logged</p>}
+      {completed > 0 && (
+        <p className="menu-runs">
+          {completed} run{completed === 1 ? "" : "s"} logged
+          {earned > 0 ? ` · ₡${earned.toLocaleString()} earned` : ""}
+        </p>
+      )}
     </div>
   );
 }

@@ -7,6 +7,8 @@ import {
   type PlayerProfile,
 } from "@/lib/player-profile/types";
 import { hangarSlotCapacity } from "@/lib/ship-ownership/types";
+import { diaryEarnings, formatHaul, formatStop } from "@/lib/starwake/jobs";
+import { useStarwake } from "@/lib/starwake/store";
 
 type Props = {
   onBack: () => void;
@@ -21,6 +23,9 @@ export function PilotProfile({ onBack }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const starters = getStarterIcons();
+  const jobLog = useStarwake((s) => s.jobLog);
+  const completed = useStarwake((s) => s.completed);
+  const earned = diaryEarnings(jobLog);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +84,7 @@ export function PilotProfile({ onBack }: Props) {
     <div className="gate hangar" data-ui>
       <header className="hangar-head">
         <h1>Pilot</h1>
-        <p className="lede">Name, call sign, and rank. Credits live here and on the hangar rail.</p>
+        <p className="lede">Name, call sign, rank, and the hauls you have delivered.</p>
       </header>
 
       {error && <p className="station-repair-err">{error}</p>}
@@ -165,6 +170,32 @@ export function PilotProfile({ onBack }: Props) {
           </div>
         </form>
       )}
+
+      <section className="job-board pilot-diary" aria-label="Job diary">
+        <div className="job-board-head">
+          <h2>Diary</h2>
+          <span>
+            {completed} haul{completed === 1 ? "" : "s"} · ₡{earned.toLocaleString()} earned
+          </span>
+        </div>
+        {jobLog.length === 0 ? (
+          <p className="bay-caption">Deliver a hub contract and it lands here with the payout.</p>
+        ) : (
+          <div className="job-grid">
+            {jobLog.map((row) => (
+              <article key={`${row.id}-${row.at}`} className="job-card">
+                <span className="job-kind">
+                  {row.kind} · {row.qty} u · ₡{row.pay.toLocaleString()}
+                </span>
+                <span className="job-title">{row.cargo}</span>
+                <span className="job-route">
+                  {formatStop(row.from)} → {formatStop(row.to)} · {formatHaul(row)}
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="gate-acts">
         <button type="button" className="engage ghost" onClick={onBack}>

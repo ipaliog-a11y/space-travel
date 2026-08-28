@@ -13,7 +13,20 @@ Intergalactic flight sim. **Slice 1 is in progress.** Later slices stay listed h
 - Maps: **System** (planets) and **Galaxy** (stars). Intergalactic held
 - Thin chrome only (gate, sticks, map, jump, lock line)
 
-## Next
+## Next (live loop)
+
+Do these after the Week 1 hangar / haul loop holds in play. Do not start Week 2 commodities until these land.
+
+### Save state slots
+One persist blob (`starwake-v2`) today. Add named save slots (at least 3) on Gate / Options: New, Continue into a slot, copy, delete. Each slot keeps ship, fuel, board, diary, hangar, and credits. Active slot is the one Play writes.
+
+### T2 fuel for jumps
+T1 stays in-system (cruise / boost). Add a second tank, **T2**, spent on FSD charge and each interstellar hop. Jump range + lock stay gated by T2 remaining. HUD shows T1 and T2. Courier: small T2, sips T1. Hauler: fat T2, hungry T1.
+
+### Resource fuel prices
+Station Refuel is free today. Price T1 and T2 at the lock (credits per unit). Hub boards already pay; fuel spend should come out of those earnings. Scoop / orbital refill can wait.
+
+## Later
 
 ### Planet types
 Taxonomy beyond colored spheres: rocky, desert, ocean, ice, gas giant, volcanic, ringed. Drives look, approach distance, and later mission tags. No landings.
@@ -24,10 +37,10 @@ Courier / hauler cargo: packets, ore, water ice, rare metals, biologics, machine
 ### Fuel economy (2 types)
 Two tanks, not one:
 
-1. **Hydrogen / jump fuel** — spent on FSD charge and interstellar jump. Range + lock gated by this.
-2. **Reaction mass / boost fuel** — spent on in-system boost. Cruise throttle is cheap or free.
+1. **T2 / jump fuel** — spent on FSD charge and interstellar jump. Range + lock gated by this.
+2. **T1 / reaction mass** — spent on in-system cruise and boost.
 
-Courier: small jump tank, sips boost. Hauler: fat jump tank, hungry boost. Refuel TBD (star scoop / orbital) when this slice starts. **Hold economy / credits until after this.**
+Courier: small jump tank, sips boost. Hauler: fat jump tank, hungry boost. Hub prices first; star scoop later.
 
 ## Later
 

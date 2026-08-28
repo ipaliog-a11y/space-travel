@@ -1,20 +1,29 @@
 import type { CargoJob, JobKind } from "./types.ts";
 
-const PAY_KIND: Record<JobKind, { base: number; perUnit: number }> = {
-  courier: { base: 700, perUnit: 80 },
-  hauler: { base: 400, perUnit: 22 },
-  tender: { base: 500, perUnit: 30 },
-  tug: { base: 450, perUnit: 40 },
+/** Credits per cargo unit per AU (local) or per ly (jump, weighted). */
+export const PAY_PER_UNIT_AU: Record<JobKind, number> = {
+  courier: 220,
+  hauler: 38,
+  tender: 55,
+  tug: 70,
 };
-const PAY_PER_LY = 90;
-const PAY_MIN = 1000;
-const PAY_MAX = 4000;
 
-/** Week 1 placeholder. Four typical courier lock-to-lock runs fund Mk I from ₡1,000. */
-export function jobPayoutFor(job: Pick<CargoJob, "kind" | "qty">, distanceLy = 0): number {
-  const kind = PAY_KIND[job.kind] ?? PAY_KIND.courier;
-  const qty = Math.max(1, Math.min(48, Math.round(job.qty) || 1));
-  const ly = Math.max(0, Math.min(22, distanceLy));
-  const raw = kind.base + kind.perUnit * qty + PAY_PER_LY * ly;
+/** One jump-ly pays like this many AU of local haul. */
+export const JUMP_LY_AS_AU = 1;
+const PAY_MIN = 1;
+const PAY_MAX = 50000;
+
+export type JobSpan = { au: number; ly: number };
+
+export function haulAu(span: JobSpan): number {
+  return Math.max(0, span.au) + Math.max(0, span.ly) * JUMP_LY_AS_AU;
+}
+
+/** Pay ∝ cargo mass × haul distance. No ₡1,000 floor flattening local runs. */
+export function jobPayoutFor(job: Pick<CargoJob, "kind" | "qty">, span: JobSpan | number = 0): number {
+  const kind = PAY_PER_UNIT_AU[job.kind] ?? PAY_PER_UNIT_AU.courier;
+  const qty = Math.max(1, Math.min(80, Math.round(job.qty) || 1));
+  const dist = typeof span === "number" ? Math.max(0, span) : haulAu(span);
+  const raw = qty * dist * kind;
   return Math.max(PAY_MIN, Math.min(PAY_MAX, Math.round(raw)));
 }

@@ -908,24 +908,17 @@ This document provides a prioritized, phased implementation plan for all researc
 
 ## Immediate Next Steps
 
-### Week 1 (This Week)
-1. ✅ Review all design documents
-2. [ ] Set up CI/CD pipeline
-3. [ ] Prioritize Phase 1 tasks
-4. [ ] Create Jira/Trello board
-5. [ ] Schedule weekly check-ins
+Week 1 hangar / haul loop is in play. Do **not** start Week 2 commodities until these three land.
 
-### Week 2
-1. [ ] Implement ship ownership database schema
-2. [ ] Create TypeScript types
-3. [ ] Set up testing for new features
-4. [ ] Begin server function implementation
+### Next (after Week 1 playtest)
+1. [ ] **Save state slots** — named slots (at least 3) on Gate / Options. New, Continue into a slot, copy, delete. Persist ship, fuel, board, diary, hangar, credits per slot. One active slot for Play.
+2. [ ] **T2 fuel for jumps** — second tank. T1 stays in-system (cruise / boost). T2 burns on FSD charge and each hop. HUD shows both. Jump lock gated by T2.
+3. [ ] **Resource fuel prices** — station Refuel costs credits per T1 / T2 unit. Paid from job earnings. Scoop later.
 
-### Week 3
-1. [ ] Complete ship ownership (Part 1)
-2. [ ] Start playtesting core loop
-3. [ ] Gather feedback on wear system
-4. [ ] Iterate based on data
+### Then (Week 2 commodities)
+1. [ ] Materials / station market (hold cargo beyond jobs)
+2. [ ] Insurance design (still pending)
+3. [ ] Wear-rate balance after the debug HUD has been play-tested
 
 ---
 

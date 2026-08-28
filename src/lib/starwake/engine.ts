@@ -1583,6 +1583,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		boundName = pair.planet.name;
 		mode = "berthed";
 		getStarwake().setMode("berthed");
+		getStarwake().openHubBoard(getStarwake().systemId, id);
 		getStarwake().setMapOpen(false);
 		punchT = .35;
 		flashT = .4;

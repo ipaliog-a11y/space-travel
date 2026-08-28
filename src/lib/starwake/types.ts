@@ -82,6 +82,18 @@ export type CargoJob = {
 
 export type Manifest = { job: CargoJob; loaded: boolean };
 
+export type JobLogEntry = {
+  id: string;
+  kind: JobKind;
+  cargo: string;
+  qty: number;
+  from: JobStop;
+  to: JobStop;
+  pay: number;
+  at: number;
+  shipId: ShipId;
+};
+
 export type ProspectGrade = 0 | 1 | 2 | 3;
 
 export type WildProspect = {

@@ -1,10 +1,25 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CargoJob, FlightMode, Loadout, Manifest, MapLayer, MenuView, ShipId, SlotId } from "./types";
+import type { CargoJob, FlightMode, JobLogEntry, Loadout, Manifest, MapLayer, MenuView, ShipId, SlotId } from "./types";
 import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, liveShip, moduleById, sanitizeFuel, sanitizeLoadout } from "./catalog";
-import { atStop, jobFits, makeBoard, refillBoard, sanitizeBoard, sanitizeManifests } from "./jobs";
+import { hubBoard } from "./job-hub";
+import {
+  atStop,
+  jobContractKey,
+  jobFits,
+  jobIsRetired,
+  jobPayout,
+  logDelivery,
+  makeBoard,
+  refillBoard,
+  retireContract,
+  sanitizeBoard,
+  sanitizeJobLog,
+  sanitizeManifests,
+  sanitizeRetired,
+} from "./jobs";
 
-const SAVE_VERSION = 11;
+const SAVE_VERSION = 13;
 
 export type StarwakeState = {
   version: number;
@@ -30,8 +45,11 @@ export type StarwakeState = {
   fuel: Record<ShipId, number>;
   menuView: MenuView;
   board: CargoJob[];
+  boardStationId: string | null;
   manifests: Record<ShipId, Manifest | null>;
   completed: number;
+  retiredJobs: string[];
+  jobLog: JobLogEntry[];
   jobSeed: number;
   wearPenalty: number;
   ownedModules: string[];
@@ -58,10 +76,12 @@ export type StarwakeState = {
   visitSystem: (id: string) => void;
   visitPlanet: (systemId: string, planetId: string) => void;
   setModule: (slot: SlotId, id: string) => void;
+  openHubBoard: (systemId: string, stationId: string) => void;
+  refreshHubBoard: () => void;
   acceptJob: (id: string) => boolean;
   dropJob: () => void;
   loadCargo: (systemId: string, stationId: string) => boolean;
-  deliverCargo: (systemId: string, stationId: string) => boolean;
+  deliverCargo: (systemId: string, stationId: string, paid?: number) => boolean;
   setWearPenalty: (v: number) => void;
   ownModule: (id: string) => void;
   setFuel: (v: number) => void;
@@ -101,9 +121,12 @@ export const useStarwake = create<StarwakeState>()(
       },
       fuel: fullTanks(),
       menuView: "menu",
-      board: makeBoard("helion", 0xc0de),
+      board: [],
+      boardStationId: null,
       manifests: { courier: null, hauler: null, scout: null, clipper: null, tender: null, tug: null },
       completed: 0,
+      retiredJobs: [],
+      jobLog: [],
       jobSeed: 0xc0de,
       wearPenalty: 0,
       ownedModules: [],
@@ -185,13 +208,49 @@ export const useStarwake = create<StarwakeState>()(
           lastSaveAt: Date.now(),
         });
       },
+      openHubBoard: (systemId, stationId) => {
+        const st = get();
+        const seed = (st.jobSeed + 41) >>> 0;
+        if (st.boardStationId === stationId) {
+          const next = refillBoard(st.board, systemId, seed, stationId, st.retiredJobs);
+          if (next.length === st.board.length && next.every((j, i) => j.id === st.board[i]?.id)) return;
+          set({ board: next, jobSeed: seed });
+          return;
+        }
+        set({
+          board: makeBoard(systemId, seed, stationId, st.retiredJobs),
+          boardStationId: stationId,
+          jobSeed: seed,
+        });
+      },
+      refreshHubBoard: () => {
+        const st = get();
+        if (!st.boardStationId) return;
+        const seed = (st.jobSeed + 53) >>> 0;
+        set({
+          board: makeBoard(st.systemId, seed, st.boardStationId, st.retiredJobs),
+          jobSeed: seed,
+        });
+      },
       acceptJob: (id) => {
         const st = get();
         const job = st.board.find((j) => j.id === id);
         if (!job) return false;
+        if (st.retiredJobs.includes(id) || st.retiredJobs.includes(jobContractKey(job))) return false;
+        if (st.boardStationId && !hubBoard([job], st.systemId, st.boardStationId).length) return false;
         if (!jobFits(job, st.shipId, st.loadout, st.manifests[st.shipId])) return false;
+        const seed = (st.jobSeed + 13) >>> 0;
+        const hubId = st.boardStationId ?? job.from.stationId;
         set({
-          board: st.board.filter((j) => j.id !== id),
+          board: refillBoard(
+            st.board.filter((j) => j.id !== id),
+            job.from.systemId,
+            seed,
+            hubId,
+            st.retiredJobs,
+          ),
+          boardStationId: hubId,
+          jobSeed: seed,
           manifests: { ...st.manifests, [st.shipId]: { job, loaded: false } },
           hasSave: true,
           lastSaveAt: Date.now(),
@@ -203,9 +262,11 @@ export const useStarwake = create<StarwakeState>()(
         const man = st.manifests[st.shipId];
         if (!man || man.loaded) return;
         const seed = (st.jobSeed + 17) >>> 0;
+        const hubId = st.boardStationId ?? man.job.from.stationId;
         set({
           manifests: { ...st.manifests, [st.shipId]: null },
-          board: refillBoard([...st.board, man.job], st.systemId, seed),
+          board: refillBoard([...st.board, man.job], man.job.from.systemId, seed, hubId, st.retiredJobs),
+          boardStationId: hubId,
           jobSeed: seed,
         });
       },
@@ -221,16 +282,21 @@ export const useStarwake = create<StarwakeState>()(
         });
         return true;
       },
-      deliverCargo: (systemId, stationId) => {
+      deliverCargo: (systemId, stationId, paid) => {
         const st = get();
         const man = st.manifests[st.shipId];
         if (!man?.loaded) return false;
         if (!atStop(man.job.to, systemId, stationId)) return false;
         const seed = (st.jobSeed + 31) >>> 0;
+        const retired = retireContract(st.retiredJobs, man.job);
+        const pay = typeof paid === "number" && paid > 0 ? Math.round(paid) : jobPayout(man.job);
         set({
           manifests: { ...st.manifests, [st.shipId]: null },
           completed: st.completed + 1,
-          board: refillBoard(st.board, st.systemId, seed),
+          retiredJobs: retired,
+          jobLog: logDelivery(st.jobLog, man.job, pay, st.shipId),
+          board: refillBoard([], systemId, seed, stationId, retired),
+          boardStationId: stationId,
           jobSeed: seed,
           hasSave: true,
           lastSaveAt: Date.now(),
@@ -286,8 +352,11 @@ export const useStarwake = create<StarwakeState>()(
         loadout: s.loadout,
         fuel: s.fuel,
         board: s.board,
+        boardStationId: s.boardStationId,
         manifests: s.manifests,
         completed: s.completed,
+        retiredJobs: s.retiredJobs,
+        jobLog: s.jobLog,
         jobSeed: s.jobSeed,
         ownedModules: s.ownedModules,
         boostCharges: s.boostCharges,
@@ -314,9 +383,14 @@ export const useStarwake = create<StarwakeState>()(
           visitedPlanets: p.visitedPlanets ?? {},
           loadout: sanitizeLoadout(p.loadout),
           fuel: sanitizeFuel(p.fuel, sanitizeLoadout(p.loadout)),
-          board: sanitizeBoard(p.board, p.systemId ?? current.systemId),
+          board: sanitizeBoard(p.board, p.systemId ?? current.systemId, p.boardStationId).filter(
+            (j) => !jobIsRetired(j, sanitizeRetired(p.retiredJobs)),
+          ),
+          boardStationId: typeof p.boardStationId === "string" ? p.boardStationId : null,
           manifests: sanitizeManifests(p.manifests),
           completed: typeof p.completed === "number" ? p.completed : 0,
+          retiredJobs: sanitizeRetired(p.retiredJobs),
+          jobLog: sanitizeJobLog(p.jobLog),
           jobSeed: typeof p.jobSeed === "number" ? p.jobSeed : current.jobSeed,
           wearPenalty: 0,
           ownedModules: Array.isArray(p.ownedModules)

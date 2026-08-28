@@ -2,6 +2,26 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.11] - 2026-08-28
+
+### Added
+- Pilot job diary: delivered hauls with route, mass, and payout. Totals haul count and ₡ earned.
+- Hub board Refresh posts a new slate. Accepting or delivering tops the board back up.
+- Hull HUD shows live wear rate (`/min` or `/evt`) next to condition.
+
+### Changed
+- Finished contracts stay retired by cargo, mass, and route — not only listing id. Refresh and refill skip those hauls.
+- Diary pay is the amount credited on Deliver.
+
+## [v0.1.10] - 2026-08-28
+
+### Added
+- Flight HUD wear-rate debug: activity, points/min or /event, pending tick, and pool.
+
+### Changed
+- Hub boards list hauls that leave that lock. Docking rebuilds the board for the station you are in. Hangar only shows the active haul.
+- Delivery pay is cargo units × haul (local AU + jump ly). Courier ₡220 / u / AU. Listed jobs stay linear (₡1–₡50,000).
+
 ## [v0.1.9] - 2026-08-28
 
 ### Added

@@ -176,7 +176,15 @@ Build the user interface for ship ownership and hangar management, integrating t
 4. Add ship detail modal
 5. Test with backend API
 
+## Next after hangar (live loop)
+
+Do not start Week 2 commodities until these land in Play.
+
+1. **Save state slots** — named slots (at least 3) on Gate / Options. New, Continue into a slot, copy, delete. Persist ship, fuel, board, diary, hangar, credits per slot.
+2. **T2 fuel for jumps** — second tank. T1 stays in-system. T2 burns on FSD charge and each hop. HUD shows both. Jump lock gated by T2.
+3. **Resource fuel prices** — station Refuel costs credits per T1 / T2 unit. Paid from job earnings. Scoop later.
+
 ---
 
-**Status:** Ready to start Session 2.1
-**Priority:** Hangar UI foundation first, then integration
+**Status:** Hangar / haul loop in play. Next: save slots, T2 jump fuel, fuel prices.
+**Priority:** Live loop first, then Week 2 commodities

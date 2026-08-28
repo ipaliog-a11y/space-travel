@@ -104,8 +104,8 @@ button:disabled { cursor: default; }
 .hud [data-ui] {
   pointer-events:auto
 }
-.hud.mapped .stick,.hud.mapped .throttle,.hud.mapped .flight-actions,.hud.mapped .crosshair,.hud.mapped .planet-tag,.hud.mapped .speed-read,.hud.mapped .fuel-read,.hud.mapped .wear-read,.hud.mapped .job-chip,.hud.mapped .dossier,.hud.mapped .dock-hud,.hud.mapped .station-bay,
-.hud.logged .stick,.hud.logged .throttle,.hud.logged .flight-actions,.hud.logged .crosshair,.hud.logged .planet-tag,.hud.logged .speed-read,.hud.logged .fuel-read,.hud.logged .wear-read,.hud.logged .job-chip,.hud.logged .dock-hud {
+.hud.mapped .stick,.hud.mapped .throttle,.hud.mapped .flight-actions,.hud.mapped .crosshair,.hud.mapped .planet-tag,.hud.mapped .speed-read,.hud.mapped .fuel-read,.hud.mapped .wear-read,.hud.mapped .wear-debug,.hud.mapped .job-chip,.hud.mapped .dossier,.hud.mapped .dock-hud,.hud.mapped .station-bay,
+.hud.logged .stick,.hud.logged .throttle,.hud.logged .flight-actions,.hud.logged .crosshair,.hud.logged .planet-tag,.hud.logged .speed-read,.hud.logged .fuel-read,.hud.logged .wear-read,.hud.logged .wear-debug,.hud.logged .job-chip,.hud.logged .dock-hud {
   visibility:hidden;
   pointer-events:none
 }
@@ -137,6 +137,14 @@ button:disabled { cursor: default; }
 .hud:has(.station-bay) .wear-read {
   visibility:hidden;
   pointer-events:none
+}
+.hud:has(.station-bay) .wear-debug {
+  visibility:visible;
+  pointer-events:none;
+  z-index:8;
+  top:max(14px, env(safe-area-inset-top));
+  left:max(14px, env(safe-area-inset-left));
+  bottom:auto
 }
 .hud:has(.station-bay) .job-chip {
   visibility:hidden;
@@ -235,6 +243,28 @@ button:disabled { cursor: default; }
 }
 .wear-read.worn strong {
   color:#ecb478
+}
+.wear-debug {
+  left:max(16px, env(safe-area-inset-left));
+  bottom:max(160px, calc(env(safe-area-inset-bottom) + 148px));
+  pointer-events:none;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--color-muted);
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+  font-size:10px;
+  display:flex;
+  position:absolute;
+  z-index:4
+}
+.wear-debug strong {
+  color:#ecb478;
+  letter-spacing:.08em;
+  font-size:13px;
+  font-weight:500
 }
 .lock-line {
   top:max(14px, env(safe-area-inset-top));
@@ -1097,7 +1127,8 @@ button:disabled { cursor: default; }
 }
 .job-board-head {
   justify-content:space-between;
-  align-items:baseline;
+  align-items:center;
+  flex-wrap:wrap;
   gap:8px;
   margin-bottom:8px;
   display:flex
@@ -1116,6 +1147,9 @@ button:disabled { cursor: default; }
   grid-template-columns:1fr 1fr;
   gap:8px;
   display:grid
+}
+.job-grid > .bay-caption {
+  grid-column:1/-1
 }
 .job-card {
   text-align:left;
@@ -2240,6 +2274,10 @@ button:disabled { cursor: default; }
   font-size: 28px;
   font-weight: 500;
   margin: 4px 0 12px;
+}
+.pilot-diary {
+  width: min(640px, 100%);
+  margin: 0 auto 22px;
 }
 .pilot-form {
   width: min(640px, 100%);
