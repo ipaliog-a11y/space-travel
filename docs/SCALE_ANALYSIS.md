@@ -338,6 +338,76 @@ const TIME_WARP_RATES = [1, 2, 5, 10, 100, 1000];
 
 ---
 
+## Planetary Scale & Camera Workarounds
+
+### The Problem
+
+Planets currently feel too small when flying nearby, despite being oversized relative to orbital distances. This is caused by the camera's field of view and near-plane clipping, not the planet radius itself.
+
+### Root Cause
+
+- Wide FOV or high near-plane makes close objects appear smaller
+- Player was increasing planet size to compensate, but this breaks the orbital scale illusion
+- Real planets are ~23,500:1 distance-to-radius ratio; current setup is ~100-250:1
+
+### Recommended Workarounds (No Planet Size Change)
+
+**1. Increase Field of View (FOV)**
+```typescript
+// In camera setup (e.g., Play.tsx or engine.ts)
+const fov = 90; // or 100 degrees (was likely 60-75)
+// Higher FOV makes nearby objects appear larger and more immersive
+```
+
+**Why:** Expands the visible area, making close planets feel bigger without changing their actual size.
+
+**2. Lower Near-Plane Distance**
+```typescript
+// Camera near clipping plane
+const near = 0.01; // or 0.001 (was likely 0.1 or higher)
+// Allows camera to get closer to surfaces without clipping
+```
+
+**Why:** Lets the camera approach the planet surface more closely, filling more of the screen.
+
+**3. Dynamic Camera Distance Scaling**
+```typescript
+// Adjust camera offset based on proximity to large bodies
+function getCameraOffset(distanceToPlanet: number, planetRadius: number): number {
+  if (distanceToPlanet < planetRadius * 2) {
+    return planetRadius * 1.2; // Pull camera closer near surface
+  }
+  return planetRadius * 3; // Normal distance in space
+}
+```
+
+**Why:** Automatically gives a more dramatic close-up view when near a planet.
+
+**4. Billboard / LOD Scaling for Distant Planets**
+```typescript
+// Use a large billboard sprite when far away, switch to real mesh on approach
+// Billboard can be sized to appear as a visible disk from orbital distances
+// Real mesh takes over for close flybys and landing
+```
+
+**Why:** Makes planets visible as distinct objects from far away while keeping correct close-up scale.
+
+**5. Post-Process or Shader Effects**
+- Add atmospheric haze or glow when close
+- Use depth-based scaling or vignette to enhance perceived size
+- HUD distance markers help judge scale
+
+**Why:** Enhances the feeling of proximity without geometry changes.
+
+### Updated Recommendation
+
+- **Do NOT increase planet radii** to fix the "small planet" feeling
+- Instead, implement one or more of the camera/FOV workarounds above
+- This preserves the correct orbital scale (planets feel distant from each other) while solving the close-up visibility issue
+- Test with FOV 90-100 and near plane 0.01 first — these are the quickest wins
+
+---
+
 ## Proposed Scale Values
 
 ### Recommended Constants
@@ -361,6 +431,11 @@ export const AU_UNITS = 2800;        // Unchanged
 // Hauler: cruise 8.4, overdrive 76
 // Scout: cruise 11.2, overdrive 88
 // Clipper: cruise 15.6, overdrive 132
+
+// Planet radii - KEEP CURRENT (do not shrink)
+// Rocky: 22-34 units
+// Gas Giant: 88-140 units
+// Use camera/FOV workarounds instead to fix close-up appearance
 ```
 
 ### Expected Results
@@ -382,33 +457,34 @@ export const AU_UNITS = 2800;        // Unchanged
 1. ✅ Reduce `GAME_DAY_SEC` to 30
 2. ✅ Increase ship speeds by 2×
 3. ✅ Reduce gravity well sizes by 50%
+4. ✅ Implement camera FOV workaround (FOV 90-100, near 0.01)
 
 **Time:** 2-3 hours  
 **Risk:** Low (reversible)  
 **Impact:** High (immediate improvement)
 
 ### Phase 2: Short-term (Next Week)
-4. Compress orbital spacing by 40%
-5. Add speed indicators to HUD
-6. Adjust UI distance labels
+5. Compress orbital spacing by 40%
+6. Add size cues and HUD distance markers
+7. Adjust UI distance labels
 
 **Time:** 1-2 days  
 **Risk:** Medium (needs playtesting)  
 **Impact:** High (better flow)
 
 ### Phase 3: Medium-term (Next Month)
-7. Implement speed compression zones
-8. Add visual size cues
-9. Create "space lanes"
+8. Implement speed compression zones
+9. Add visual size cues and atmospheric effects
+10. Create "space lanes"
 
 **Time:** 1 week  
 **Risk:** Medium-High (new systems)  
 **Impact:** Very High (game-changing)
 
 ### Phase 4: Long-term (Future)
-10. Optional time compression
-11. Dynamic skybox
-12. Enhanced approach sequences
+11. Optional time compression
+12. Dynamic skybox
+13. Enhanced approach sequences
 
 **Time:** 2-3 weeks  
 **Risk:** High (major features)  
@@ -441,12 +517,18 @@ export const AU_UNITS = 2800;        // Unchanged
 - Judge relative sizes
 - **Target:** Clear size hierarchy
 
+**5. The Close-Up Test (NEW)**
+- Fly directly to planet surface
+- Observe planet size on screen
+- **Target:** Planet fills significant portion of view, feels large and immersive
+
 ### Success Metrics
 
 ✅ **Travel time:** Average 15-30 seconds between POIs  
 ✅ **Orbital motion:** Visible within 60 seconds of observation  
 ✅ **Gravity:** Felt only when intended  
 ✅ **Visual clarity:** Players can identify all major bodies  
+✅ **Close-up scale:** Planets feel large when nearby, distant when far  
 ✅ **Fun factor:** "Just one more jump" feeling
 
 ---
@@ -460,14 +542,16 @@ export const AU_UNITS = 2800;        // Unchanged
 - Compress space (2× closer orbits)
 - Compress travel (2× faster ships)
 - Expand approach zones (detailed close-up)
+- Use camera workarounds for perceived planet size
 
 **The Result:** A system where:
 - Planets feel reachable (not distant dots)
 - Travel is engaging (not tedious)
 - Scale is perceptible (not abstract)
+- Close-ups feel dramatic (without oversized planets)
 - Gameplay flows (no waiting)
 
-**Next Step:** Implement Phase 1 changes and playtest immediately.
+**Next Step:** Implement Phase 1 changes including the camera FOV fix and playtest immediately.
 
 ---
 
@@ -480,6 +564,6 @@ export const AU_UNITS = 2800;        // Unchanged
 
 ---
 
-**Author:** AI Assistant  
-**Date:** 2026-08-27  
+**Author:** AI Assistant (updated with camera workaround guidance)  
+**Date:** 2026-08-28  
 **Status:** Ready for Implementation
