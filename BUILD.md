@@ -16,7 +16,7 @@ Source for economy / mining / fleet flavour: [`docs/sessions/session-2026-08-28-
 
 ## Build order
 
-Do not start merchant, mining, or fleet until **1–3** land in Play.
+Do not start merchant, mining, or fleet until **1–6** land in Play.
 
 ### 1. Save state slots — in play
 Three named slots on Gate / Options: Continue, New (wipes the active slot), copy, delete. Each slot keeps ship, fuel, board, diary, and local hangar fits. Credits and owned hulls stay on the account. Active slot is the one Play writes. Old `starwake-v2` blobs migrate into slot 1.
@@ -27,14 +27,14 @@ T1 stays in-system (cruise / boost). T2 is spent on FSD charge + the hop (floor 
 ### 3. Resource fuel prices — in play
 Station / Hangar Refuel costs credits per unit (T1 ₡2, T2 ₡8), same at every hub. Hub boards already pay; fuel spend comes out of those earnings. Scoop / orbital refill can wait.
 
-### 4. Shared galaxy sky
-Every system currently has its own galactic skybox. Wrong: they sit in **one** galaxy. One shared background. Expand **this** galaxy (more systems, more depth) before adding more galaxies.
+### 4. Shared galaxy sky — in play
+One galactic backdrop (`GALAXY_SKY`, Helion arm) for every system. Tiny parallax from map `(x, y)`. Local `nebula` stays on the 2D map only. Expand **this** galaxy (more systems, more depth) before adding more galaxies.
 
-### 5. Close-up scale (camera, not radius)
-Keep current planet radii and AU spacing. Close-up planets feel small because of FOV / near-plane, not because meshes are too small. Fix with camera: FOV ~90–100, near plane ~0.01 / 0.001; optional pull-in, distant-disk LOD, haze. Do **not** grow radii. See [`docs/SCALE_ANALYSIS.md`](docs/SCALE_ANALYSIS.md).
+### 5. Close-up scale (camera, not radius) — in play
+Planet radii and AU spacing unchanged. Flight camera is FOV 95, near 0.01; pull-in near a disk; distant-disk LOD; approach haze. Do **not** grow radii. See [`docs/SCALE_ANALYSIS.md`](docs/SCALE_ANALYSIS.md).
 
-### 6. Travel feel
-After the camera pass: `GAME_DAY_SEC` 120 → 30, ~2× cruise / overdrive, gravity wells ~half radius. Target ~15–30 s between in-system POIs, still feels vast.
+### 6. Travel feel — in play
+`GAME_DAY_SEC` 30, ~2× cruise / overdrive, gravity wells half radius (`planetSOI` ×8, reach `max(SOI×2, r×8)`). Target ~15–30 s between in-system POIs on OD, still feels vast.
 
 ### 7. Merchant + market watch
 Keep contract jobs (safe loop). Add a merchant path: buy cargo, **own** it, haul it, store it, sell it. Prices move with supply / demand per hub over time. Holding is play.

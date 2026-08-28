@@ -36,7 +36,7 @@ First write-up of this file missed most of the conversation (only scale + next-l
 
 Written into [`docs/SCALE_ANALYSIS.md`](../SCALE_ANALYSIS.md) (commit `282ef42`).
 
-Still planned, not all shipped: `GAME_DAY_SEC` 120 → 30, ~2× ship speeds, half-size gravity wells. Target: ~15–30 s between in-system POIs, still feels vast.
+Shipped in live Play (BUILD 4–6): shared Helion-arm sky, FOV 95 / near 0.01 / pull-in / disk LOD / haze, `GAME_DAY_SEC` 30, ~2× ship speeds, half-size gravity wells. Target: ~15–30 s between in-system POIs on OD, still feels vast.
 
 ---
 

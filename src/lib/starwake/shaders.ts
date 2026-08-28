@@ -382,6 +382,7 @@ uniform vec3 uCamPos;
 uniform float uEmissive;
 uniform float uKind;
 uniform float uSeed;
+uniform float uHaze;
 
 // ============================================================================
 // ENHANCED PROCEDURAL TEXTURE FUNCTIONS
@@ -836,6 +837,10 @@ void main() {
   
   // Emissive glow
   lit += col * uEmissive;
+
+  float haze = clamp(uHaze, 0.0, 1.0);
+  vec3 air = mix(vec3(0.55, 0.72, 0.95), uColor, 0.28);
+  lit = mix(lit, lit + air * rim * 0.85, haze);
   
   gl_FragColor = vec4(lit, 1.0);
 }

@@ -41,8 +41,8 @@ type Props = {
 
 const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: boolean }[] = [
   { key: "turnRate", label: "Turn", unit: "", max: 2.2 },
-  { key: "cruiseSpeed", label: "Cruise", unit: "", max: 10 },
-  { key: "overdriveSpeed", label: "OD", unit: "", max: 90 },
+  { key: "cruiseSpeed", label: "Cruise", unit: "", max: 20 },
+  { key: "overdriveSpeed", label: "OD", unit: "", max: 180 },
   { key: "jumpRangeLy", label: "Jump", unit: "ly", max: 36 },
   { key: "cargoCap", label: "Hold", unit: "u", max: 80 },
   { key: "fuelCap", label: "Tank", unit: "t1", max: 280 },

@@ -315,11 +315,11 @@
 - Performance targets
 
 **AI Tasks:**
-- [ ] Implement scale changes from SCALE_ANALYSIS.md
-- [ ] Update GAME_DAY_SEC to 30
-- [ ] Double all ship speeds
-- [ ] Reduce gravity wells by 50%
-- [ ] Compress orbital spacing 40%
+- [x] Implement scale changes from SCALE_ANALYSIS.md (Phase 1: camera, day, speeds, wells)
+- [x] Update GAME_DAY_SEC to 30
+- [x] Double all ship speeds
+- [x] Reduce gravity wells by 50%
+- [ ] Compress orbital spacing 40% (held; BUILD keeps AU spacing)
 
 **Your Tasks:**
 - [ ] Test travel times (target: 30 sec between planets)

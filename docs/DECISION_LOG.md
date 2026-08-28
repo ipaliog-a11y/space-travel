@@ -336,6 +336,22 @@ BUILD items 1–3 were still pending: one persist blob, one T1 tank, free Refuel
 
 ---
 
+## Decision #009: Shared Sky, Camera Scale, Travel Feel (28 Aug live loop)
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented  
+**Session:** live-loop 4–6
+
+### Context
+Every jump rolled a new nebula. Close-up planets felt small so radii had been grown in the past. In-system hops were minutes on cruise. BUILD 4–6: one galaxy sky, camera not radii, then day / speed / wells.
+
+### Decision
+- **Sky:** Helion arm (`kind: arm`, seed `0.17`) for every system. Tiny yaw from galactic `(x, y)`. Per-system `nebula` stays a map label.
+- **Camera:** FOV 95 (boost / jump / transit add a little), near 0.01, pull-in inside ~3.2 radii, distant-disk scale past 2200, rim haze on approach. **Do not grow planet radii or compress AU spacing.**
+- **Travel:** `GAME_DAY_SEC` 30. Hull cruise / OD and drive-module deltas ~2×. `planetSOI` `r×8`. Gravity reach `max(SOI×2, r×8)`. Park / keep-out unchanged.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -349,4 +365,4 @@ BUILD items 1–3 were still pending: one persist blob, one T1 tank, free Refuel
 ---
 
 **Last Updated:** 2026-08-28  
-**Total Decisions:** 9 approved, 2 pending
+**Total Decisions:** 10 approved, 2 pending

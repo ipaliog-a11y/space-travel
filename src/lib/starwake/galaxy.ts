@@ -1,5 +1,5 @@
 import { hashu, mulberry32 } from "./math";
-import { keplerPosition, periodDays, planetMu, starMu } from "./orbit";
+import { cometMeanN, GAME_DAY_SEC, keplerPosition, periodDays, planetMu, starMu } from "./orbit";
 import type { Belt, Comet, Moon, MoonKind, Nebula, NebulaKind, Planet, PlanetKind, StarSystem, Station, WildProspect } from "./types";
 import { pickStationKind, stationLook, stationSuffix } from "./station-mesh";
 
@@ -51,6 +51,14 @@ export const NEBULA_CODE: Record<NebulaKind, number> = {
   snr: 5,
   wr: 6,
   cirrus: 7,
+};
+
+/** One galactic backdrop for every system. Map still uses per-star `nebula` flavour. */
+export const GALAXY_SKY = {
+  kind: "arm" as NebulaKind,
+  seed: 0.17,
+  intensity: 1.08,
+  tint: [1.0, 0.94, 0.78] as [number, number, number],
 };
 
 const KIND_INNER: PlanetKind[] = ["volcanic", "desert", "rocky"];
@@ -582,11 +590,10 @@ function makeComets(rng: () => number, systemName: string, starR: number, planet
   const maxOrbit = Math.max(...planets.map((p) => p.orbit), starR * 40);
   const out: Comet[] = [];
   for (let i = 0; i < n; i++) {
-    const sma = maxOrbit * (0.45 + rng() * 0.9);
-    const ecc = 0.68 + rng() * 0.22;
+    const sma = maxOrbit * (1.08 + rng() * 0.72);
+    const ecc = 0.36 + rng() * 0.22;
     const au = +(sma / AU_UNITS).toFixed(2);
-    const mu = starMu(starR);
-    const meanN = Math.sqrt(mu / (sma * sma * sma));
+    const meanN = cometMeanN(sma, starR);
     out.push({
       id: `${systemName.toLowerCase()}-c${i}`,
       name: `C/${nameFrom(rng, 2)}`,
@@ -601,7 +608,7 @@ function makeComets(rng: () => number, systemName: string, starR: number, planet
       color: rng() > 0.5 ? [0.78, 0.84, 0.9] : [0.7, 0.76, 0.72],
       radiusKm: Math.round(8 + rng() * 28),
       au,
-      yearDays: Math.max(1, Math.round(periodDays(meanN))),
+      yearDays: Math.max(1, Math.round(periodDays(meanN) * (120 / GAME_DAY_SEC))),
       climate: "Dirty snow. Bright near the star, dark in the cold.",
       composition: "Water ice, dust, frozen volatiles.",
       atmosphere: "Coma when near the star",

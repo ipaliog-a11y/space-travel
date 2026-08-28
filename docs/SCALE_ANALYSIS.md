@@ -6,7 +6,7 @@
 
 **From `orbit.ts`:**
 ```typescript
-export const GAME_DAY_SEC = 120;  // 2 minutes = 1 game day
+export const GAME_DAY_SEC = 30;   // 30 seconds = 1 game day
 const SOL_R = 88;                  // Star radius unit
 const AU0 = 2800;                  // 1 AU in game units
 ```
@@ -37,10 +37,10 @@ export const AU_UNITS = 2800;      // Confirms 1 AU = 2800 units
 | Ice Giant | 48-76 | 16,000-28,000 | ~17 | ~1.4 |
 
 #### Orbital Periods
-- **Game day:** 120 seconds (2 minutes)
-- **Earth year:** 365 game days = 730 minutes = **12.2 hours real time**
-- **Inner planet:** ~50-100 days (1.7-3.4 hours)
-- **Outer planet:** 500-2000+ days (17-68 hours)
+- **Game day:** 30 seconds
+- **Earth year:** 365 game days = **3.0 hours real time**
+- **Inner planet:** ~50-100 days (~25-50 min)
+- **Outer planet:** 500-2000+ days (~4-17 hours)
 
 #### Station Sizes
 - **Radius:** 7.2 - 11.7 units (scaled to planet)
@@ -566,4 +566,4 @@ export const AU_UNITS = 2800;        // Unchanged
 
 **Author:** AI Assistant (updated with camera workaround guidance)  
 **Date:** 2026-08-28  
-**Status:** Ready for Implementation
+**Status:** Phase 1 in play (FOV 95, near 0.01, GAME_DAY 30, 2× speeds, half wells). Radii and AU spacing unchanged.

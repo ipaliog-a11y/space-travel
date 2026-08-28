@@ -13,13 +13,14 @@ import {
   orbitPolyline,
   circularVelocity,
   gravityAt,
+  cometMeanN,
 } from './orbit.ts';
 import type { Planet, StarSystem, KeplerOrbit } from './types.ts';
 
 describe('orbit calculations', () => {
   describe('GAME_DAY_SEC', () => {
     it('defines game day duration', () => {
-      assert.strictEqual(GAME_DAY_SEC, 120);
+      assert.strictEqual(GAME_DAY_SEC, 30);
     });
   });
 
@@ -349,6 +350,15 @@ describe('orbit calculations', () => {
     });
   });
 
+  describe('cometMeanN', () => {
+    it('runs at a quarter of planet Kepler rate on a 30s day', () => {
+      const sma = 12000;
+      const n = cometMeanN(sma, 88);
+      const kepler = Math.sqrt(starMu(88) / (sma * sma * sma));
+      assert.ok(Math.abs(n - kepler * 0.25) < 1e-10);
+    });
+  });
+
   describe('planetSOI', () => {
     it('calculates sphere of influence', () => {
       const planet: Planet = {
@@ -386,7 +396,7 @@ describe('orbit calculations', () => {
       };
       
       const soi = planetSOI(planet);
-      assert.strictEqual(soi, 160); // 10 * 16
+      assert.strictEqual(soi, 80); // 10 * 8
     });
   });
 

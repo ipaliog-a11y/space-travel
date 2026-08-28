@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { applyWearToShip, fittedShip, MODULES, moduleFitCost, SLOT_FIT_COST } from "./catalog.ts";
+import { applyWearToShip, fittedShip, MODULES, moduleFitCost, SHIPS, SLOT_FIT_COST } from "./catalog.ts";
 import { hubBoard, jobLeavesHub } from "./job-hub.ts";
 import { diaryEarnings, jobIsRetired, logDelivery, retireContract, retireJob } from "./job-log.ts";
 import { jobPayoutFor } from "./job-pay.ts";
@@ -47,6 +47,19 @@ describe("wear on fitted hull", () => {
     const a = applyWearToShip(stock, 0.25);
     const b = applyWearToShip(stock, 9);
     assert.equal(a.cruiseSpeed, b.cruiseSpeed);
+  });
+});
+
+describe("travel feel speeds", () => {
+  it("is ~2x stock cruise and overdrive", () => {
+    assert.equal(SHIPS.courier.cruiseSpeed, 12.8);
+    assert.equal(SHIPS.courier.overdriveSpeed, 108);
+    assert.equal(SHIPS.hauler.cruiseSpeed, 8.4);
+    assert.equal(SHIPS.hauler.overdriveSpeed, 76);
+    assert.equal(SHIPS.clipper.cruiseSpeed, 15.6);
+    assert.equal(SHIPS.clipper.overdriveSpeed, 132);
+    assert.equal(SHIPS.tender.cruiseSpeed, 9.2);
+    assert.equal(SHIPS.tug.overdriveSpeed, 84);
   });
 });
 

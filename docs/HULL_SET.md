@@ -36,7 +36,7 @@ Research (NASA cryogenic tanker / depot concepts; orbital transfer vehicles / ME
 | Role | Packet | Bulk | Pathfinder | Runner | Fuel | Harbor |
 | Jump | 12 ly | 18 ly | **22 ly** | 9 ly | 14 ly | 8 ly |
 | Hold | 8 u | **48 u** | 6 u | 10 u | 20 u | 14 u |
-| Cruise | 6.4 | 4.2 | 5.6 | **7.8** | 4.6 | 5.0 |
+| Cruise | 12.8 | 8.4 | 11.2 | **15.6** | 9.2 | 10.0 |
 | Turn | 1.35 | 0.65 | 1.08 | 1.48 | 0.72 | **1.58** |
 | Mass | 0.7 | **1.7** | 0.82 | 0.95 | 1.55 | 1.05 |
 | Tank | 100 t1 | 120 t1 | 88 t1 | 72 t1 | **200 t1** | 90 t1 |

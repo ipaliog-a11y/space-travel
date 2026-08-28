@@ -2,6 +2,13 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.13] - 2026-08-28
+
+### Changed
+- One shared galactic sky for every system. Map still shows local nebula flavour.
+- Flight camera FOV 95, near plane 0.01, close-up pull-in, distant-disk LOD, approach haze. Planet radii and AU spacing unchanged.
+- Game day is 30 s. Stock cruise / overdrive ~2×. Gravity wells half radius.
+
 ## [v0.1.12] - 2026-08-28
 
 ### Added

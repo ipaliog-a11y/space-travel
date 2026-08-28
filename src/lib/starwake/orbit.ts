@@ -1,7 +1,7 @@
 import type { KeplerOrbit, Planet, StarSystem } from "./types";
 
 /** Play seconds that equal one labeled day. Kepler periods use this so the dossier clock matches motion. */
-export const GAME_DAY_SEC = 120;
+export const GAME_DAY_SEC = 30;
 const SOL_R = 88;
 const AU0 = 2800;
 
@@ -106,7 +106,13 @@ export function keplerPlane(p: KeplerOrbit, t: number): [number, number] {
 }
 
 export function planetSOI(p: Planet) {
-  return p.radius * 16;
+  return p.radius * 8;
+}
+
+/** Comets keep the 120s-day Kepler clock so perihelion is not a streak after GAME_DAY 30. */
+export function cometMeanN(sma: number, starRadius: number) {
+  const mu = starMu(starRadius);
+  return Math.sqrt(mu / (sma * sma * sma)) * (GAME_DAY_SEC / 120);
 }
 
 export function orbitPolyline(p: KeplerOrbit, samples = 96) {
@@ -152,7 +158,7 @@ export function gravityAt(
     const dx = x - px, dy = y - py, dz = z - pz;
     const d2 = dx * dx + dy * dy + dz * dz;
     const d = Math.sqrt(d2);
-    const reach = Math.max(planetSOI(p) * 4.2, p.radius * 16);
+    const reach = Math.max(planetSOI(p) * 2.0, p.radius * 8);
     if (d < 0.25 || d > reach) continue;
     const s = -planetMu(p) / (d2 * d);
     ax += dx * s;

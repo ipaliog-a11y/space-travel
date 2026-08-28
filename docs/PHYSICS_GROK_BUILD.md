@@ -19,7 +19,7 @@ The ship has a world position and velocity. Attitude is a quaternion. Drive is a
 |--------|------|--------|
 | **Free coast** | No planet SOI, throttle ≤ 3% | Full `gravityAt` (star + nearby planets). Coast is real. |
 | **Free thrust** | No planet SOI, throttle > 3% | Velocity **lerps toward circular orbit + look-slaved thrust**. Gravity while thrusting is **40%**. |
-| **Planet well** | Inside `planetSOI` (`radius × 16`, hold `× 1.28`) | Position is Kepler-relative. Coast **glues** to the planet. A park spring holds altitude at `radius × 1.52` unless you punch out (OD / boost) or lock a station. |
+| **Planet well** | Inside `planetSOI` (`radius × 8`, hold `× 1.28`) | Position is Kepler-relative. Coast **glues** to the planet. A park spring holds altitude at `radius × 1.52` unless you punch out (OD / boost) or lock a station. |
 
 Integrator: `engine.ts` ~2168–2309. Gravity helper: `orbit.ts` `gravityAt` / `circularVelocity` / `keplerState`.
 
@@ -179,7 +179,7 @@ Leave docking, jump, transit, surveys, and station meshes untouched.
 | Look-slaved thrust | `thrustDir()` ~796 |
 | Docking corridor | ~2105–2164 |
 | Kepler / gravity | `src/lib/starwake/orbit.ts` |
-| SOI / park / keep-out | `planetSOI` (`radius×16`), `planetPark` (`×1.52`), `planetKeepOut` (`×1.13`) |
+| SOI / park / keep-out | `planetSOI` (`radius×8`), `planetPark` (`×1.52`), `planetKeepOut` (`×1.13`) |
 | Hull stats | `src/lib/starwake/catalog.ts` |
 | HUD Well/Free | `src/components/starwake/FlightChrome.tsx` |
 | Non-goals | `BUILD.md` |

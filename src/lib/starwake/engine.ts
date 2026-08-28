@@ -2,7 +2,7 @@
 import type { Planet, Station, FlightMode } from "./types";
 import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
-import { distLy, getCatalog, getSystem, GALAXY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
+import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
 import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetSOI, starMu } from "./orbit";
 import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, perspective, quatFromEuler, quatFromAxisAngle, quatInvert, quatLook, quatMul, quatNormalize, quatSlerp, quatToMat4, rotateVec, translation, viewFromLook, wrapDelta } from "./math";
@@ -125,8 +125,10 @@ var HYPER_SEC = 2.15;
 var FOCUS_IN = .16;
 var FOCUS_OUT = .3;
 var FAR_CLIP = 9e4;
-var NEAR_CLIP = .14;
+var NEAR_CLIP = .01;
+var BASE_FOV = 95;
 var WELL_HOLD = 1.28;
+var DISK_LOD = 2200;
 function compile(gl, type, src) {
 	const s = gl.createShader(type);
 	if (!s) throw new Error("shader");
@@ -380,7 +382,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	let headingYaw = 0;
 	let shipRoll = 0;
 	let bankRoll = 0;
-	let fov = 50 * Math.PI / 180;
+	let fov = BASE_FOV * Math.PI / 180;
 	let last = performance.now();
 	let punchT = 0, flashT = 0, ringSpawnAcc = 0;
 	let warpTime = 0;
@@ -1297,9 +1299,37 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			name: p.name
 		};
 	}
+	let pullCacheT = -1;
+	let pullCache = 0;
+	function camPullIn() {
+		if (pullCacheT === worldTime) return pullCache;
+		const sysNow = getSystem(getStarwake().systemId);
+		let near = null;
+		for (const p of sysNow.planets) {
+			const [x, y, z] = planetWorld(p, worldTime);
+			const dist = Math.hypot(x - shipPos.x, y - shipPos.y, z - shipPos.z);
+			if (!near || dist < near.dist) near = { p, dist };
+		}
+		pullCacheT = worldTime;
+		if (!near) {
+			pullCache = 0;
+			return 0;
+		}
+		const r = Math.max(near.p.radius, 1);
+		const radii = near.dist / r;
+		if (radii > 3.2) {
+			pullCache = 0;
+			return 0;
+		}
+		const t = clamp((3.2 - radii) / 1.7, 0, 1);
+		pullCache = r * 0.22 * t * t;
+		return pullCache;
+	}
 	function buildWorldView() {
 		quatToMat4(invOrient, quatInvert(orientQuat));
-		translation(tmpA, -shipPos.x, -shipPos.y, -shipPos.z);
+		const pull = camPullIn();
+		const fwd = rotateVec(orientQuat, [0, 0, -1]);
+		translation(tmpA, -(shipPos.x + fwd[0] * pull), -(shipPos.y + fwd[1] * pull), -(shipPos.z + fwd[2] * pull));
 		multiply(tmpB, invOrient, tmpA);
 		multiply(worldView, view, tmpB);
 	}
@@ -1704,7 +1734,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		gl.depthMask(true);
 	}
 	function drawBody(px, py, pz, radius, color, emissive, cam, kind = 8, seed = .37) {
-		composeModel(model, px, py, pz, radius);
+		const dist = Math.hypot(px - cam[0], py - cam[1], pz - cam[2]);
+		const far = dist > DISK_LOD && kind > 0.5 && kind < 9.5;
+		const drawR = far ? radius * Math.min(2.4, 0.85 + dist / (DISK_LOD * 2.2)) : radius;
+		composeModel(model, px, py, pz, drawR);
 		gl.useProgram(bodyProg);
 		gl.uniformMatrix4fv(loc(gl, bodyProg, "uProj"), false, proj);
 		gl.uniformMatrix4fv(loc(gl, bodyProg, "uView"), false, worldView);
@@ -1715,6 +1748,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		gl.uniform1f(loc(gl, bodyProg, "uEmissive"), emissive);
 		gl.uniform1f(loc(gl, bodyProg, "uKind"), kind);
 		gl.uniform1f(loc(gl, bodyProg, "uSeed"), seed);
+		const haze = (kind > 0.5 && kind < 9.5)
+			? clamp(1.15 - dist / Math.max(radius * 8.5, 40), 0, 1)
+			: 0;
+		gl.uniform1f(loc(gl, bodyProg, "uHaze"), haze);
 		gl.bindBuffer(gl.ARRAY_BUFFER, sphPosBuf);
 		const ap = gl.getAttribLocation(bodyProg, "aPosition");
 		gl.enableVertexAttribArray(ap);
@@ -1737,6 +1774,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		gl.uniform1f(loc(gl, bodyProg, "uEmissive"), emissive);
 		gl.uniform1f(loc(gl, bodyProg, "uKind"), kind);
 		gl.uniform1f(loc(gl, bodyProg, "uSeed"), seed);
+		gl.uniform1f(loc(gl, bodyProg, "uHaze"), 0);
 		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
 		const ap = gl.getAttribLocation(bodyProg, "aPosition");
 		gl.enableVertexAttribArray(ap);
@@ -2246,13 +2284,16 @@ export function createEngine(els: OverlayEls): EngineHandle {
 						boundId = null;
 						boundName = null;
 					} else {
-						const stt = keplerState(p, worldTime);
-						let rx = shipPos.x - stt.pos[0];
-						let ry = shipPos.y - stt.pos[1];
-						let rz = shipPos.z - stt.pos[2];
-						let rvx = shipVel.x - stt.vel[0];
-						let rvy = shipVel.y - stt.vel[1];
-						let rvz = shipVel.z - stt.vel[2];
+						const t0 = worldTime - dt + s * h;
+						const t1 = t0 + h;
+						const stt0 = keplerState(p, t0);
+						const stt1 = keplerState(p, t1);
+						let rx = shipPos.x - stt0.pos[0];
+						let ry = shipPos.y - stt0.pos[1];
+						let rz = shipPos.z - stt0.pos[2];
+						let rvx = shipVel.x - stt0.vel[0];
+						let rvy = shipVel.y - stt0.vel[1];
+						let rvz = shipVel.z - stt0.vel[2];
 						if (thrusting) {
 							if (boostActive || throttle > OD_GATE) {
 								const k = 1 - Math.exp(-2.6 * h);
@@ -2270,10 +2311,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 								rvz += (0 - rvz) * d * .28;
 							}
 						} else {
-							const d = 1 - Math.exp(-2.2 * h);
-							rvx += (0 - rvx) * d;
-							rvy += (0 - rvy) * d;
-							rvz += (0 - rvz) * d;
+							rvx = 0;
+							rvy = 0;
+							rvz = 0;
 						}
 						rx += rvx * h;
 						ry += rvy * h;
@@ -2307,12 +2347,12 @@ export function createEngine(els: OverlayEls): EngineHandle {
 							rvy -= ry * inv * vr * dampR;
 							rvz -= rz * inv * vr * dampR;
 						}
-						shipPos.x = stt.pos[0] + rx;
-						shipPos.y = stt.pos[1] + ry;
-						shipPos.z = stt.pos[2] + rz;
-						shipVel.x = stt.vel[0] + rvx;
-						shipVel.y = stt.vel[1] + rvy;
-						shipVel.z = stt.vel[2] + rvz;
+						shipPos.x = stt1.pos[0] + rx;
+						shipPos.y = stt1.pos[1] + ry;
+						shipPos.z = stt1.pos[2] + rz;
+						shipVel.x = stt1.vel[0] + rvx;
+						shipVel.y = stt1.vel[1] + rvy;
+						shipVel.z = stt1.vel[2] + rvz;
 					}
 				} else if (thrusting) {
 					const n = Math.hypot(shipPos.x, shipPos.y, shipPos.z) || 1;
@@ -2396,8 +2436,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const warpAmt = warpOverlayAmt();
 			warpTime += dt * (0.55 + skyStream * 2.8 + warpAmt * 1.4);
 			const targetFov = reduceMotion
-				? 50 * Math.PI / 180
-				: (50 + boostAmt * 7 + jumpAmt * 28 + cruiseAmt * 16) * Math.PI / 180 + punchT * punchT * .16;
+				? BASE_FOV * Math.PI / 180
+				: (BASE_FOV + boostAmt * 5 + jumpAmt * 18 + cruiseAmt * 10) * Math.PI / 180 + punchT * punchT * .16;
 			fov += (targetFov - fov) * (1 - Math.exp(-6.5 * dt));
 			const roll = 0;
 			updateRings(dt, throttle, !reduceMotion && (jumpAmt > .28 || cruiseAmt > .16), cruiseAmt > jumpAmt + 0.05);
@@ -2457,19 +2497,19 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				focusVisible = false;
 				atPlanet = null;
 			}
-			quatToMat4(nebView, quatMul(quatInvert(orientQuat), quatFromEuler(.58, .35 + (sys.nebula?.seed ?? 0) * 6.283)));
+			const skyYaw = 0.35 + GALAXY_SKY.seed * 6.283 + (sys.x * 0.012 + sys.y * 0.008);
+			quatToMat4(nebView, quatMul(quatInvert(orientQuat), quatFromEuler(.58, skyYaw)));
 			multiply(nebCombined, view, nebView);
 			gl.disable(gl.DEPTH_TEST);
 			gl.disable(gl.BLEND);
 			gl.useProgram(nebulaProg);
 			gl.uniformMatrix4fv(loc(gl, nebulaProg, "uProj"), false, proj);
 			gl.uniformMatrix4fv(loc(gl, nebulaProg, "uView"), false, nebCombined);
-			const tint = sys.starColor;
-			const neb = sys.nebula;
+			const tint = GALAXY_SKY.tint;
 			gl.uniform3f(loc(gl, nebulaProg, "uTint"), .85 + tint[0] * .25, .9 + tint[1] * .15, 1);
-			gl.uniform1f(loc(gl, nebulaProg, "uKind"), NEBULA_CODE[neb?.kind] ?? 0);
-			gl.uniform1f(loc(gl, nebulaProg, "uSeed"), neb?.seed ?? .17);
-			gl.uniform1f(loc(gl, nebulaProg, "uIntensity"), neb?.intensity ?? 1);
+			gl.uniform1f(loc(gl, nebulaProg, "uKind"), NEBULA_CODE[GALAXY_SKY.kind]);
+			gl.uniform1f(loc(gl, nebulaProg, "uSeed"), GALAXY_SKY.seed);
+			gl.uniform1f(loc(gl, nebulaProg, "uIntensity"), GALAXY_SKY.intensity);
 			gl.bindBuffer(gl.ARRAY_BUFFER, nebBuf);
 			const nebLoc = gl.getAttribLocation(nebulaProg, "aPosition");
 			gl.enableVertexAttribArray(nebLoc);
@@ -2560,14 +2600,13 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				gl.enable(gl.DEPTH_TEST);
 				gl.depthMask(true);
 				quatToMat4(orientMat, orientQuat);
-				quatToMat4(invOrient, quatInvert(orientQuat));
-				translation(tmpA, -shipPos.x, -shipPos.y, -shipPos.z);
-				multiply(tmpB, invOrient, tmpA);
-				multiply(worldView, view, tmpB);
+				buildWorldView();
+				const pull = camPullIn();
+				const look = rotateVec(orientQuat, [0, 0, -1]);
 				const cam = [
-					shipPos.x,
-					shipPos.y,
-					shipPos.z
+					shipPos.x + look[0] * pull,
+					shipPos.y + look[1] * pull,
+					shipPos.z + look[2] * pull
 				];
 				for (const p of sys.planets) {
 					const [x, y, z] = planetWorld(p, worldTime);
@@ -2665,10 +2704,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				for (const p of sys.planets) {
 					const [x, y, z] = planetWorld(p, worldTime);
 					const dist = Math.hypot(x - cam[0], y - cam[1], z - cam[2]);
-					const prox = planetProximity(p);
-					const inside = dist < prox;
-					const fade = clamp(1.15 - dist / (prox * 6), .12, 1);
-					drawRing(x, y, z, prox, cam, inside ? .42 : .16 * fade);
+					const soi = planetSOI(p);
+					const inside = dist < soi;
+					const fade = clamp(1.15 - dist / (soi * 6), .12, 1);
+					drawRing(x, y, z, soi, cam, inside ? .42 : .16 * fade);
 				}
 				gl.depthMask(true);
 				gl.disable(gl.BLEND);
@@ -2925,6 +2964,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const sysNow = getSystem(getStarwake().systemId);
 			return {
 				starR: sysNow.starRadius,
+				fovDeg: fov * 180 / Math.PI,
+				near: NEAR_CLIP,
+				sky: GALAXY_SKY,
 				ship: [
 					shipPos.x,
 					shipPos.y,
