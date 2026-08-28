@@ -66,7 +66,7 @@ export type ModuleDef = {
 export type ShipLoadout = Record<SlotId, string>;
 export type Loadout = Record<ShipId, ShipLoadout>;
 
-export type MenuView = "menu" | "hangar" | "profile" | "market";
+export type MenuView = "menu" | "hangar" | "profile" | "market" | "watch";
 
 export type JobKind = "courier" | "hauler" | "tender" | "tug";
 

@@ -16,7 +16,7 @@ Source for economy / mining / fleet flavour: [`docs/sessions/session-2026-08-28-
 
 ## Build order
 
-Do not start merchant, mining, or fleet until **1–6** land in Play.
+Do not start mining or fleet until **1–7** land in Play.
 
 ### 1. Save state slots — in play
 Three named slots on Gate / Options: Continue, New (wipes the active slot), copy, delete. Each slot keeps ship, fuel, board, diary, and local hangar fits. Credits and owned hulls stay on the account. Active slot is the one Play writes. Old `starwake-v2` blobs migrate into slot 1.
@@ -36,10 +36,10 @@ Planet radii and AU spacing unchanged. Flight camera is FOV 95, near 0.01; pull-
 ### 6. Travel feel — in play
 `GAME_DAY_SEC` 30, ~2× cruise / overdrive, gravity wells half radius (`planetSOI` ×8, reach `max(SOI×2, r×8)`). Target ~15–30 s between in-system POIs on OD, still feels vast.
 
-### 7. Merchant + market watch
-Keep contract jobs (safe loop). Add a merchant path: buy cargo, **own** it, haul it, store it, sell it. Prices move with supply / demand per hub over time. Holding is play.
+### 7. Merchant + market watch — in play
+Keep contract jobs (safe loop). Buy cargo on a hub **Watch**, own it in the hold, store it on that pad, haul it, sell it. Forty goods in four kinds. Each lock lists eight, seeded per hub. One galaxy tape — same ₡ at every lock. Ticks every 15 s on a hashed random walk. Holding is play.
 
-**Market watch** (not a one-line ticker): live values per commodity / hub, history charts, trends / volatility. Sit and watch the tape, then fly or wait. Jobs stay safe; merchant is risky and higher-skill.
+**Market watch:** Gate / Hangar **Watch** follows all forty (click to focus a bigger chart and the locks that list it). Docked board shows that hub’s eight. Live ₡ / unit, 24-tick spark, signed trend. Same buy and sell quote for v1. Jobs stay safe; merchant is the risky loop. Pad storage is per-slot, not a player station yet. Hull **Market** is still ships.
 
 ### 8. Hull roles
 Keep Courier / Hauler (cargo) and Scout (range). Tender stays fuel.

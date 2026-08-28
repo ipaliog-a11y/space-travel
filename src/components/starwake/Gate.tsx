@@ -10,6 +10,7 @@ type Props = {
   onHangar: () => void;
   onProfile: () => void;
   onMarket: () => void;
+  onWatch: () => void;
   onEngage: () => void;
   onContinue?: () => void;
   hasSave?: boolean;
@@ -23,6 +24,7 @@ export function Gate({
   onHangar,
   onProfile,
   onMarket,
+  onWatch,
   onEngage,
   onContinue,
   hasSave,
@@ -31,6 +33,7 @@ export function Gate({
 }: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const manifests = useStarwake((s) => s.manifests);
+  const cargoHolds = useStarwake((s) => s.cargo);
   const completed = useStarwake((s) => s.completed);
   const earned = diaryEarnings(useStarwake((s) => s.jobLog));
 
@@ -68,7 +71,7 @@ export function Gate({
           <div className="ship-pick">
             {hulls.map((id) => {
               const fit = fittedShip(id, loadout);
-              const used = holdUsed(manifests[id]);
+              const used = holdUsed(manifests[id], cargoHolds[id]);
               return (
                 <button
                   key={id}
@@ -85,7 +88,7 @@ export function Gate({
                   <p>{SHIPS[id].blurb}</p>
                   <span className="ship-meta">
                     {fit.jumpRangeLy.toFixed(0)} ly · {used}/{Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)} · t2 {Math.round(fit.fuelCap2)}
-                    {manifests[id] ? " · job" : ""}
+                    {manifests[id] ? " · job" : cargoHolds[id]?.length ? " · cargo" : ""}
                   </span>
                 </button>
               );
@@ -103,6 +106,9 @@ export function Gate({
         </button>
         <button type="button" className="engage ghost" onClick={onMarket}>
           Market
+        </button>
+        <button type="button" className="engage ghost" onClick={onWatch}>
+          Watch
         </button>
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot

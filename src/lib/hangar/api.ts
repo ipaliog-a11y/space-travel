@@ -273,6 +273,37 @@ export const payJobDelivery = createServerFn({ method: "POST" })
     return { credits: profile.credits, paid };
   });
 
+export const tradeCargo = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: {
+    goodId: string;
+    qty: number;
+    side: "buy" | "sell";
+    systemId: string;
+    stationId: string;
+  }) => data)
+  .handler(async ({ context, data }): Promise<{ credits: number; paid: number; unit: number }> => {
+    const { hubKey, hubTrades, isGoodId, quoteGood } = await import("../starwake/market.ts");
+    const { getStation } = await import("../starwake/galaxy.ts");
+    const { ensurePlayerRow, modifyCredits } = await import("../player-profile/server.ts");
+    if (!isGoodId(data.goodId)) throw new Error("Unknown good");
+    const qty = Math.max(0, Math.round(data.qty));
+    if (qty <= 0) throw new Error("Need a quantity");
+    if (!getStation(data.systemId, data.stationId)) throw new Error("Unknown hub");
+    if (!hubTrades(hubKey(data.systemId, data.stationId), data.goodId)) {
+      throw new Error("This lock does not list that good");
+    }
+    const unit = quoteGood(data.goodId);
+    const paid = unit * qty;
+    await ensurePlayerRow(context.userId);
+    if (data.side === "buy") {
+      const profile = await modifyCredits(context.userId, -paid);
+      return { credits: profile.credits, paid, unit };
+    }
+    const profile = await modifyCredits(context.userId, paid);
+    return { credits: profile.credits, paid, unit };
+  });
+
 export const buyFuel = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { t1: number; t2: number }) => data)

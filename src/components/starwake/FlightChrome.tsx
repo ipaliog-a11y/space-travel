@@ -3,6 +3,7 @@ import { BookMarked, Map as MapIcon, Settings, Volume2, VolumeX } from "lucide-r
 import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
 import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
 import { formatStop, holdUsed } from "@/lib/starwake/jobs";
+import { lotLabel } from "@/lib/starwake/market";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
@@ -240,6 +241,7 @@ export function FlightChrome({
   const { wear, applyWear } = useFlightWear(shipId, mode, drive.boosting);
   const setWearPenalty = useStarwake((s) => s.setWearPenalty);
   const man = useStarwake((s) => s.manifests[s.shipId]);
+  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? []);
 
   useEffect(() => {
     setWearPenalty(
@@ -269,7 +271,7 @@ export function FlightChrome({
   const eta = formatEta(drive.etaSec);
   const thrClass = `throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}`;
   const cap = fittedShip(shipId, loadout).cargoCap;
-  const used = holdUsed(man);
+  const used = holdUsed(man, cargo);
   const canDock = Boolean(drive.atStationId && !drive.docking && !drive.berthed && !jumping);
   const logged = Boolean(body && surveys[body.id]);
   const canSurvey = Boolean(
@@ -387,12 +389,14 @@ export function FlightChrome({
         </div>
       )}
 
-      {man && (
+      {(man || cargo.length > 0) && (
         <div className="job-chip" data-ui>
-          <span className="job-chip-kind">{man.loaded ? "hold" : "pickup"} · {man.job.qty}u</span>
-          <span className="job-chip-title">{man.job.cargo}</span>
+          <span className="job-chip-kind">
+            {man ? `${man.loaded ? "hold" : "pickup"} · ${man.job.qty}u` : "own"}
+          </span>
+          <span className="job-chip-title">{man ? man.job.cargo : "owned"}</span>
           <span className="job-chip-route">
-            {formatStop(man.job.from)} → {formatStop(man.job.to)}
+            {man ? `${formatStop(man.job.from)} → ${formatStop(man.job.to)}` : lotLabel(cargo)}
           </span>
           <span className="job-chip-hold">{used}/{Math.round(cap)}</span>
         </div>

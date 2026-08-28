@@ -9,6 +9,7 @@ import {
   sanitizeLoadout,
 } from "./catalog.ts";
 import { sanitizeRetired } from "./job-log.ts";
+import { emptyHolds, sanitizeCargo, type CargoHold } from "./market.ts";
 import type { CargoJob, JobLogEntry, Loadout, Manifest, ShipId } from "./types.ts";
 
 export const SAVE_SLOT_IDS = ["1", "2", "3"] as const;
@@ -36,6 +37,8 @@ export type SaveSlotSnapshot = {
   board: CargoJob[];
   boardStationId: string | null;
   manifests: Record<ShipId, Manifest | null>;
+  cargo: Record<ShipId, CargoHold>;
+  warehouses: Record<string, CargoHold>;
   completed: number;
   retiredJobs: string[];
   jobLog: JobLogEntry[];
@@ -70,6 +73,25 @@ export function isSaveSlotId(v: unknown): v is SaveSlotId {
   return v === "1" || v === "2" || v === "3";
 }
 
+function sanitizeHolds(raw: unknown): Record<ShipId, CargoHold> {
+  const out = emptyHolds() as Record<ShipId, CargoHold>;
+  if (!raw || typeof raw !== "object") return out;
+  const rec = raw as Partial<Record<ShipId, unknown>>;
+  for (const hull of SHIP_ORDER) out[hull] = sanitizeCargo(rec[hull]);
+  return out;
+}
+
+function sanitizeWarehouses(raw: unknown): Record<string, CargoHold> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, CargoHold> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!key.includes(":")) continue;
+    const hold = sanitizeCargo(value);
+    if (hold.length) out[key] = hold;
+  }
+  return out;
+}
+
 export function emptySlot(id: SaveSlotId, name = SAVE_SLOT_NAMES[id]): SaveSlotSnapshot {
   const loadout = stockLoadout();
   return {
@@ -88,6 +110,8 @@ export function emptySlot(id: SaveSlotId, name = SAVE_SLOT_NAMES[id]): SaveSlotS
     board: [],
     boardStationId: null,
     manifests: { ...EMPTY_MANIFESTS },
+    cargo: emptyHolds() as Record<ShipId, CargoHold>,
+    warehouses: {},
     completed: 0,
     retiredJobs: [],
     jobLog: [],
@@ -131,6 +155,8 @@ export function snapshotFromUnknown(raw: unknown, fallback: SaveSlotSnapshot): S
     board: Array.isArray(p.board) ? (p.board as CargoJob[]) : [],
     boardStationId: typeof p.boardStationId === "string" ? p.boardStationId : null,
     manifests,
+    cargo: sanitizeHolds(p.cargo),
+    warehouses: sanitizeWarehouses(p.warehouses),
     completed: typeof p.completed === "number" ? p.completed : 0,
     retiredJobs: retired,
     jobLog: Array.isArray(p.jobLog) ? (p.jobLog as JobLogEntry[]).slice(0, 40) : [],

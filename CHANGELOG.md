@@ -2,6 +2,18 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.14] - 2026-08-28
+
+### Added
+- Merchant loop on every hub: buy, own, store on the pad, haul, sell. Forty goods in four kinds. Each lock lists eight. One galaxy tape; ₡ ticks every 15 s on a hashed random walk.
+- Station **Watch**: that hub’s eight, live ₡, 24-tick spark, trend. Jobs stay the safe board.
+- Gate / Hangar **Watch**: follow the full tape, click a good for a bigger chart and the locks that trade it.
+
+### Changed
+- Persist version 15. Per-slot cargo holds and hub warehouses. Hold space is shared with contract jobs.
+- Tape bases follow harvest → bulk → life → parts. Ice under water, ore under steel, hydrogen under LH2. Rare dirt can beat cheap bulk; sealed cores stay above medicine.
+- Lots keep a weighted-average cost. Sell is still the live tape. Watch / Pads show `@₡` basis vs tape.
+
 ## [v0.1.13] - 2026-08-28
 
 ### Changed

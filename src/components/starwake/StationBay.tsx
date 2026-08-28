@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fittedShip, refuelQuote } from "@/lib/starwake/catalog";
 import { hubBoard } from "@/lib/starwake/job-hub";
 import { formatHaul, formatStop, holdUsed, jobFits, jobIsRetired, jobPayout } from "@/lib/starwake/jobs";
+import { cargoQty, hubKey, lotLabel } from "@/lib/starwake/market";
 import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
 import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/hangar/api";
 import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
 import type { HardpointTier } from "@/lib/ship-ownership/types";
+import { MarketWatch } from "./MarketWatch";
 
 type Props = {
   stationId: string;
@@ -37,6 +39,8 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
     (j) => !jobIsRetired(j, retired),
   );
   const man = useStarwake((s) => s.manifests[s.shipId]);
+  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? []);
+  const ware = useStarwake((s) => s.warehouses[hubKey(systemId, stationId)] ?? []);
   const acceptJob = useStarwake((s) => s.acceptJob);
   const refreshHubBoard = useStarwake((s) => s.refreshHubBoard);
   const loadCargo = useStarwake((s) => s.loadCargo);
@@ -49,9 +53,15 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const needT2 = Math.max(0, cap2 - (fuel2 ?? 0));
   const quote = refuelQuote(needT1, needT2);
   const tanksFull = needT1 < 0.2 && needT2 < 0.2;
-  const used = holdUsed(man);
+  const used = holdUsed(man, cargo);
   const hold = fit.cargoCap;
-  const canLoad = Boolean(man && !man.loaded && man.job.from.stationId === stationId && man.job.from.systemId === systemId);
+  const canLoad = Boolean(
+    man &&
+      !man.loaded &&
+      man.job.from.stationId === stationId &&
+      man.job.from.systemId === systemId &&
+      man.job.qty + used <= hold,
+  );
   const canDeliver = Boolean(man?.loaded && man.job.to.stationId === stationId && man.job.to.systemId === systemId);
   const [credits, setCredits] = useState<number | null>(null);
   const [repairCost, setRepairCost] = useState(0);
@@ -158,6 +168,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
         <span>T1 {Math.round(fuel)}/{Math.round(cap)}</span>
         <span>T2 {Math.round(fuel2 ?? 0)}/{Math.round(cap2)}</span>
         <span>Hold {used}/{Math.round(hold)} u</span>
+        {ware.length > 0 && <span>Pad {cargoQty(ware)} u · {lotLabel(ware)}</span>}
         {credits != null && <span>₡{Math.round(credits).toLocaleString()}</span>}
         <span>HP {HARDPOINT_TIER_NAMES[hardpointTier]}</span>
       </div>
@@ -233,7 +244,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
                 <JobCard
                   key={job.id}
                   job={job}
-                  fits={jobFits(job, shipId, loadout, man)}
+                  fits={jobFits(job, shipId, loadout, man, cargo)}
                   onAccept={() => acceptJob(job.id)}
                 />
               ))
@@ -241,6 +252,13 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
           </div>
         )}
       </section>
+      <MarketWatch
+        systemId={systemId}
+        stationId={stationId}
+        credits={credits}
+        onCredits={setCredits}
+        onError={setRepairError}
+      />
     </div>
   );
 }

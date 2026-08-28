@@ -22,6 +22,8 @@ describe("save slots", () => {
     assert.equal(slots["2"].hasSave, false);
     assert.equal(slots["3"].hasSave, false);
     assert.equal(slots["2"].shipId, "courier");
+    assert.deepEqual(slots["1"].cargo.hauler, []);
+    assert.deepEqual(slots["1"].warehouses, {});
   });
 
   it("reads named slots when present", () => {

@@ -910,7 +910,7 @@ This document provides a prioritized, phased implementation plan for all researc
 
 Canonical short list: [`BUILD.md`](../BUILD.md). Flavour from [`docs/sessions/session-2026-08-28-progress-review.md`](sessions/session-2026-08-28-progress-review.md).
 
-Week 1 hangar / haul loop is in play. **Do not skip 1–6.**
+Week 1 hangar / haul loop is in play. **Do not skip 1–7.**
 
 ### Live loop (now)
 1. [x] **Save state slots** — 3 named slots; per-slot persist (ship, fuel, board, diary, local fits)
@@ -922,8 +922,8 @@ Week 1 hangar / haul loop is in play. **Do not skip 1–6.**
 5. [x] **Close-up scale** — camera FOV / near-plane; do not grow planet radii
 6. [x] **Travel feel** — 30 s day, ~2× speeds, half wells; 15–30 s between POIs
 
-### Economy (after 1–3)
-7. [ ] **Merchant + market watch** — own cargo, hold, speculate; history charts per hub
+### Economy
+7. [x] **Merchant + market watch** — own cargo, hold, speculate; 40 goods, 8 per hub, one galaxy tape with a random walk; menu Watch to focus a good and see where it trades
 8. [ ] **Hull roles** — Clipper → passenger, Tug → salvage, add Extractor; 3D art pass
 9. [ ] **Planet mining** — hub-less worlds, gas/liquid/solid, Extractor then pads
 10. [ ] **Fleet** — NPC ships on contracts only; upkeep
@@ -958,5 +958,5 @@ This implementation plan provides a clear, actionable roadmap from current state
 
 **Last Updated:** 2026-08-28  
 **Version:** 1.1  
-**Status:** Live-loop 1–6 in play (slots, T2, paid pump, shared sky, camera, travel feel). Next is merchant / market watch.  
-**Next Review:** After BUILD 7 (merchant + market watch)
+**Status:** Live-loop 1–7 in play (slots, T2, paid pump, shared sky, camera, travel feel, merchant watch). Next is hull roles.  
+**Next Review:** After BUILD 8 (hull roles)

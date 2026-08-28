@@ -8,6 +8,7 @@ import { Hangar } from "./Hangar";
 import { MapPanel } from "./MapPanel";
 import { PilotProfile } from "./PilotProfile";
 import { ShipMarket } from "./ShipMarket";
+import { TapeWatch } from "./TapeWatch";
 import { isJumpMode, type ShipId } from "@/lib/starwake/types";
 
 export function Play() {
@@ -132,6 +133,7 @@ export function Play() {
           onHangar={() => useStarwake.getState().setMenuView("hangar")}
           onProfile={() => useStarwake.getState().setMenuView("profile")}
           onMarket={() => useStarwake.getState().setMenuView("market")}
+          onWatch={() => useStarwake.getState().setMenuView("watch")}
           onEngage={startNew}
           onContinue={cont}
         />
@@ -146,6 +148,7 @@ export function Play() {
           onBack={() => useStarwake.getState().setMenuView("menu")}
           onProfile={() => useStarwake.getState().setMenuView("profile")}
           onMarket={() => useStarwake.getState().setMenuView("market")}
+          onWatch={() => useStarwake.getState().setMenuView("watch")}
           onUndock={engage}
         />
       )}
@@ -162,6 +165,10 @@ export function Play() {
             useStarwake.getState().setShipId(fly);
           }}
         />
+      )}
+
+      {!entered && !glError && menuView === "watch" && (
+        <TapeWatch onBack={() => useStarwake.getState().setMenuView("menu")} />
       )}
 
       {entered && (

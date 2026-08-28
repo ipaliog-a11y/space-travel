@@ -184,6 +184,8 @@ Do not start mining / market / fleet until:
 
 Then Week 2 commodities can absorb merchant, watch, mining, fleet, events, stations.
 
+Merchant + watch is in play on hub docks (BUILD 7). Mining / fleet / events / player station still wait.
+
 ---
 
 ## Pointers

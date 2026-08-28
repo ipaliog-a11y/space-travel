@@ -12,6 +12,8 @@ import {
 } from "@/lib/starwake/catalog";
 import { planetLog } from "@/lib/starwake/galaxy";
 import { diaryEarnings, formatHaul, formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
+import { listedPads } from "@/lib/starwake/market-hubs";
+import { cargoQty, lotLabel } from "@/lib/starwake/market";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
 import { buyFuel, buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
@@ -34,6 +36,7 @@ type Props = {
   onBack: () => void;
   onProfile: () => void;
   onMarket: () => void;
+  onWatch: () => void;
   onUndock: () => void;
   ownedHulls: ShipId[] | null;
   onClaimStarter: () => Promise<void>;
@@ -53,12 +56,15 @@ const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: 
   { key: "mass", label: "Mass", unit: "", max: 2.2 },
 ];
 
-export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, ownedHulls, onClaimStarter }: Props) {
+export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, onUndock, ownedHulls, onClaimStarter }: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const setModule = useStarwake((s) => s.setModule);
   const ownedModules = useStarwake((s) => s.ownedModules);
   const ownModule = useStarwake((s) => s.ownModule);
   const manifests = useStarwake((s) => s.manifests);
+  const cargoHolds = useStarwake((s) => s.cargo);
+  const warehouses = useStarwake((s) => s.warehouses);
+  const pads = listedPads(warehouses);
   const completed = useStarwake((s) => s.completed);
   const jobLog = useStarwake((s) => s.jobLog);
   const earned = diaryEarnings(jobLog);
@@ -84,7 +90,8 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
   const parts = slot === RELIABILITY_TAB ? [] : modulesFor(shipId, slot);
   const fittedId = slot === RELIABILITY_TAB ? "" : loadout[shipId][slot];
   const man = manifests[shipId];
-  const used = holdUsed(man);
+  const cargo = cargoHolds[shipId] ?? [];
+  const used = holdUsed(man, cargo);
   const log = planetLog(visits, scanned, surveys);
 
   useEffect(() => {
@@ -208,6 +215,12 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
           {log.length} logged
           <span className="dot">·</span>
           Hold {used}/{Math.round(fitted.cargoCap)} u
+          {pads.length > 0 && (
+            <>
+              <span className="dot">·</span>
+              {pads.length} pad{pads.length === 1 ? "" : "s"}
+            </>
+          )}
           {credits != null && (
             <>
               <span className="dot">·</span>
@@ -216,6 +229,29 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
           )}
         </p>
       </header>
+
+      {!(ownedHulls !== null && ownedHulls.length === 0) && (
+        <section className="job-board hangar-pads" aria-label="Pad stores">
+          <div className="job-board-head">
+            <h2>Pads</h2>
+            <span>Stored on a lock. Fly there, dock, Load pad on Watch.</span>
+          </div>
+          {pads.length === 0 ? (
+            <p className="survey-empty">Empty. Buy on a hub Watch, then Store to leave it on that pad.</p>
+          ) : (
+            <ul className="survey-list pad-list">
+              {pads.map((pad) => (
+                <li key={pad.key}>
+                  <strong>{pad.station}</strong>
+                  <span>{pad.system}</span>
+                  <em>{cargoQty(pad.hold)} u</em>
+                  <p className="bay-caption">{lotLabel(pad.hold)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {ownedHulls !== null && ownedHulls.length === 0 && (
         <p className="lede">
@@ -350,7 +386,10 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
                 )}
               </div>
             ) : (
-              <p className="bay-caption">Hub boards list hauls that leave that lock.</p>
+              <p className="bay-caption">Hub boards list hauls that leave that lock. Buy on the station watch to own cargo.</p>
+            )}
+            {cargo.length > 0 && (
+              <p className="bay-caption">Ship hold {lotLabel(cargo)}</p>
             )}
           </section>
           <section className="job-board survey-log" aria-label="Ship log">
@@ -497,6 +536,9 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, 
         </button>
         <button type="button" className="engage ghost" onClick={onMarket}>
           Market
+        </button>
+        <button type="button" className="engage ghost" onClick={onWatch}>
+          Watch
         </button>
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot

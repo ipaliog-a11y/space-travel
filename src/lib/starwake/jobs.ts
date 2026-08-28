@@ -4,6 +4,7 @@ import type { CargoJob, JobKind, JobLogEntry, JobStop, Manifest, ShipId } from "
 import { fittedShip, SHIP_ORDER } from "./catalog";
 import type { Loadout } from "./types";
 import { jobPayoutFor, type JobSpan } from "./job-pay";
+import { cargoQty, type CargoHold } from "./market.ts";
 import { hubBoard, jobLeavesHub } from "./job-hub";
 import { diaryEarnings, jobContractKey, jobIsRetired, logDelivery, retireContract, retireJob, sanitizeRetired } from "./job-log";
 
@@ -269,15 +270,21 @@ export function formatHaul(job: Pick<CargoJob, "from" | "to">): string {
   return `${span.au.toFixed(2)} AU`;
 }
 
-export function holdUsed(manifest: Manifest | null) {
-  if (!manifest?.loaded) return 0;
-  return manifest.job.qty;
+export function holdUsed(manifest: Manifest | null, cargo?: CargoHold | null) {
+  const job = manifest?.loaded ? manifest.job.qty : 0;
+  return job + cargoQty(cargo);
 }
 
-export function jobFits(job: CargoJob, shipId: ShipId, loadout: Loadout, manifest: Manifest | null) {
+export function jobFits(
+  job: CargoJob,
+  shipId: ShipId,
+  loadout: Loadout,
+  manifest: Manifest | null,
+  cargo?: CargoHold | null,
+) {
   if (manifest) return false;
   const cap = fittedShip(shipId, loadout).cargoCap;
-  return job.qty <= cap;
+  return job.qty + cargoQty(cargo) <= cap;
 }
 
 export function atStop(stop: JobStop, systemId: string, stationId: string | null) {

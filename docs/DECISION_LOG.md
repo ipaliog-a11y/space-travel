@@ -301,7 +301,7 @@ Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The li
 ## Decision #007: Economy, Mining, Fleet, Galaxy (28 Aug chat)
 
 **Date:** 2026-08-28  
-**Status:** ✅ Approved (not implemented)  
+**Status:** ✅ Approved (merchant + watch in play; mining / fleet / risk / station later)  
 **Session:** [session-2026-08-28-progress-review](sessions/session-2026-08-28-progress-review.md)
 
 ### Context
@@ -352,6 +352,23 @@ Every jump rolled a new nebula. Close-up planets felt small so radii had been gr
 
 ---
 
+## Decision #010: Merchant + Market Watch (28 Aug live loop)
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented  
+**Session:** live-loop 7
+
+### Context
+BUILD 1–6 in play. Decision #007 asked for a merchant path beside contract jobs, with a watch (history, not a ticker).
+
+### Decision
+- Forty goods in four kinds (harvest / bulk / life / parts). Bases climb that ladder (common dirt ₡6–28, bulk ₡22–78, life ₡12–120, parts ₡48–240). Processing beats feedstock (ice < water < food, ore < steel < alloys, hydrogen < LH2). Rare harvest (He-3, rare earths) may sit above cheap bulk, not above cores. Each hub lists **eight**, seeded from the lock — not the same eight everywhere. **One galaxy price** per good. Tick every `15 s` on a hashed random walk (not a sine, not per-hub). Same buy and sell for v1.
+- Own cargo in the ship hold. Store / retrieve on that hub’s pad (per save slot). Hold space is shared with a loaded job. Repeat buys merge into one lot at a **weighted average** cost. Sell / liquidation is always the live tape, not that average.
+- Credits stay account-wide via `tradeCargo`. Docked Watch is that hub’s eight. Gate / Hangar **Watch** is the full tape (focus chart + locks that list it). Hull Market stays ships.
+- Player station, mining supply, and market shocks stay later (BUILD 9–12).
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -365,4 +382,4 @@ Every jump rolled a new nebula. Close-up planets felt small so radii had been gr
 ---
 
 **Last Updated:** 2026-08-28  
-**Total Decisions:** 10 approved, 2 pending
+**Total Decisions:** 11 approved, 2 pending

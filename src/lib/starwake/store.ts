@@ -4,7 +4,17 @@ import type { CargoJob, FlightMode, JobLogEntry, Loadout, Manifest, MapLayer, Me
 import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, fullTanks2, liveShip, moduleById } from "./catalog";
 import { hubBoard } from "./job-hub";
 import {
+  addCargo,
+  cargoQty,
+  emptyHolds,
+  hubKey,
+  pullCargo,
+  type CargoHold,
+  type GoodId,
+} from "./market.ts";
+import {
   atStop,
+  holdUsed,
   jobContractKey,
   jobFits,
   jobIsRetired,
@@ -32,7 +42,7 @@ import {
 
 export type { SaveSlotId, SaveSlotSnapshot } from "./saves";
 
-const SAVE_VERSION = 14;
+const SAVE_VERSION = 15;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -49,6 +59,8 @@ function captureLive(s: {
   board: CargoJob[];
   boardStationId: string | null;
   manifests: Record<ShipId, Manifest | null>;
+  cargo: Record<ShipId, CargoHold>;
+  warehouses: Record<string, CargoHold>;
   completed: number;
   retiredJobs: string[];
   jobLog: JobLogEntry[];
@@ -71,6 +83,8 @@ function captureLive(s: {
     board: s.board,
     boardStationId: s.boardStationId,
     manifests: s.manifests,
+    cargo: s.cargo,
+    warehouses: s.warehouses,
     completed: s.completed,
     retiredJobs: s.retiredJobs,
     jobLog: s.jobLog,
@@ -111,6 +125,8 @@ export type StarwakeState = {
   board: CargoJob[];
   boardStationId: string | null;
   manifests: Record<ShipId, Manifest | null>;
+  cargo: Record<ShipId, CargoHold>;
+  warehouses: Record<string, CargoHold>;
   completed: number;
   retiredJobs: string[];
   jobLog: JobLogEntry[];
@@ -148,6 +164,10 @@ export type StarwakeState = {
   dropJob: () => void;
   loadCargo: (systemId: string, stationId: string) => boolean;
   deliverCargo: (systemId: string, stationId: string, paid?: number) => boolean;
+  stowBuy: (goodId: GoodId, qty: number, paid?: number) => boolean;
+  dumpSell: (goodId: GoodId, qty: number, paid?: number) => { qty: number; paid: number } | null;
+  storeCargo: (goodId: GoodId, qty: number, systemId: string, stationId: string) => boolean;
+  retrieveCargo: (goodId: GoodId, qty: number, systemId: string, stationId: string) => boolean;
   setWearPenalty: (v: number) => void;
   ownModule: (id: string) => void;
   setFuel: (v: number) => void;
@@ -197,6 +217,8 @@ export const useStarwake = create<StarwakeState>()(
       board: [],
       boardStationId: null,
       manifests: { courier: null, hauler: null, scout: null, clipper: null, tender: null, tug: null },
+      cargo: emptyHolds() as Record<ShipId, CargoHold>,
+      warehouses: {},
       completed: 0,
       retiredJobs: [],
       jobLog: [],
@@ -318,7 +340,7 @@ export const useStarwake = create<StarwakeState>()(
         if (!job) return false;
         if (st.retiredJobs.includes(id) || st.retiredJobs.includes(jobContractKey(job))) return false;
         if (st.boardStationId && !hubBoard([job], st.systemId, st.boardStationId).length) return false;
-        if (!jobFits(job, st.shipId, st.loadout, st.manifests[st.shipId])) return false;
+        if (!jobFits(job, st.shipId, st.loadout, st.manifests[st.shipId], st.cargo[st.shipId])) return false;
         const seed = (st.jobSeed + 13) >>> 0;
         const hubId = st.boardStationId ?? job.from.stationId;
         set({
@@ -355,6 +377,8 @@ export const useStarwake = create<StarwakeState>()(
         const man = st.manifests[st.shipId];
         if (!man || man.loaded) return false;
         if (!atStop(man.job.from, systemId, stationId)) return false;
+        const cap = fittedShip(st.shipId, st.loadout).cargoCap;
+        if (man.job.qty + cargoQty(st.cargo[st.shipId]) > cap) return false;
         set({
           manifests: { ...st.manifests, [st.shipId]: { ...man, loaded: true } },
           hasSave: true,
@@ -378,6 +402,70 @@ export const useStarwake = create<StarwakeState>()(
           board: refillBoard([], systemId, seed, stationId, retired),
           boardStationId: stationId,
           jobSeed: seed,
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return true;
+      },
+      stowBuy: (goodId, qty, paid = 0) => {
+        const st = get();
+        const n = Math.max(0, Math.round(qty));
+        if (n <= 0) return false;
+        const cap = fittedShip(st.shipId, st.loadout).cargoCap;
+        const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
+        if (used + n > cap) return false;
+        set({
+          cargo: { ...st.cargo, [st.shipId]: addCargo(st.cargo[st.shipId] ?? [], goodId, n, paid) },
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return true;
+      },
+      dumpSell: (goodId, qty, paid) => {
+        const st = get();
+        const n = Math.max(0, Math.round(qty));
+        if (n <= 0) return null;
+        const pulled = pullCargo(st.cargo[st.shipId] ?? [], goodId, n, paid);
+        if (!pulled) return null;
+        set({
+          cargo: { ...st.cargo, [st.shipId]: pulled.hold },
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return { qty: pulled.qty, paid: pulled.paid };
+      },
+      storeCargo: (goodId, qty, systemId, stationId) => {
+        const st = get();
+        const n = Math.max(0, Math.round(qty));
+        if (n <= 0) return false;
+        const fromShip = pullCargo(st.cargo[st.shipId] ?? [], goodId, n);
+        if (!fromShip) return false;
+        const key = hubKey(systemId, stationId);
+        const ware = addCargo(st.warehouses[key] ?? [], goodId, n, fromShip.paid);
+        set({
+          cargo: { ...st.cargo, [st.shipId]: fromShip.hold },
+          warehouses: { ...st.warehouses, [key]: ware },
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return true;
+      },
+      retrieveCargo: (goodId, qty, systemId, stationId) => {
+        const st = get();
+        const n = Math.max(0, Math.round(qty));
+        if (n <= 0) return false;
+        const cap = fittedShip(st.shipId, st.loadout).cargoCap;
+        const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
+        if (used + n > cap) return false;
+        const key = hubKey(systemId, stationId);
+        const fromWare = pullCargo(st.warehouses[key] ?? [], goodId, n);
+        if (!fromWare) return false;
+        const warehouses = { ...st.warehouses };
+        if (fromWare.hold.length) warehouses[key] = fromWare.hold;
+        else delete warehouses[key];
+        set({
+          cargo: { ...st.cargo, [st.shipId]: addCargo(st.cargo[st.shipId] ?? [], goodId, n, fromWare.paid) },
+          warehouses,
           hasSave: true,
           lastSaveAt: Date.now(),
         });
