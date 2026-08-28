@@ -1,18 +1,28 @@
+import { useEffect, useState } from "react";
 import { fittedShip } from "@/lib/starwake/catalog";
-import { formatStop, holdUsed, jobFits } from "@/lib/starwake/jobs";
+import { formatStop, holdUsed, jobFits, jobPayout } from "@/lib/starwake/jobs";
 import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
 import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
 import type { CargoJob } from "@/lib/starwake/types";
+import {
+  loadRepairStatus,
+  payJobDelivery,
+  repairCurrentHull,
+  type WearSnapshot,
+} from "@/lib/hangar/api";
+import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
+import type { HardpointTier } from "@/lib/ship-ownership/types";
 
 type Props = {
   stationId: string;
   systemId: string;
   onUndock: () => void;
   onRefuel: () => void;
+  onHullRepaired?: (wear: WearSnapshot) => void;
 };
 
-export function StationBay({ stationId, systemId, onUndock, onRefuel }: Props) {
+export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepaired }: Props) {
   const stn = getStation(systemId, stationId);
   const planet = stn ? getPlanet(systemId, stn.planetId) : null;
   const sys = getSystem(systemId);
@@ -28,9 +38,79 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel }: Props) {
   const cap = fittedShip(shipId, loadout).fuelCap;
   const used = holdUsed(man);
   const hold = fittedShip(shipId, loadout).cargoCap;
-  if (!stn) return null;
   const canLoad = Boolean(man && !man.loaded && man.job.from.stationId === stationId && man.job.from.systemId === systemId);
   const canDeliver = Boolean(man?.loaded && man.job.to.stationId === stationId && man.job.to.systemId === systemId);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [repairCost, setRepairCost] = useState(0);
+  const [hardpointTier, setHardpointTier] = useState<HardpointTier>("stock");
+  const [repairing, setRepairing] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [repairError, setRepairError] = useState<string | null>(null);
+  const deliverPay = man ? jobPayout(man.job) : 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    const apply = () => {
+      loadRepairStatus({ data: { shipType: shipId } })
+        .then((status) => {
+          if (cancelled) return;
+          setCredits(status.credits);
+          setRepairCost(status.repairCost);
+          setHardpointTier(status.hardpointTier);
+          setRepairError(null);
+        })
+        .catch(() => undefined);
+    };
+    apply();
+    const later = window.setTimeout(apply, 800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(later);
+    };
+  }, [shipId, stationId]);
+
+  async function onRepair() {
+    if (repairCost <= 0 || repairing) return;
+    setRepairing(true);
+    setRepairError(null);
+    try {
+      const status = await repairCurrentHull({ data: { shipType: shipId } });
+      setCredits(status.credits);
+      setRepairCost(status.repairCost);
+      setHardpointTier(status.hardpointTier);
+      if (status.wear) onHullRepaired?.(status.wear);
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : "Repair failed");
+    } finally {
+      setRepairing(false);
+    }
+  }
+
+  async function onDeliver() {
+    if (!man?.loaded || !canDeliver || paying) return;
+    setPaying(true);
+    setRepairError(null);
+    try {
+      const result = await payJobDelivery({
+        data: {
+          job: {
+            kind: man.job.kind,
+            qty: man.job.qty,
+            from: { systemId: man.job.from.systemId },
+            to: { systemId: man.job.to.systemId },
+          },
+        },
+      });
+      deliverCargo(systemId, stationId);
+      setCredits(result.credits);
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : "Payout failed");
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  if (!stn) return null;
 
   return (
     <div className="station-bay" data-ui>
@@ -44,10 +124,25 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel }: Props) {
       <div className="station-stats">
         <span>T1 {Math.round(fuel)}/{Math.round(cap)}</span>
         <span>Hold {used}/{Math.round(hold)} u</span>
+        {credits != null && <span>₡{Math.round(credits).toLocaleString()}</span>}
+        <span>HP {HARDPOINT_TIER_NAMES[hardpointTier]}</span>
       </div>
+      {repairError && <p className="station-repair-err">{repairError}</p>}
       <div className="station-acts">
         <button type="button" className="engage ghost" onClick={onRefuel} disabled={fuel >= cap - 0.2}>
           Refuel
+        </button>
+        <button
+          type="button"
+          className="engage ghost"
+          onClick={() => void onRepair()}
+          disabled={repairing || repairCost <= 0 || (credits != null && credits < repairCost)}
+        >
+          {repairCost <= 0
+            ? "Hull sound"
+            : repairing
+              ? "Repairing"
+              : `Repair ₡${repairCost.toLocaleString()}`}
         </button>
         {canLoad && (
           <button type="button" className="engage" onClick={() => loadCargo(systemId, stationId)}>
@@ -55,8 +150,8 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel }: Props) {
           </button>
         )}
         {canDeliver && (
-          <button type="button" className="engage" onClick={() => deliverCargo(systemId, stationId)}>
-            Deliver
+          <button type="button" className="engage" onClick={() => void onDeliver()} disabled={paying}>
+            {paying ? "Paying" : `Deliver ₡${deliverPay.toLocaleString()}`}
           </button>
         )}
         <button type="button" className="engage" onClick={onUndock}>
@@ -73,7 +168,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel }: Props) {
             <span className="job-kind">{man.loaded ? "loaded" : "accepted"} · {man.job.kind}</span>
             <span className="job-title">{man.job.title}</span>
             <span className="job-route">
-              {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u
+              {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u · ₡{jobPayout(man.job).toLocaleString()}
             </span>
             {!man.loaded && (
               <button type="button" className="job-drop" onClick={dropJob}>Drop</button>
@@ -99,7 +194,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel }: Props) {
 function JobCard({ job, fits, onAccept }: { job: CargoJob; fits: boolean; onAccept: () => void }) {
   return (
     <article className={`job-card${fits ? "" : " tight"}`}>
-      <span className="job-kind">{job.kind} · {job.qty} u</span>
+      <span className="job-kind">{job.kind} · {job.qty} u · ₡{jobPayout(job).toLocaleString()}</span>
       <span className="job-title">{job.title}</span>
       <span className="job-route">{formatStop(job.from)} → {formatStop(job.to)}</span>
       <button type="button" className="job-take" disabled={!fits} onClick={onAccept}>

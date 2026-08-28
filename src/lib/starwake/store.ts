@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CargoJob, FlightMode, Loadout, Manifest, MapLayer, MenuView, ShipId, SlotId } from "./types";
-import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, moduleById, sanitizeFuel, sanitizeLoadout } from "./catalog";
+import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, liveShip, moduleById, sanitizeFuel, sanitizeLoadout } from "./catalog";
 import { atStop, jobFits, makeBoard, refillBoard, sanitizeBoard, sanitizeManifests } from "./jobs";
 
-const SAVE_VERSION = 10;
+const SAVE_VERSION = 11;
 
 export type StarwakeState = {
   version: number;
@@ -33,6 +33,8 @@ export type StarwakeState = {
   manifests: Record<ShipId, Manifest | null>;
   completed: number;
   jobSeed: number;
+  wearPenalty: number;
+  ownedModules: string[];
   hasSave: boolean;
   lastSaveAt: number;
   setEntered: (v: boolean) => void;
@@ -60,6 +62,8 @@ export type StarwakeState = {
   dropJob: () => void;
   loadCargo: (systemId: string, stationId: string) => boolean;
   deliverCargo: (systemId: string, stationId: string) => boolean;
+  setWearPenalty: (v: number) => void;
+  ownModule: (id: string) => void;
   setFuel: (v: number) => void;
   refuel: () => void;
   markSave: () => void;
@@ -101,6 +105,8 @@ export const useStarwake = create<StarwakeState>()(
       manifests: { courier: null, hauler: null, scout: null, clipper: null, tender: null, tug: null },
       completed: 0,
       jobSeed: 0xc0de,
+      wearPenalty: 0,
+      ownedModules: [],
       hasSave: false,
       lastSaveAt: 0,
       setEntered: (v) => set({ entered: v, mode: v ? "local" : "docked", menuView: v ? get().menuView : "menu" }),
@@ -231,6 +237,19 @@ export const useStarwake = create<StarwakeState>()(
         });
         return true;
       },
+      setWearPenalty: (v) => {
+        const next = Math.max(0, Math.min(0.25, v));
+        if (Math.abs(get().wearPenalty - next) < 1e-6) return;
+        set({ wearPenalty: next });
+      },
+      ownModule: (id) => {
+        if (get().ownedModules.includes(id)) return;
+        set({
+          ownedModules: [...get().ownedModules, id],
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+      },
       setFuel: (v) => {
         const st = get();
         const cap = fittedShip(st.shipId, st.loadout).fuelCap;
@@ -270,6 +289,7 @@ export const useStarwake = create<StarwakeState>()(
         manifests: s.manifests,
         completed: s.completed,
         jobSeed: s.jobSeed,
+        ownedModules: s.ownedModules,
         boostCharges: s.boostCharges,
         hasSave: s.hasSave,
         lastSaveAt: s.lastSaveAt,
@@ -298,6 +318,10 @@ export const useStarwake = create<StarwakeState>()(
           manifests: sanitizeManifests(p.manifests),
           completed: typeof p.completed === "number" ? p.completed : 0,
           jobSeed: typeof p.jobSeed === "number" ? p.jobSeed : current.jobSeed,
+          wearPenalty: 0,
+          ownedModules: Array.isArray(p.ownedModules)
+            ? p.ownedModules.filter((id): id is string => typeof id === "string")
+            : [],
           invertX: Boolean(p.invertX),
           showOrbits: Boolean(p.showOrbits),
           boostCharges: typeof p.boostCharges === "number" ? p.boostCharges : SHIPS[shipId].boostCapacity,
@@ -314,5 +338,5 @@ export function getStarwake() {
 
 export function currentShip() {
   const st = getStarwake();
-  return fittedShip(st.shipId, st.loadout);
+  return liveShip(st.shipId, st.loadout, st.wearPenalty);
 }

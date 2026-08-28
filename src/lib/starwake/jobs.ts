@@ -3,6 +3,7 @@ import { hashu, mulberry32 } from "./math";
 import type { CargoJob, JobKind, JobStop, Manifest, ShipId } from "./types";
 import { fittedShip, SHIP_ORDER } from "./catalog";
 import type { Loadout } from "./types";
+import { jobPayoutFor } from "./job-pay";
 
 const COURIER_CARGO = ["sealed cores", "scan plates", "seed vault", "nav film", "med ice"];
 const HAULER_CARGO = ["ore", "water ice", "grain", "basalt", "volatiles"];
@@ -157,6 +158,16 @@ export function sanitizeManifests(raw: unknown): Record<ShipId, Manifest | null>
     out[hull] = { job: { ...m.job, from, to }, loaded: Boolean(m.loaded) };
   }
   return out;
+}
+
+export function jobDistanceLy(job: CargoJob): number {
+  if (job.from.systemId === job.to.systemId) return 0;
+  return distLy(getSystem(job.from.systemId), getSystem(job.to.systemId));
+}
+
+/** Week 1 placeholder payout. Four typical courier lock-to-lock runs fund Mk I from the ₡1,000 start. */
+export function jobPayout(job: CargoJob): number {
+  return jobPayoutFor(job, jobDistanceLy(job));
 }
 
 export function holdUsed(manifest: Manifest | null) {

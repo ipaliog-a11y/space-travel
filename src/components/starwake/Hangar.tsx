@@ -5,19 +5,37 @@ import {
   SLOT_TAB,
   SLOTS,
   fittedShip,
+  moduleById,
+  moduleFitCost,
   modulesFor,
 } from "@/lib/starwake/catalog";
 import { planetLog } from "@/lib/starwake/galaxy";
-import { formatStop, holdUsed, jobFits } from "@/lib/starwake/jobs";
+import { formatStop, holdUsed, jobFits, jobPayout } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
-import type { CargoJob, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
+import type { CargoJob, ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
+import { buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
+import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
+import {
+  HARDPOINT_BONUSES,
+  HARDPOINT_COSTS,
+  getNextHardpointTier,
+  type HardpointTier,
+} from "@/lib/ship-ownership/types";
 import { HullBay } from "./HullBay";
+
+const RELIABILITY_TAB = "reliability" as const;
+type FitTab = SlotId | typeof RELIABILITY_TAB;
+const HARDPOINT_ORDER: HardpointTier[] = ["stock", "mk1", "mk2", "mk3"];
 
 type Props = {
   shipId: ShipId;
   onPick: (id: ShipId) => void;
   onBack: () => void;
+  onProfile: () => void;
+  onMarket: () => void;
   onUndock: () => void;
+  ownedHulls: ShipId[] | null;
+  onClaimStarter: () => Promise<void>;
 };
 
 const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: boolean }[] = [
@@ -33,9 +51,11 @@ const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: 
   { key: "mass", label: "Mass", unit: "", max: 2.2 },
 ];
 
-export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
+export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onUndock, ownedHulls, onClaimStarter }: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const setModule = useStarwake((s) => s.setModule);
+  const ownedModules = useStarwake((s) => s.ownedModules);
+  const ownModule = useStarwake((s) => s.ownModule);
   const board = useStarwake((s) => s.board);
   const manifests = useStarwake((s) => s.manifests);
   const completed = useStarwake((s) => s.completed);
@@ -46,13 +66,92 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
   const dropJob = useStarwake((s) => s.dropJob);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
   const refuel = useStarwake((s) => s.refuel);
-  const [slot, setSlot] = useState<SlotId>("tank");
+  const [slot, setSlot] = useState<FitTab>("tank");
+  const [credits, setCredits] = useState<number | null>(null);
+  const [hardpointTier, setHardpointTier] = useState<HardpointTier>("stock");
+  const [fitError, setFitError] = useState<string | null>(null);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
   const fitted = fittedShip(shipId, loadout);
-  const parts = modulesFor(shipId, slot);
-  const fittedId = loadout[shipId][slot];
+  const hullSlot = slot === RELIABILITY_TAB ? "tank" : slot;
+  const parts = slot === RELIABILITY_TAB ? [] : modulesFor(shipId, slot);
+  const fittedId = slot === RELIABILITY_TAB ? "" : loadout[shipId][slot];
   const man = manifests[shipId];
   const used = holdUsed(man);
   const log = planetLog(visits, scanned, surveys);
+
+  useEffect(() => {
+    const fit = loadout[shipId];
+    for (const id of Object.values(fit)) {
+      const mod = moduleById(id);
+      if (mod && !mod.stock) ownModule(id);
+    }
+  }, [shipId, loadout, ownModule]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadRepairStatus({ data: { shipType: shipId } })
+      .then((status) => {
+        if (cancelled) return;
+        setCredits(status.credits);
+        setHardpointTier(status.hardpointTier);
+        setFitError(null);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shipId]);
+
+  function ownsFit(mod: ModuleDef) {
+    return Boolean(mod.stock) || ownedModules.includes(mod.id) || loadout[shipId][mod.slot] === mod.id;
+  }
+
+  async function onPickModule(mod: ModuleDef) {
+    if (slot === RELIABILITY_TAB || buyingId) return;
+    if (ownsFit(mod)) {
+      setModule(mod.slot, mod.id);
+      return;
+    }
+    const cost = moduleFitCost(mod);
+    if (credits != null && credits < cost) {
+      setFitError(`Need ₡${cost.toLocaleString()}`);
+      return;
+    }
+    setBuyingId(mod.id);
+    setFitError(null);
+    try {
+      const result = await buyModuleFit({ data: { moduleId: mod.id } });
+      setCredits(result.credits);
+      ownModule(mod.id);
+      setModule(mod.slot, mod.id);
+    } catch (err) {
+      setFitError(err instanceof Error ? err.message : "Fit failed");
+    } finally {
+      setBuyingId(null);
+    }
+  }
+
+  async function onPickHardpoint(tier: HardpointTier) {
+    if (buyingId || tier === hardpointTier) return;
+    const next = getNextHardpointTier(hardpointTier);
+    if (tier !== next) return;
+    const cost = HARDPOINT_COSTS[tier];
+    if (credits != null && credits < cost) {
+      setFitError(`Need ₡${cost.toLocaleString()}`);
+      return;
+    }
+    setBuyingId(tier);
+    setFitError(null);
+    try {
+      const status = await upgradeCurrentHardpoint({ data: { shipType: shipId } });
+      setCredits(status.credits);
+      setHardpointTier(status.hardpointTier);
+    } catch (err) {
+      setFitError(err instanceof Error ? err.message : "Hardpoint fit failed");
+    } finally {
+      setBuyingId(null);
+    }
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -76,17 +175,35 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
           {log.length} logged
           <span className="dot">·</span>
           Hold {used}/{Math.round(fitted.cargoCap)} u
+          {credits != null && (
+            <>
+              <span className="dot">·</span>
+              ₡{Math.round(credits).toLocaleString()}
+            </>
+          )}
         </p>
       </header>
 
-      {SHIP_SETS.map((set) => (
+      {ownedHulls !== null && ownedHulls.length === 0 && (
+        <p className="lede">
+          Empty bay. Claim a stock Courier to fit modules and undock.
+          <button type="button" className="engage" onClick={() => void onClaimStarter()}>
+            Claim Courier
+          </button>
+        </p>
+      )}
+
+      {SHIP_SETS.map((set) => {
+        const hulls = ownedHulls === null ? set.hulls : set.hulls.filter((id) => ownedHulls.includes(id));
+        if (hulls.length === 0) return null;
+        return (
         <section key={set.id} className={`ship-set ship-set-${set.id}`}>
           <div className="ship-set-head">
             <h2>{set.label}</h2>
             <p>{set.blurb}</p>
           </div>
           <div className="ship-rail" role="tablist" aria-label={set.label}>
-            {set.hulls.map((id) => {
+            {hulls.map((id) => {
               const hull = SHIPS[id];
               const fit = fittedShip(id, loadout);
               return (
@@ -99,6 +216,7 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
                   onClick={() => {
                     onPick(id);
                     setSlot("tank");
+                    setFitError(null);
                   }}
                 >
                   <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
@@ -113,8 +231,10 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
             })}
           </div>
         </section>
-      ))}
+        );
+      })}
 
+      {!(ownedHulls !== null && ownedHulls.length === 0) && (
       <div className="hull-dossier">
         <img src={`/ships/${shipId}.png`} alt="" className="hull-dossier-art" />
         <div>
@@ -161,13 +281,19 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
               <strong>{fitted.surveySec.toFixed(1)}</strong>
               <span>s</span>
             </li>
+            <li>
+              <em>Rel</em>
+              <strong>{HARDPOINT_TIER_NAMES[hardpointTier]}</strong>
+            </li>
           </ul>
         </div>
       </div>
+      )}
 
+      {!(ownedHulls !== null && ownedHulls.length === 0) && (
       <div className="hangar-grid">
         <div className="bay">
-          <HullBay hull={shipId} slot={slot} onSlot={setSlot} />
+          <HullBay hull={shipId} slot={hullSlot} onSlot={setSlot} />
           <p className="bay-caption">{SHIPS[shipId].blurb}</p>
           <section className="job-board" aria-label="Cargo jobs">
             <div className="job-board-head">
@@ -265,35 +391,96 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
                 {SLOT_TAB[id]}
               </button>
             ))}
+            <button
+              type="button"
+              className={slot === RELIABILITY_TAB ? "on" : ""}
+              aria-pressed={slot === RELIABILITY_TAB}
+              onClick={() => setSlot(RELIABILITY_TAB)}
+            >
+              Rel
+            </button>
           </div>
+          {fitError && <p className="station-repair-err">{fitError}</p>}
           <div className="mod-list">
-            {parts.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`mod-card${fittedId === m.id ? " on" : ""}`}
-                onClick={() => setModule(slot, m.id)}
-              >
-                <span className="mod-name">
-                  {m.name}
-                  {m.stock ? <em>stock</em> : null}
-                </span>
-                <span className="mod-blurb">{m.blurb}</span>
-                <span className="mod-delta">{formatDelta(m)}</span>
-              </button>
-            ))}
+            {slot === RELIABILITY_TAB
+              ? HARDPOINT_ORDER.map((tier) => {
+                  const next = getNextHardpointTier(hardpointTier);
+                  const owned = HARDPOINT_ORDER.indexOf(tier) <= HARDPOINT_ORDER.indexOf(hardpointTier);
+                  const canBuy = tier === next;
+                  const cost = HARDPOINT_COSTS[tier];
+                  const isFitted = tier === hardpointTier;
+                  return (
+                    <button
+                      key={tier}
+                      type="button"
+                      className={`mod-card${isFitted ? " on" : ""}`}
+                      disabled={buyingId !== null || (!owned && !canBuy) || (canBuy && credits != null && credits < cost)}
+                      onClick={() => void onPickHardpoint(tier)}
+                    >
+                      <span className="mod-name">
+                        {HARDPOINT_TIER_NAMES[tier]}
+                        {isFitted ? <em>fitted</em> : owned ? <em>owned</em> : canBuy ? <em>next</em> : <em>locked</em>}
+                      </span>
+                      <span className="mod-blurb">
+                        {tier === "stock"
+                          ? "Stock reliability. Wear pool as built."
+                          : `+${HARDPOINT_BONUSES[tier]} wear pool. Hangar fit.`}
+                      </span>
+                      <span className="mod-delta">
+                        {owned ? "unlocked" : cost > 0 ? `₡${cost.toLocaleString()}` : "stock"}
+                      </span>
+                    </button>
+                  );
+                })
+              : parts.map((m) => {
+                  const owned = ownsFit(m);
+                  const cost = moduleFitCost(m);
+                  const equipped = fittedId === m.id;
+                  const short = credits != null && !owned && credits < cost;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`mod-card${equipped ? " on" : ""}`}
+                      disabled={buyingId !== null || short}
+                      onClick={() => void onPickModule(m)}
+                    >
+                      <span className="mod-name">
+                        {m.name}
+                        {equipped ? <em>fitted</em> : m.stock ? <em>stock</em> : owned ? <em>owned</em> : null}
+                      </span>
+                      <span className="mod-blurb">{m.blurb}</span>
+                      <span className="mod-delta">
+                        {formatDelta(m)}
+                        {!owned && cost > 0 ? ` · ₡${cost.toLocaleString()}` : ""}
+                      </span>
+                    </button>
+                  );
+                })}
           </div>
         </div>
       </div>
+      )}
 
       <div className="gate-acts">
         <button type="button" className="engage ghost" onClick={onBack}>
           Menu
         </button>
+        <button type="button" className="engage ghost" onClick={onMarket}>
+          Market
+        </button>
+        <button type="button" className="engage ghost" onClick={onProfile}>
+          Pilot
+        </button>
         <button type="button" className="engage ghost" onClick={refuel} disabled={fuel >= fitted.fuelCap - 0.2}>
           Refuel
         </button>
-        <button type="button" className="engage" onClick={onUndock}>
+        <button
+          type="button"
+          className="engage"
+          onClick={onUndock}
+          disabled={ownedHulls !== null && ownedHulls.length === 0}
+        >
           Fly
         </button>
       </div>
@@ -304,7 +491,7 @@ export function Hangar({ shipId, onPick, onBack, onUndock }: Props) {
 function JobCard({ job, fits, onAccept }: { job: CargoJob; fits: boolean; onAccept: () => void }) {
   return (
     <article className={`job-card${fits ? "" : " tight"}`}>
-      <span className="job-kind">{job.kind} · {job.qty} u</span>
+      <span className="job-kind">{job.kind} · {job.qty} u · ₡{jobPayout(job).toLocaleString()}</span>
       <span className="job-title">{job.title}</span>
       <span className="job-route">
         {formatStop(job.from)} → {formatStop(job.to)}

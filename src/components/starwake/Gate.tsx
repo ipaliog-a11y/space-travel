@@ -7,12 +7,27 @@ type Props = {
   shipId: ShipId;
   onPick: (id: ShipId) => void;
   onHangar: () => void;
+  onProfile: () => void;
+  onMarket: () => void;
   onEngage: () => void;
   onContinue?: () => void;
   hasSave?: boolean;
+  ownedHulls: ShipId[] | null;
+  onClaimStarter: () => Promise<void>;
 };
 
-export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }: Props) {
+export function Gate({
+  shipId,
+  onPick,
+  onHangar,
+  onProfile,
+  onMarket,
+  onEngage,
+  onContinue,
+  hasSave,
+  ownedHulls,
+  onClaimStarter,
+}: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const manifests = useStarwake((s) => s.manifests);
   const completed = useStarwake((s) => s.completed);
@@ -31,14 +46,26 @@ export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }
         </p>
       </header>
 
-      {SHIP_SETS.map((set) => (
+      {ownedHulls !== null && ownedHulls.length === 0 && (
+        <p className="lede">
+          No hull in the bay. Claim a stock Courier to fly, then open Hangar to fit it.
+          <button type="button" className="engage" onClick={() => void onClaimStarter()}>
+            Claim Courier
+          </button>
+        </p>
+      )}
+
+      {SHIP_SETS.map((set) => {
+        const hulls = ownedHulls === null ? set.hulls : set.hulls.filter((id) => ownedHulls.includes(id));
+        if (hulls.length === 0) return null;
+        return (
         <section key={set.id} className={`ship-set ship-set-${set.id}`}>
           <div className="ship-set-head">
             <h2>{set.label}</h2>
             <p>{set.blurb}</p>
           </div>
           <div className="ship-pick">
-            {set.hulls.map((id) => {
+            {hulls.map((id) => {
               const fit = fittedShip(id, loadout);
               const used = holdUsed(manifests[id]);
               return (
@@ -64,11 +91,18 @@ export function Gate({ shipId, onPick, onHangar, onEngage, onContinue, hasSave }
             })}
           </div>
         </section>
-      ))}
+        );
+      })}
 
       <div className="gate-acts">
         <button type="button" className="engage" onClick={onHangar}>
           Hangar
+        </button>
+        <button type="button" className="engage ghost" onClick={onMarket}>
+          Market
+        </button>
+        <button type="button" className="engage ghost" onClick={onProfile}>
+          Pilot
         </button>
         {hasSave && onContinue && (
           <button type="button" className="engage ghost" onClick={onContinue}>

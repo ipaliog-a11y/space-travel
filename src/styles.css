@@ -104,8 +104,8 @@ button:disabled { cursor: default; }
 .hud [data-ui] {
   pointer-events:auto
 }
-.hud.mapped .stick,.hud.mapped .throttle,.hud.mapped .flight-actions,.hud.mapped .crosshair,.hud.mapped .planet-tag,.hud.mapped .speed-read,.hud.mapped .fuel-read,.hud.mapped .job-chip,.hud.mapped .dossier,.hud.mapped .dock-hud,.hud.mapped .station-bay,
-.hud.logged .stick,.hud.logged .throttle,.hud.logged .flight-actions,.hud.logged .crosshair,.hud.logged .planet-tag,.hud.logged .speed-read,.hud.logged .fuel-read,.hud.logged .job-chip,.hud.logged .dock-hud {
+.hud.mapped .stick,.hud.mapped .throttle,.hud.mapped .flight-actions,.hud.mapped .crosshair,.hud.mapped .planet-tag,.hud.mapped .speed-read,.hud.mapped .fuel-read,.hud.mapped .wear-read,.hud.mapped .job-chip,.hud.mapped .dossier,.hud.mapped .dock-hud,.hud.mapped .station-bay,
+.hud.logged .stick,.hud.logged .throttle,.hud.logged .flight-actions,.hud.logged .crosshair,.hud.logged .planet-tag,.hud.logged .speed-read,.hud.logged .fuel-read,.hud.logged .wear-read,.hud.logged .job-chip,.hud.logged .dock-hud {
   visibility:hidden;
   pointer-events:none
 }
@@ -133,7 +133,8 @@ button:disabled { cursor: default; }
   visibility:hidden;
   pointer-events:none
 }
-.hud:has(.station-bay) .fuel-read {
+.hud:has(.station-bay) .fuel-read,
+.hud:has(.station-bay) .wear-read {
   visibility:hidden;
   pointer-events:none
 }
@@ -200,7 +201,7 @@ button:disabled { cursor: default; }
   margin-top:0;
   display:inline
 }
-.speed-read,.fuel-read {
+.speed-read,.fuel-read,.wear-read {
   bottom:max(16px, env(safe-area-inset-bottom));
   pointer-events:none;
   font-variant-numeric:tabular-nums;
@@ -220,13 +221,19 @@ button:disabled { cursor: default; }
 .fuel-read {
   left:calc(50% + 76px)
 }
-.speed-read strong,.fuel-read strong {
+.wear-read {
+  left:calc(50% - 148px)
+}
+.speed-read strong,.fuel-read strong,.wear-read strong {
   color:var(--color-fg);
   letter-spacing:.06em;
   font-size:18px;
   font-weight:500
 }
 .fuel-read.dry strong {
+  color:#ecb478
+}
+.wear-read.worn strong {
   color:#ecb478
 }
 .lock-line {
@@ -1060,6 +1067,10 @@ button:disabled { cursor: default; }
   background:#ececef14;
   border-color:#ececef73
 }
+.mod-card:disabled {
+  opacity:.45;
+  cursor:not-allowed
+}
 .mod-name {
   font-size:13px;
   font-weight:500
@@ -1719,6 +1730,14 @@ button:disabled { cursor: default; }
   font-size:11px;
   display:flex
 }
+.station-repair-err {
+  text-align:center;
+  color:#ecb478;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  font-size:11px;
+  margin:0 0 10px
+}
 .station-acts {
   flex-wrap:wrap;
   justify-content:center;
@@ -1823,6 +1842,10 @@ button:disabled { cursor: default; }
   .fuel-read {
     left:auto;
     right:max(64px, env(safe-area-inset-right));
+    bottom:max(168px, calc(env(safe-area-inset-bottom) + 150px))
+  }
+  .wear-read {
+    left:max(64px, env(safe-area-inset-left));
     bottom:max(168px, calc(env(safe-area-inset-bottom) + 150px))
   }
   .job-chip {
@@ -2197,6 +2220,84 @@ button:disabled { cursor: default; }
   fill: rgb(180 170 150 / 0.1);
   stroke: none;
   pointer-events: none;
+}
+.pilot-card {
+  width: min(640px, 100%);
+  margin: 0 auto 22px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: #121216b8;
+  padding: 18px 20px;
+}
+.pilot-glyph {
+  font-size: 56px;
+  line-height: 1;
+}
+.pilot-name {
+  font-size: 28px;
+  font-weight: 500;
+  margin: 4px 0 12px;
+}
+.pilot-form {
+  width: min(640px, 100%);
+  margin: 0 auto 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pilot-icons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.pilot-icon {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: #121216a3;
+  color: inherit;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pilot-icon.on {
+  background: #ececef14;
+  border-color: #ececef73;
+}
+.pilot-icon em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+.pilot-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+.pilot-field input {
+  background: #121216;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-fg);
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 10px 12px;
+}
+.ship-rail-card:disabled {
+  opacity: .45;
+  cursor: not-allowed;
 }
 @media (width<=720px) {
   .map-body {

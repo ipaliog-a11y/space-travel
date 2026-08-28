@@ -26,6 +26,7 @@ export interface PlayerProfile {
   totalXp: number;
   currentRank: number;
   credits: number;
+  hangarBonusSlots: number;
 }
 
 export interface CreateProfileData {

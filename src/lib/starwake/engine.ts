@@ -1,7 +1,7 @@
 // @ts-nocheck
 import type { Planet, Station, FlightMode } from "./types";
 import { createAudio } from "./audio";
-import { fittedShip, T1_PER_DIST } from "./catalog";
+import { liveShip, T1_PER_DIST } from "./catalog";
 import { distLy, getCatalog, getSystem, GALAXY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
 import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetSOI, starMu } from "./orbit";
@@ -278,9 +278,12 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	let surveyPaused = false;
 	let surveyT = 0;
 	let surveyPlanetId = null;
-	function tankCap() {
+	function hull() {
 		const st = getStarwake();
-		return fittedShip(st.shipId, st.loadout).fuelCap;
+		return liveShip(st.shipId, st.loadout, st.wearPenalty);
+	}
+	function tankCap() {
+		return hull().fuelCap;
 	}
 	function syncFuelFromStore() {
 		const st = getStarwake();
@@ -298,7 +301,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	}
 	function driveSnap() {
 		const st = getStarwake();
-		const def = fittedShip(st.shipId, st.loadout);
+		const def = hull();
 		return {
 			throttle,
 			heat01,
@@ -984,7 +987,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const lock = st.lockedSystemId;
 		st.setSystemId(id);
 		if (lock && lock !== id) {
-			const range = fittedShip(st.shipId, st.loadout).jumpRangeLy;
+			const range = hull().jumpRangeLy;
 			if (!nextHop(getSystem(id), getSystem(lock), range)) st.setLocked(null);
 		} else {
 			st.setLocked(null);
@@ -997,7 +1000,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		flashT = 1;
 		navTarget = null;
 		navName = null;
-		audio.fireDrop(fittedShip(getStarwake().shipId, getStarwake().loadout).audioPitch);
+		audio.fireDrop(hull().audioPitch);
 		getStarwake().visitSystem(id);
 	}
 	function faceQuat(dx, dy, dz) {
@@ -1130,7 +1133,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		getStarwake().setCharge01(0);
 		punchT = .5;
 		flashT = .4;
-		const def = fittedShip(st.shipId, st.loadout);
+		const def = hull();
 		audio.fireEngage(def.audioPitch * 1.06);
 	}
 	function lookAtBody(target, keepMap = false) {
@@ -1217,7 +1220,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		if (mode === "charging" || mode === "hyperspace" || mode === "dropping" || mode === "docking" || mode === "berthed" || mode === "transit") return false;
 		const lock = st.lockedSystemId;
 		if (lock && lock !== st.systemId) {
-			const def = fittedShip(st.shipId, st.loadout);
+			const def = hull();
 			return Boolean(nextHop(getSystem(st.systemId), getSystem(lock), def.jumpRangeLy));
 		}
 		return Boolean(hopTarget());
@@ -1436,7 +1439,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const here = getSystem(st.systemId);
 		if (lock && lock !== here.id) {
 		const dest = getSystem(lock);
-		const def = fittedShip(st.shipId, st.loadout);
+		const def = hull();
 		const hop = nextHop(here, dest, def.jumpRangeLy);
 		if (!hop) return;
 		pendingDest = hop.id;
@@ -1840,7 +1843,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			worldTime += dt;
 			const st = getStarwake();
 			audio.setMuted(st.muted);
-			const def = fittedShip(st.shipId, st.loadout);
+			const def = hull();
 			const entered = st.entered;
 			if (entered && st.shipId !== fuelShip) syncFuelFromStore();
 			if (!entered) {
@@ -2680,7 +2683,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		getEntered: () => getStarwake().entered,
 		getFitted: () => {
 			const st = getStarwake();
-			const d = fittedShip(st.shipId, st.loadout);
+			const d = hull();
 			return {
 				id: d.id,
 				turnRate: d.turnRate,

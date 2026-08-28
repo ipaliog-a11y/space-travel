@@ -43,14 +43,14 @@ CREATE TABLE player_ships (
   -- Unique identifier for this ship instance
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  -- Which player owns this ship
-  player_id UUID NOT NULL,
+  -- Which player owns this ship (matches players.id / auth user id)
+  player_id TEXT NOT NULL,
   
   -- The ship type (courier, hauler, etc.)
   ship_type ship_type NOT NULL,
   
-  -- Current wear points (0 to max_wear_pool + hardpoint_bonus)
-  wear_points INT DEFAULT 0 NOT NULL,
+  -- Current wear points (fractional; cruise is 0.1 per minute)
+  wear_points NUMERIC(8,3) DEFAULT 0 NOT NULL,
   
   -- Hardpoint upgrade level (stock, mk1, mk2, mk3)
   hardpoint_tier hardpoint_tier DEFAULT 'stock' NOT NULL,

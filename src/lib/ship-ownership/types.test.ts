@@ -14,6 +14,9 @@ import {
   getWearConfig,
   getNextHardpointTier,
   getUpgradeCost,
+  hangarSlotsFromRank,
+  hangarSlotCapacity,
+  repairCreditCost,
   SHIP_WEAR_POOLS,
   HARDPOINT_BONUSES,
   WEAR_PENALTIES,
@@ -47,6 +50,30 @@ describe('Ship Ownership System', () => {
       
       // Mk1 scout
       assert.strictEqual(getMaxWearPool('scout', 'mk1'), 105);
+    });
+  });
+
+  describe('Hangar slot capacity', () => {
+    it('unlocks bays by rank (Decision #003)', () => {
+      assert.strictEqual(hangarSlotsFromRank(1), 1);
+      assert.strictEqual(hangarSlotsFromRank(3), 2);
+      assert.strictEqual(hangarSlotsFromRank(15), 8);
+    });
+
+    it('adds purchased bonus slots', () => {
+      assert.strictEqual(hangarSlotCapacity(1, 0), 1);
+      assert.strictEqual(hangarSlotCapacity(15, 2), 10);
+    });
+  });
+
+  describe('Repair cost', () => {
+    it('charges nothing when hull is clean', () => {
+      assert.strictEqual(repairCreditCost(0), 0);
+    });
+
+    it('rounds up and floors at 1 credit', () => {
+      assert.strictEqual(repairCreditCost(0.01), 1);
+      assert.strictEqual(repairCreditCost(1.2), 18);
     });
   });
 

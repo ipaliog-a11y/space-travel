@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-/** Parallel profile page removed — live Pilot screen is on the Gate. */
-export const Route = createFileRoute("/profile")({
+/** Live ship market is the Market screen on the Gate. */
+export const Route = createFileRoute("/market")({
   beforeLoad: () => {
     throw redirect({ to: "/" });
   },

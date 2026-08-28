@@ -158,6 +158,21 @@ export const SLOT_TAB: Record<SlotId, string> = {
   hx: "HX",
 };
 
+/** Hangar fit prices by slot. Stock is free. Rel (hardpoint) stays ₡5k / ₡15k / ₡30k. */
+export const SLOT_FIT_COST: Record<SlotId, number> = {
+  thruster: 4000,
+  drive: 8000,
+  fsd: 12000,
+  hold: 7000,
+  tank: 6000,
+  hx: 4500,
+};
+
+export function moduleFitCost(mod: ModuleDef): number {
+  if (mod.stock) return 0;
+  return mod.cost ?? SLOT_FIT_COST[mod.slot];
+}
+
 /** Type-1 (planetary) fuel. Stock courier tank covers ~2 systems of planet hops. Type-2 FSD fuel comes later. */
 export const T1_RANGE = 33600;
 export const T1_PER_DIST = SHIPS.courier.fuelCap / T1_RANGE;
@@ -337,6 +352,32 @@ export function fittedShip(shipId: ShipId, loadout: Loadout = STOCK_LOADOUT): Sh
     }
   }
   return next;
+}
+
+/** Wear efficiency: slow turn/cruise/OD/jump; stretch FSD charge and cool. Hold and tank stay put. */
+export function applyWearToShip(ship: ShipDef, penalty: number): ShipDef {
+  const p = Math.max(0, Math.min(0.25, penalty));
+  if (p < 1e-6) return ship;
+  const scale = 1 - p;
+  const slow = 1 + p;
+  return {
+    ...ship,
+    turnRate: Math.max(FLOOR.turnRate, +(ship.turnRate * scale).toFixed(3)),
+    cruiseSpeed: Math.max(FLOOR.cruiseSpeed, +(ship.cruiseSpeed * scale).toFixed(3)),
+    overdriveSpeed: Math.max(FLOOR.overdriveSpeed, +(ship.overdriveSpeed * scale).toFixed(3)),
+    jumpRangeLy: Math.max(FLOOR.jumpRangeLy, +(ship.jumpRangeLy * scale).toFixed(3)),
+    overdriveSec: Math.max(FLOOR.overdriveSec, +(ship.overdriveSec * scale).toFixed(3)),
+    fsdChargeSec: Math.max(FLOOR.fsdChargeSec, +(ship.fsdChargeSec * slow).toFixed(3)),
+    coolSec: Math.max(FLOOR.coolSec, +(ship.coolSec * slow).toFixed(3)),
+  };
+}
+
+export function liveShip(
+  shipId: ShipId,
+  loadout: Loadout = STOCK_LOADOUT,
+  penalty = 0,
+): ShipDef {
+  return applyWearToShip(fittedShip(shipId, loadout), penalty);
 }
 
 export function moduleById(id: string) {

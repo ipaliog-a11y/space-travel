@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { createEngine, type EngineHandle } from "@/lib/starwake/engine";
 import { useStarwake } from "@/lib/starwake/store";
+import { claimStarterShip, loadHangar } from "@/lib/hangar/api";
 import { FlightChrome } from "./FlightChrome";
 import { Gate } from "./Gate";
 import { Hangar } from "./Hangar";
 import { MapPanel } from "./MapPanel";
-import { isJumpMode } from "@/lib/starwake/types";
+import { PilotProfile } from "./PilotProfile";
+import { ShipMarket } from "./ShipMarket";
+import { isJumpMode, type ShipId } from "@/lib/starwake/types";
 
 export function Play() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,6 +17,26 @@ export function Play() {
   const flashRef = useRef<HTMLDivElement>(null);
   const [engine, setEngine] = useState<EngineHandle | null>(null);
   const [glError, setGlError] = useState<string | null>(null);
+  const [ownedHulls, setOwnedHulls] = useState<ShipId[] | null>(null);
+
+  useEffect(() => {
+    loadHangar()
+      .then(({ ships }) => {
+        const types = [...new Set(ships.map((s) => s.shipType))] as ShipId[];
+        setOwnedHulls(types);
+        const current = useStarwake.getState().shipId;
+        if (types.length > 0 && !types.includes(current)) {
+          useStarwake.getState().setShipId(types[0]);
+        }
+      })
+      .catch(() => setOwnedHulls([]));
+  }, []);
+
+  async function claimStarter() {
+    const ship = await claimStarterShip({ data: { shipType: "courier" } });
+    setOwnedHulls((prev) => [...new Set([...(prev ?? []), ship.shipType])]);
+    useStarwake.getState().setShipId(ship.shipType);
+  }
 
   const entered = useStarwake((s) => s.entered);
   const menuView = useStarwake((s) => s.menuView);
@@ -43,6 +66,7 @@ export function Play() {
   }, []);
 
   function engage() {
+    if (ownedHulls !== null && ownedHulls.length === 0) return;
     engine?.unlockAudio();
     const st = useStarwake.getState();
     st.visitSystem(st.systemId);
@@ -95,8 +119,12 @@ export function Play() {
         <Gate
           shipId={shipId}
           hasSave={hasSave}
+          ownedHulls={ownedHulls}
+          onClaimStarter={claimStarter}
           onPick={(id) => useStarwake.getState().setShipId(id)}
           onHangar={() => useStarwake.getState().setMenuView("hangar")}
+          onProfile={() => useStarwake.getState().setMenuView("profile")}
+          onMarket={() => useStarwake.getState().setMenuView("market")}
           onEngage={engage}
           onContinue={cont}
         />
@@ -105,9 +133,27 @@ export function Play() {
       {!entered && !glError && menuView === "hangar" && (
         <Hangar
           shipId={shipId}
+          ownedHulls={ownedHulls}
+          onClaimStarter={claimStarter}
           onPick={(id) => useStarwake.getState().setShipId(id)}
           onBack={() => useStarwake.getState().setMenuView("menu")}
+          onProfile={() => useStarwake.getState().setMenuView("profile")}
+          onMarket={() => useStarwake.getState().setMenuView("market")}
           onUndock={engage}
+        />
+      )}
+
+      {!entered && !glError && menuView === "profile" && (
+        <PilotProfile onBack={() => useStarwake.getState().setMenuView("menu")} />
+      )}
+
+      {!entered && !glError && menuView === "market" && (
+        <ShipMarket
+          onBack={() => useStarwake.getState().setMenuView("menu")}
+          onOwned={(hulls, fly) => {
+            setOwnedHulls(hulls);
+            useStarwake.getState().setShipId(fly);
+          }}
         />
       )}
 

@@ -2,6 +2,69 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.9] - 2026-08-28
+
+### Added
+- Live Pilot screen (name, call sign, icon, credits, rank) from Gate and Hangar. `/profile` redirects into the game.
+- Live ship Market: browse hulls at catalog prices, buy into a free bay, or trade in when rank 1 is full. `/market` redirects into the game.
+
+### Changed
+- Hangar slot-fit prices sit next to Rel: RCS ₡4,000, HX ₡4,500, Tank ₡6,000, Hold ₡7,000, Drive ₡8,000, FSD ₡12,000. Rel stays ₡5,000 / ₡15,000 / ₡30,000.
+
+## [v0.1.8] - 2026-08-28
+
+### Changed
+- Reliability hardpoints (stock → Mk I / II / III) fit from the hangar Rel tab, not the station bay. Each tier keeps its own cost (₡5,000 / ₡15,000 / ₡30,000).
+- Hangar module alts cost credits by slot (RCS ₡450 … FSD ₡1,200). Stock stays free. Already-fitted parts stay owned.
+- Repair is ₡15 per wear point (was ₡80). A lock-to-lock courier job now covers a typical hull restore with credits left over.
+
+## [v0.1.7] - 2026-08-28
+
+### Added
+- Wear efficiency now hits live flight: turn, cruise, overdrive, and jump range drop; FSD charge and cool stretch. Hold and tank stay put. HUD shows the penalty once hull is past excellent.
+- Job deliveries pay credits (lock-to-lock floor ₡1,000). Four typical courier runs from the ₡1,000 start fund Mk I (₡5,000). Board and Deliver show the payout.
+
+## [v0.1.6] - 2026-08-28
+
+### Changed
+- `/hangar` redirects to the live game hangar. Parallel dashboard components removed.
+
+### Added
+- Station hardpoint fit: stock → Mk I (₡5,000), then Mk II / Mk III. Disabled until you can afford it.
+
+## [v0.1.5] - 2026-08-28
+
+### Added
+- Station Repair: full hull restore at 80 credits per wear point (rounded up).
+- Station bay shows credit balance. Repair is disabled when hull is sound or funds are short.
+
+## [v0.1.4] - 2026-08-28
+
+### Fixed
+- Wear column is NUMERIC so cruise fractions persist (INT rounded 15s of flight to 0).
+- HUD hull % updates every 250ms from pending wear, not only after a DB flush.
+- Wear ticks while the flight HUD is up even if mode is still `docked` after undock.
+
+## [v0.1.3] - 2026-08-28
+
+### Added
+- Flight wear: cruise, boost, hyperspace jump, and dock accumulate on the owned hull.
+- HUD hull readout (remaining condition % and wear tier).
+- Wear flushes every 15s of flight, on dock, and when the tab hides.
+
+## [v0.1.2] - 2026-08-28
+
+### Fixed
+- Player `id` is TEXT so it matches Better Auth / `dev-user` (not UUID).
+- Profile INSERT uses `profile_created_at` (schema), not `created_at`.
+- Profile and hangar routes call `createServerFn` APIs instead of `getSql` from the client.
+- `acquireShip` enforces hangar slot capacity (Decision #003); duplicate hull types allowed.
+- Live Gate/Hangar only list owned hulls; empty bay claims a stock Courier.
+
+### Added
+- `migrations/0004_week1_alignment.sql` for existing PGLite databases.
+- `src/lib/player-profile/api.ts` and `src/lib/hangar/api.ts`.
+
 ## [v0.1.1] - 2026-08-27
 
 ### Added

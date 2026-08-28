@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HangarRouteImport } from './routes/hangar'
+import { Route as MarketRouteImport } from './routes/market'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as TestShipOwnershipRouteImport } from './routes/test-ship-ownership'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HangarRoute = HangarRouteImport.update({
+  id: '/hangar',
+  path: '/hangar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketRoute = MarketRouteImport.update({
+  id: '/market',
+  path: '/market',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -31,30 +43,44 @@ const TestShipOwnershipRoute = TestShipOwnershipRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/hangar': typeof HangarRoute
+  '/market': typeof MarketRoute
   '/profile': typeof ProfileRoute
   '/test-ship-ownership': typeof TestShipOwnershipRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/hangar': typeof HangarRoute
+  '/market': typeof MarketRoute
   '/profile': typeof ProfileRoute
   '/test-ship-ownership': typeof TestShipOwnershipRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/hangar': typeof HangarRoute
+  '/market': typeof MarketRoute
   '/profile': typeof ProfileRoute
   '/test-ship-ownership': typeof TestShipOwnershipRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/profile' | '/test-ship-ownership'
+  fullPaths: '/' | '/hangar' | '/market' | '/profile' | '/test-ship-ownership'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/profile' | '/test-ship-ownership'
-  id: '__root__' | '/' | '/profile' | '/test-ship-ownership'
+  to: '/' | '/hangar' | '/market' | '/profile' | '/test-ship-ownership'
+  id:
+    | '__root__'
+    | '/'
+    | '/hangar'
+    | '/market'
+    | '/profile'
+    | '/test-ship-ownership'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HangarRoute: typeof HangarRoute
+  MarketRoute: typeof MarketRoute
   ProfileRoute: typeof ProfileRoute
   TestShipOwnershipRoute: typeof TestShipOwnershipRoute
 }
@@ -66,6 +92,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hangar': {
+      id: '/hangar'
+      path: '/hangar'
+      fullPath: '/hangar'
+      preLoaderRoute: typeof HangarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/market': {
+      id: '/market'
+      path: '/market'
+      fullPath: '/market'
+      preLoaderRoute: typeof MarketRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -87,6 +127,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HangarRoute: HangarRoute,
+  MarketRoute: MarketRoute,
   ProfileRoute: ProfileRoute,
   TestShipOwnershipRoute: TestShipOwnershipRoute,
 }

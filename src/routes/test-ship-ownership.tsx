@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { testShipOwnership } from "../lib/ship-ownership/test-api";
+import { testShipOwnership, type OwnershipTestReport } from "../lib/ship-ownership/test-api";
 
 export const Route = createFileRoute("/test-ship-ownership")({
   component: TestShipOwnership,
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/test-ship-ownership")({
 });
 
 function TestShipOwnership() {
-  const result = Route.useLoaderData();
+  const result = Route.useLoaderData() as OwnershipTestReport;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -46,7 +46,7 @@ function TestShipOwnership() {
 
         {/* Test Results */}
         <div className="space-y-3">
-          {result.tests.map((test: any, index: number) => (
+          {result.tests.map((test, index) => (
             <div
               key={index}
               className={`p-4 rounded-lg border-l-4 ${
@@ -76,7 +76,7 @@ function TestShipOwnership() {
               {/* Result Details */}
               {test.result && (
                 <div className="mt-3 ml-10 text-sm text-gray-400 font-mono bg-gray-900 p-3 rounded">
-                  {JSON.stringify(test.result, null, 2)}
+                  {test.result}
                 </div>
               )}
 

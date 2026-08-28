@@ -9,8 +9,8 @@
 
 -- Players table: Player profile with progression tracking
 CREATE TABLE IF NOT EXISTS players (
-  -- Unique identifier for player
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Auth / Better Auth user id (TEXT — preview uses "dev-user", not UUID)
+  id TEXT PRIMARY KEY,
   
   -- Player identity
   display_name VARCHAR(100) NOT NULL,
@@ -25,11 +25,13 @@ CREATE TABLE IF NOT EXISTS players (
   total_xp BIGINT DEFAULT 0,
   current_rank INT DEFAULT 1,
   credits BIGINT DEFAULT 1000,  -- Starting credits
+  hangar_bonus_slots INT DEFAULT 0,
   
   -- Constraints
   CONSTRAINT players_display_name_check CHECK (length(display_name) > 0 AND length(display_name) <= 100),
   CONSTRAINT players_call_sign_check CHECK (length(call_sign) >= 3 AND length(call_sign) <= 20),
-  CONSTRAINT players_credits_check CHECK (credits >= 0)
+  CONSTRAINT players_credits_check CHECK (credits >= 0),
+  CONSTRAINT players_hangar_bonus_slots_check CHECK (hangar_bonus_slots >= 0)
 );
 
 -- Index for fast lookups

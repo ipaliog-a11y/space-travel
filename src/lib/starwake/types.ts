@@ -56,13 +56,15 @@ export type ModuleDef = {
   name: string;
   blurb: string;
   stock?: boolean;
+  /** Credits to unlock. Stock is always 0. Slot default applies if omitted. */
+  cost?: number;
   delta: Partial<Record<StatKey, number>>;
 };
 
 export type ShipLoadout = Record<SlotId, string>;
 export type Loadout = Record<ShipId, ShipLoadout>;
 
-export type MenuView = "menu" | "hangar";
+export type MenuView = "menu" | "hangar" | "profile" | "market";
 
 export type JobKind = "courier" | "hauler" | "tender" | "tug";
 

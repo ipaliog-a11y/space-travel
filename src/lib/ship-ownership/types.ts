@@ -105,6 +105,24 @@ export const HARDPOINT_COSTS: Record<HardpointTier, number> = {
   mk3: 30000,    // 30k credits
 };
 
+/** Catalog prices used for resale until a market exists */
+export const SHIP_BASE_PRICES: Record<ShipType, number> = {
+  courier: 100000,
+  hauler: 150000,
+  scout: 120000,
+  clipper: 200000,
+  tender: 180000,
+  tug: 130000,
+};
+
+/** Credits charged per wear point restored (full repair rounds up). */
+export const REPAIR_CREDIT_PER_POINT = 15;
+
+export function repairCreditCost(wearPoints: number): number {
+  if (wearPoints <= 0) return 0;
+  return Math.max(1, Math.ceil(wearPoints * REPAIR_CREDIT_PER_POINT));
+}
+
 /** Wear accumulation rates */
 export const WEAR_RATES = {
   normal_flight: 0.1,       // per minute
@@ -215,6 +233,24 @@ export function getNextHardpointTier(current: HardpointTier): HardpointTier | nu
   }
   
   return progression[currentIndex + 1];
+}
+
+/**
+ * Hangar bays from rank (Decision #003). Bonus slots are purchased later.
+ */
+export function hangarSlotsFromRank(rank: number): number {
+  if (rank >= 15) return 8;
+  if (rank >= 13) return 7;
+  if (rank >= 11) return 6;
+  if (rank >= 9) return 5;
+  if (rank >= 7) return 4;
+  if (rank >= 5) return 3;
+  if (rank >= 3) return 2;
+  return 1;
+}
+
+export function hangarSlotCapacity(rank: number, bonusSlots = 0): number {
+  return hangarSlotsFromRank(rank) + Math.max(0, bonusSlots);
 }
 
 /**

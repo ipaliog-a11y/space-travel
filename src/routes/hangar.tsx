@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-/** Parallel profile page removed — live Pilot screen is on the Gate. */
-export const Route = createFileRoute("/profile")({
+/** Parallel ownership dashboard removed — live hangar is the game hangar. */
+export const Route = createFileRoute("/hangar")({
   beforeLoad: () => {
     throw redirect({ to: "/" });
   },

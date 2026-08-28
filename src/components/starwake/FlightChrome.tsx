@@ -6,6 +6,8 @@ import { formatStop, holdUsed } from "@/lib/starwake/jobs";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
+import { useFlightWear } from "@/lib/starwake/use-flight-wear";
+import { calculateWearPenalty } from "@/lib/ship-ownership/types";
 import { Dossier } from "./Dossier";
 import { LogBook } from "./LogBook";
 import { StationBay } from "./StationBay";
@@ -231,7 +233,15 @@ export function FlightChrome({
   const showOrbits = useStarwake((s) => s.showOrbits);
   const shipId = useStarwake((s) => s.shipId);
   const loadout = useStarwake((s) => s.loadout);
+  const { wear, applyWear } = useFlightWear(shipId, mode, drive.boosting);
+  const setWearPenalty = useStarwake((s) => s.setWearPenalty);
   const man = useStarwake((s) => s.manifests[s.shipId]);
+
+  useEffect(() => {
+    setWearPenalty(
+      wear ? calculateWearPenalty(wear.wearPoints, wear.maxWearPool) : 0,
+    );
+  }, [setWearPenalty, wear?.wearPoints, wear?.maxWearPool]);
   const body = drive.atPlanetId ? getCatalog(systemId, drive.atPlanetId) : null;
   const known = Boolean(drive.atPlanetId && scanned[drive.atPlanetId]);
 
@@ -336,6 +346,19 @@ export function FlightChrome({
         <strong>{Math.max(0, Math.round(drive.fuel))}</strong>
         <span>t1</span>
       </div>
+      {wear && (
+        <div
+          className={`wear-read${wear.wearPercentage > 20 ? " worn" : ""}`}
+          aria-label="Hull condition"
+        >
+          <strong>{Math.max(0, 100 - wear.wearPercentage).toFixed(2)}</strong>
+          <span>
+            {wear.wearPercentage > 20
+              ? `-${Math.round(calculateWearPenalty(wear.wearPoints, wear.maxWearPool) * 100)}%`
+              : "hull"}
+          </span>
+        </div>
+      )}
 
       {man && (
         <div className="job-chip" data-ui>
@@ -495,6 +518,7 @@ export function FlightChrome({
           systemId={systemId}
           onUndock={() => engine?.undock()}
           onRefuel={() => engine?.refuel()}
+          onHullRepaired={applyWear}
         />
       )}
 

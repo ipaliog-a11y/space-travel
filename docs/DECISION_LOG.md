@@ -125,8 +125,8 @@ minimum = baseValue × 0.10  // Floor
 ## Decision #003: Hangar Slot Progression
 
 **Date:** 2026-08-27  
-**Status:** ✅ Implemented  
-**Session:** 1.1
+**Status:** ✅ Implemented (slot cap in acquireShip; hangar_bonus_slots on players)  
+**Session:** 1.1 / Week 1 fix
 
 ### Context
 Define how players expand ship collection capacity.
@@ -234,7 +234,8 @@ CREATE TABLE player_ships (
   last_repaired_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ,
-  UNIQUE(player_id, ship_type)
+  -- No UNIQUE(player_id, ship_type): Decision #003 allows duplicate hull types.
+  -- Capacity is hangarSlotsFromRank(rank) + hangar_bonus_slots.
 );
 ```
 
@@ -251,15 +252,57 @@ CREATE TABLE player_ships (
 
 ---
 
+## Decision #004: Week 1 Job Payouts
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented (placeholder until Week 2 market)  
+**Session:** Week 1 close
+
+### Context
+Mk I hardpoints cost ₡5,000. Players start with ₡1,000. Jobs completed but paid nothing, so the upgrade UI was dead.
+
+### Decision
+Pay on Deliver in the live station bay. Formula is a floor of ₡1,000 plus cargo and jump distance, capped at ₡4,000. Four typical courier lock-to-lock runs fund Mk I. Replace with a real market in Week 2.
+
+---
+
+## Decision #005: Hangar Fits Cost Credits; Repair vs Earnings
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented  
+**Session:** Week 1 playtest
+
+### Context
+Reliability lived on the station next to Repair. Hangar modules were free. Repair at ₡80/point ate a job's pay (one dock is 1.0 wear = ₡80; a worn hull could cost more than a ₡1,000 courier run).
+
+### Decision
+- Reliability is a hangar Rel tab, same column as RCS/Drive/FSD/Hold/Tank/HX. Tier costs stay ₡5k / ₡15k / ₡30k.
+- Other hangar alts cost by slot (now Rel-scale; see #006). Stock is free.
+- Repair is ₡15/point so a typical lock-to-lock (cruise + two docks) is well under one job payout.
+
+---
+
+## Decision #006: Slot Fits vs Rel; Live Pilot and Market
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented  
+**Session:** Week 1 playtest
+
+### Context
+Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The live loop had no Pilot or ship Market screen (`/profile` was an orphan dashboard; hulls were claim-only).
+
+### Decision
+- Keep Rel at ₡5k / ₡15k / ₡30k (Mk I still ~four courier jobs from a ₡1,000 start).
+- Raise slot alts into the same band: RCS ₡4k, HX ₡4.5k, Tank ₡6k, Hold ₡7k, Drive ₡8k, FSD ₡12k (between Mk I and Mk II).
+- Pilot and Market live on the Gate/Hangar chrome. Rank 1 is one bay: Market buys into a free slot or trades in at resale. Hull catalog prices stay ₡100k–₡200k.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
 **When:** Week 1 playtesting  
 **Question:** Are wear rates (0.1/min normal, 0.3/min boost) balanced?
-
-### Hardpoint Upgrade Costs
-**When:** Week 2 implementation  
-**Question:** Are upgrade costs (5k/15k/30k) appropriate?
 
 ### Insurance System Design
 **When:** Week 2 implementation  
@@ -267,5 +310,5 @@ CREATE TABLE player_ships (
 
 ---
 
-**Last Updated:** 2026-08-27  
-**Total Decisions:** 4 approved, 3 pending
+**Last Updated:** 2026-08-28  
+**Total Decisions:** 7 approved, 2 pending
