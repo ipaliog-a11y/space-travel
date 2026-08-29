@@ -4,7 +4,7 @@ import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
 import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
-import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetSOI, starMu } from "./orbit";
+import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetMu, planetSOI, starMu } from "./orbit";
 import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, perspective, quatFromEuler, quatFromAxisAngle, quatInvert, quatLook, quatMul, quatNormalize, quatSlerp, quatToMat4, rotateVec, translation, viewFromLook, wrapDelta } from "./math";
 import { BODY_FS, BODY_VS, DUST_FS, DUST_VS, NEBULA_FS, NEBULA_VS, RING_FS, RING_VS, LINE_FS, LINE_VS, STAR_FS, STAR_VS, STREAK_FS, STREAK_VS, WARP_FS, WARP_VS } from "./shaders";
 import { getStarwake } from "./store";
@@ -71,6 +71,8 @@ export type DriveHud = {
   surveying: boolean;
   surveyPaused: boolean;
   survey01: number;
+  regime: "free" | "well" | "park" | "od" | "dock";
+  speedRel: boolean;
 };
 
 export type EngineHandle = {
@@ -271,6 +273,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	let navDist = 0;
 	let boundId = null;
 	let boundName = null;
+	let parkHold = false;
 	let fuelLocal = getStarwake().fuel[getStarwake().shipId] ?? 100;
 	let fuel2Local = getStarwake().fuel2[getStarwake().shipId] ?? 24;
 	let fuelShip = getStarwake().shipId;
@@ -358,8 +361,17 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			alignSpd,
 			surveying,
 			surveyPaused,
-			survey01: surveyT
+			survey01: surveyT,
+			regime: flightRegime(),
+			speedRel: Boolean(boundId) || mode === "docking" || mode === "berthed",
 		};
+	}
+	function flightRegime() {
+		if (mode === "docking" || mode === "berthed") return "dock";
+		if (boostActive || (throttle > OD_GATE && !overheated)) return "od";
+		if (boundId && parkHold) return "park";
+		if (boundName) return "well";
+		return "free";
 	}
 	function pushDrive() {
 		const snap = driveSnap();
@@ -849,6 +861,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		lastWorldSpeed = Math.hypot(cv[0], cv[1], cv[2]);
 		boundId = null;
 		boundName = null;
+		parkHold = false;
 	}
 	function placeAtPlanet(planetId) {
 		const sys = getSystem(getStarwake().systemId);
@@ -878,6 +891,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		faceWorld(px - shipPos.x, py - shipPos.y, pz - shipPos.z);
 		boundId = planet.id;
 		boundName = planet.name;
+		parkHold = true;
 		navTarget = {
 			kind: "planet",
 			id: planet.id
@@ -919,6 +933,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		faceWorld(mx - shipPos.x, my - shipPos.y, mz - shipPos.z);
 		boundId = moon.id;
 		boundName = moon.name;
+		parkHold = true;
 		navTarget = { kind: "moon", id: moon.id };
 		navName = moon.name;
 		getStarwake().visitPlanet(sys.id, moon.id);
@@ -944,6 +959,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		faceWorld(cx - shipPos.x, cy - shipPos.y, cz - shipPos.z);
 		boundId = comet.id;
 		boundName = comet.name;
+		parkHold = true;
 		navTarget = { kind: "comet", id: comet.id };
 		navName = comet.name;
 		getStarwake().visitPlanet(sys.id, comet.id);
@@ -969,6 +985,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		faceWorld(-shipPos.x, -shipPos.y, -shipPos.z);
 		boundId = belt.id;
 		boundName = belt.name;
+		parkHold = false;
 		navTarget = { kind: "belt" };
 		navName = belt.name;
 		getStarwake().visitPlanet(sys.id, belt.id);
@@ -996,6 +1013,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		lookPitch = 0;
 		boundId = planet.id;
 		boundName = planet.name;
+		parkHold = true;
 		navTarget = {
 			kind: "station",
 			id: stn.id
@@ -1557,6 +1575,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		navName = pair.stn.name;
 		boundId = pair.planet.id;
 		boundName = pair.planet.name;
+		parkHold = false;
 		lookYaw = 0;
 		lookPitch = 0;
 		applyThrottle(Math.min(throttle, .26));
@@ -1637,6 +1656,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		atStation = pair.stn.name;
 		boundId = pair.planet.id;
 		boundName = pair.planet.name;
+		parkHold = false;
 		mode = "berthed";
 		getStarwake().setMode("berthed");
 		getStarwake().openHubBoard(getStarwake().systemId, id);
@@ -1669,6 +1689,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			lookPitch = 0;
 			boundId = pair.planet.id;
 			boundName = pair.planet.name;
+			parkHold = false;
 			atStationId = pair.stn.id;
 			atStation = pair.stn.name;
 		}
@@ -2270,12 +2291,16 @@ export function createEngine(els: OverlayEls): EngineHandle {
 					};
 				}
 				if (well) {
+					if (boundId !== well.p.id) parkHold = true;
 					boundId = well.p.id;
 					boundName = well.p.name;
 				} else {
 					boundId = null;
 					boundName = null;
+					parkHold = false;
 				}
+				const punchOut = boostActive || throttle > OD_GATE;
+				if (punchOut || thrusting) parkHold = false;
 				const steps = Math.max(1, Math.min(4, Math.ceil(dt / (1 / 60))));
 				const h = dt / steps;
 				for (let s = 0; s < steps; s++) if (boundId) {
@@ -2283,6 +2308,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 					if (!p) {
 						boundId = null;
 						boundName = null;
+						parkHold = false;
 					} else {
 						const t0 = worldTime - dt + s * h;
 						const t1 = t0 + h;
@@ -2311,16 +2337,26 @@ export function createEngine(els: OverlayEls): EngineHandle {
 								rvz += (0 - rvz) * d * .28;
 							}
 						} else {
-							rvx = 0;
-							rvy = 0;
-							rvz = 0;
+							const damp = 1 - Math.exp(-0.35 * h);
+							rvx *= 1 - damp;
+							rvy *= 1 - damp;
+							rvz *= 1 - damp;
+							if (!parkHold) {
+								const rel = Math.hypot(rvx, rvy, rvz);
+								if (rel < 0.55) {
+									const circ = circularVelocity(rx, ry, rz, planetMu(p));
+									const kC = 1 - Math.exp(-0.55 * h);
+									rvx += (circ[0] - rvx) * kC;
+									rvy += (circ[1] - rvy) * kC;
+									rvz += (circ[2] - rvz) * kC;
+								}
+							}
 						}
 						rx += rvx * h;
 						ry += rvy * h;
 						rz += rvz * h;
 						const rd = Math.hypot(rx, ry, rz) || 1e-4;
 						const keep = planetKeepOut(p);
-						const punchOut = boostActive || throttle > OD_GATE;
 						if (rd < keep) {
 							const skeep = keep / rd;
 							rx *= skeep;
@@ -2332,7 +2368,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 								rvy -= ry / keep * vr;
 								rvz -= rz / keep * vr;
 							}
-						} else if (!punchOut && navTarget?.kind !== "station" && !atStationId && !p.stationId) {
+						} else if (parkHold && !punchOut && navTarget?.kind !== "station" && !atStationId && !p.stationId) {
 							const park = planetPark(p);
 							const kR = 1 - Math.exp(-h / 6.2);
 							const nd = rd + (park - rd) * kR;
@@ -2383,6 +2419,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			} else if (!inPort) {
 				boundId = null;
 				boundName = null;
+				parkHold = false;
 			}
 			if (boundId) {
 				const host = sys.planets.find((pl) => pl.id === boundId);
@@ -2439,7 +2476,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				? BASE_FOV * Math.PI / 180
 				: (BASE_FOV + boostAmt * 5 + jumpAmt * 18 + cruiseAmt * 10) * Math.PI / 180 + punchT * punchT * .16;
 			fov += (targetFov - fov) * (1 - Math.exp(-6.5 * dt));
-			const roll = 0;
+			const roll = mode === "docking" || mode === "berthed" || inJump ? 0 : clamp(bankRoll, -0.35, 0.35);
 			updateRings(dt, throttle, !reduceMotion && (jumpAmt > .28 || cruiseAmt > .16), cruiseAmt > jumpAmt + 0.05);
 			gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
 			gl.bufferSubData(gl.ARRAY_BUFFER, 0, starPos.subarray(0, count * 3));

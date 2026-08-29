@@ -9,7 +9,7 @@ export const PAY_PER_UNIT_AU: Record<JobKind, number> = {
 };
 
 /** One jump-ly pays like this many AU of local haul. */
-export const JUMP_LY_AS_AU = 1;
+export const JUMP_LY_AS_AU = 0.3;
 const PAY_MIN = 1;
 const PAY_MAX = 50000;
 

@@ -369,6 +369,28 @@ BUILD 1–6 in play. Decision #007 asked for a merchant path beside contract job
 
 ---
 
+## Decision #011: Softer well, camera bank, regime HUD, jump-ly weight
+
+**Date:** 2026-08-29  
+**Status:** ✅ Implemented  
+**Session:** balance report 2026-08-29 (`bcc6eed`)
+
+### Context
+Balance report on v0.1.14: well glue parks you (relative vel zeroed; spring every frame on wild worlds); Q/E does not bank the camera; HUD only says Well/Free; `JUMP_LY_AS_AU = 1` makes a jump courier ~8× a local run.
+
+### Decision
+Ship the high-confidence slices only. Do not reopen merchant #010 (hub bias / bid-ask), mass-in-thrust, used hulls, or per-slot wallets.
+
+- **Well:** keep Kepler-relative frame. Coast damps at `1-exp(-0.35 h)` instead of zeroing relative velocity. Park spring on Arrive / first SOI capture only; throttle or OD clears hold. Slow leftover vectors get a light circularize. Keep-out, OD punch-out, station-nav exception, docking corridor unchanged.
+- **Camera:** `viewFromLook` uses `clamp(bankRoll, -0.35, 0.35)`. Zero roll in dock / berth / jump. No auto-bank from yaw.
+- **HUD:** Free / Well / Park / Od / Dock. Speed labelled inertial (`spd`), planet-relative (`rel`), or coast-in-well (`orb`).
+- **Jump pay:** `JUMP_LY_AS_AU = 0.3`. Local courier ₡220 stays. Do not add interdiction in this pass.
+
+### Review Date
+After the next playtest of Arrive → coast in well → OD out → dock.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -381,5 +403,5 @@ BUILD 1–6 in play. Decision #007 asked for a merchant path beside contract job
 
 ---
 
-**Last Updated:** 2026-08-28  
-**Total Decisions:** 11 approved, 2 pending
+**Last Updated:** 2026-08-29  
+**Total Decisions:** 12 approved, 2 pending

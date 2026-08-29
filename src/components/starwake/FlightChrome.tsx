@@ -27,6 +27,23 @@ type Props = {
   onJump: () => void;
 };
 
+function regimeLabel(drive: DriveHud) {
+  if (drive.regime === "dock") return "Dock";
+  if (drive.regime === "od") return drive.boosting ? "Boost" : "Od";
+  if (drive.regime === "park") {
+    return drive.well ? <>Park <strong>{drive.well}</strong></> : "Park";
+  }
+  if (drive.regime === "well") {
+    return drive.well ? <>Well <strong>{drive.well}</strong></> : "Well";
+  }
+  return "Free";
+}
+
+function speedUnit(drive: DriveHud) {
+  if (drive.regime === "park" || (drive.coasting && drive.speedRel)) return "orb";
+  return drive.speedRel ? "rel" : "spd";
+}
+
 const IDLE_DRIVE: DriveHud = {
   throttle: 0.4,
   heat01: 0,
@@ -64,6 +81,8 @@ const IDLE_DRIVE: DriveHud = {
   surveying: false,
   surveyPaused: false,
   survey01: 0,
+  regime: "free",
+  speedRel: false,
 };
 
 export function FlightChrome({
@@ -322,8 +341,8 @@ export function FlightChrome({
             )}
           </div>
         )}
-        <div className={drive.well ? "well on" : "well"}>
-          {drive.well ? <>Well <strong>{drive.well}</strong></> : "Free"}
+        <div className={drive.regime === "free" ? "well" : "well on"}>
+          {regimeLabel(drive)}
         </div>
         {drive.surveying && (
           <div className={drive.surveyPaused ? "well" : "well on"}>
@@ -346,7 +365,7 @@ export function FlightChrome({
 
       <div className="speed-read" aria-label="Speed">
         <strong>{Math.round(drive.speed)}</strong>
-        <span>{drive.coasting ? "orb" : "spd"}</span>
+        <span>{speedUnit(drive)}</span>
       </div>
       <div className={`fuel-read${drive.dry ? " dry" : ""}`} aria-label="Type one fuel">
         <strong>{Math.max(0, Math.round(drive.fuel))}</strong>

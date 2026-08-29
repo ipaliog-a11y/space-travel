@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { applyWearToShip, fittedShip, MODULES, moduleFitCost, SHIPS, SLOT_FIT_COST } from "./catalog.ts";
 import { hubBoard, jobLeavesHub } from "./job-hub.ts";
 import { diaryEarnings, jobIsRetired, logDelivery, retireContract, retireJob } from "./job-log.ts";
-import { jobPayoutFor } from "./job-pay.ts";
+import { jobPayoutFor, JUMP_LY_AS_AU } from "./job-pay.ts";
 import { HARDPOINT_COSTS, repairCreditCost, WEAR_RATES } from "../ship-ownership/types.ts";
 import type { CargoJob } from "./types.ts";
 
@@ -75,7 +75,9 @@ describe("job payout", () => {
     const far = jobPayoutFor(job({ kind: "courier", qty: 4 }), { au: 2, ly: 0 });
     const hop = jobPayoutFor(job({ kind: "courier", qty: 4 }), { au: 0, ly: 8 });
     assert.equal(far, near * 2);
-    assert.equal(hop, near * 8);
+    assert.equal(near, 880);
+    assert.equal(JUMP_LY_AS_AU, 0.3);
+    assert.equal(hop, 2112);
   });
 
   it("pays a 1 AU 4u courier enough to cover a typical lock-to-lock repair", () => {

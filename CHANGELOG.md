@@ -2,6 +2,14 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.15] - 2026-08-29
+
+### Changed
+- Well coast keeps the Kepler frame but no longer zeros relative velocity. Park spring runs on Arrive / first SOI capture only; throttle or OD clears it. Throttle off in a well can circle.
+- Camera banks with Q/E (`clamp(bankRoll, ±0.35)`). Docking, berth, and jump stay level.
+- HUD shows Free / Well / Park / Od / Dock. Speed is `spd` (inertial), `rel` (well), or `orb` (park / coast-in-well).
+- Jump packets pay `JUMP_LY_AS_AU = 0.3`. A 4 u × 8 ly courier is ₡2,112, not ₡7,040. Local ₡220 / u / AU is unchanged.
+
 ## [v0.1.14] - 2026-08-28
 
 ### Added
