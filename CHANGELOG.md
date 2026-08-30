@@ -2,6 +2,16 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.16] - 2026-08-29
+
+### Added
+- New-game sequence: create a pilot, then pick one free hull (Courier, Hauler, or Scout). Rank 1 still has one bay. The free claim is once per account.
+- Home star is **Helios** (catalog id stays `helion` so saves and planet keys keep working).
+- Twenty original line marks on the call-sign picker. Rank ladder researched (`PILOT_RANKS`) but not wired into XP yet.
+
+### Changed
+- Engage / Continue / Fly require a finished profile and an owned hull. Ghost Courier deliveries are closed. Job pay, trade, fuel, and Market refuse a stub `PILOT` row and an empty bay.
+
 ## [v0.1.15] - 2026-08-29
 
 ### Changed

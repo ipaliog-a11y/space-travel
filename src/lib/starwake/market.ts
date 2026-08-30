@@ -242,6 +242,9 @@ export function sanitizeCargo(raw: unknown): CargoHold {
   });
 }
 
+/** Stable empty hold for Zustand selectors. `?? []` is a new array every snapshot and loops React. */
+export const EMPTY_HOLD: CargoHold = [];
+
 export function emptyHolds(): Record<string, CargoHold> {
   return {
     courier: [],

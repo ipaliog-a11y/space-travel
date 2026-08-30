@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fittedShip, refuelQuote } from "@/lib/starwake/catalog";
 import { hubBoard } from "@/lib/starwake/job-hub";
 import { formatHaul, formatStop, holdUsed, jobFits, jobIsRetired, jobPayout } from "@/lib/starwake/jobs";
-import { cargoQty, hubKey, lotLabel } from "@/lib/starwake/market";
+import { EMPTY_HOLD, cargoQty, hubKey, lotLabel } from "@/lib/starwake/market";
 import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
 import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
@@ -39,8 +39,8 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
     (j) => !jobIsRetired(j, retired),
   );
   const man = useStarwake((s) => s.manifests[s.shipId]);
-  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? []);
-  const ware = useStarwake((s) => s.warehouses[hubKey(systemId, stationId)] ?? []);
+  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
+  const ware = useStarwake((s) => s.warehouses[hubKey(systemId, stationId)] ?? EMPTY_HOLD);
   const acceptJob = useStarwake((s) => s.acceptJob);
   const refreshHubBoard = useStarwake((s) => s.refreshHubBoard);
   const loadCargo = useStarwake((s) => s.loadCargo);

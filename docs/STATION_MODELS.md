@@ -10,7 +10,7 @@ Synced from the live Starwake app. Ports are no longer a hub-and-dots cluster. E
 | `truss` | Array / Truss | ISS-style spine, box modules, solar arrays | Desert / volcanic |
 | `yard` | Yard / Dock | Open drydock cage, hangar slots, cranes | Industrial |
 
-Helion showcases the three NASA habitats in one system: **Helion I Lock** (wheel), **Helion II Drum** (cylinder), **Helion III Hab** (sphere). Truss and yard appear on other systems.
+Helios showcases the three NASA habitats in one system: **Helios I Lock** (wheel), **Helios II Drum** (cylinder), **Helios III Hab** (sphere). Truss and yard appear on other systems.
 
 ## Code
 

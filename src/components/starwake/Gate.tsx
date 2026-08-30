@@ -15,7 +15,6 @@ type Props = {
   onContinue?: () => void;
   hasSave?: boolean;
   ownedHulls: ShipId[] | null;
-  onClaimStarter: () => Promise<void>;
 };
 
 export function Gate({
@@ -29,7 +28,6 @@ export function Gate({
   onContinue,
   hasSave,
   ownedHulls,
-  onClaimStarter,
 }: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const manifests = useStarwake((s) => s.manifests);
@@ -41,7 +39,7 @@ export function Gate({
     <div className="gate menu" data-ui>
       <header className="hangar-head">
         <h1>Starwake</h1>
-        <p className="lede">Two hangar sets. Line flies the routes. Yard fuels and shoves. Fit a bay, then fly.</p>
+        <p className="lede">Two hangar sets. Line flies the routes. Yard fuels and shoves. Home is Helios.</p>
         <p className="keys-hint">
           <kbd>A</kbd>/<kbd>Z</kbd> throttle
           <kbd>Q</kbd>/<kbd>E</kbd> roll
@@ -50,17 +48,8 @@ export function Gate({
         </p>
       </header>
 
-      {ownedHulls !== null && ownedHulls.length === 0 && (
-        <p className="lede">
-          No hull in the bay. Claim a stock Courier to fly, then open Hangar to fit it.
-          <button type="button" className="engage" onClick={() => void onClaimStarter()}>
-            Claim Courier
-          </button>
-        </p>
-      )}
-
       {SHIP_SETS.map((set) => {
-        const hulls = ownedHulls === null ? set.hulls : set.hulls.filter((id) => ownedHulls.includes(id));
+        const hulls = ownedHulls?.filter((id) => set.hulls.includes(id)) ?? [];
         if (hulls.length === 0) return null;
         return (
         <section key={set.id} className={`ship-set ship-set-${set.id}`}>

@@ -13,7 +13,7 @@ import {
 import { planetLog } from "@/lib/starwake/galaxy";
 import { diaryEarnings, formatHaul, formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { listedPads } from "@/lib/starwake/market-hubs";
-import { cargoQty, lotLabel } from "@/lib/starwake/market";
+import { EMPTY_HOLD, cargoQty, lotLabel } from "@/lib/starwake/market";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
 import { buyFuel, buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
@@ -39,7 +39,6 @@ type Props = {
   onWatch: () => void;
   onUndock: () => void;
   ownedHulls: ShipId[] | null;
-  onClaimStarter: () => Promise<void>;
 };
 
 const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: boolean }[] = [
@@ -56,7 +55,7 @@ const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: 
   { key: "mass", label: "Mass", unit: "", max: 2.2 },
 ];
 
-export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, onUndock, ownedHulls, onClaimStarter }: Props) {
+export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, onUndock, ownedHulls }: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const setModule = useStarwake((s) => s.setModule);
   const ownedModules = useStarwake((s) => s.ownedModules);
@@ -90,7 +89,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   const parts = slot === RELIABILITY_TAB ? [] : modulesFor(shipId, slot);
   const fittedId = slot === RELIABILITY_TAB ? "" : loadout[shipId][slot];
   const man = manifests[shipId];
-  const cargo = cargoHolds[shipId] ?? [];
+  const cargo = cargoHolds[shipId] ?? EMPTY_HOLD;
   const used = holdUsed(man, cargo);
   const log = planetLog(visits, scanned, surveys);
 
@@ -253,17 +252,8 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
         </section>
       )}
 
-      {ownedHulls !== null && ownedHulls.length === 0 && (
-        <p className="lede">
-          Empty bay. Claim a stock Courier to fit modules and undock.
-          <button type="button" className="engage" onClick={() => void onClaimStarter()}>
-            Claim Courier
-          </button>
-        </p>
-      )}
-
       {SHIP_SETS.map((set) => {
-        const hulls = ownedHulls === null ? set.hulls : set.hulls.filter((id) => ownedHulls.includes(id));
+        const hulls = ownedHulls?.filter((id) => set.hulls.includes(id)) ?? [];
         if (hulls.length === 0) return null;
         return (
         <section key={set.id} className={`ship-set ship-set-${set.id}`}>
@@ -561,7 +551,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
           type="button"
           className="engage"
           onClick={onUndock}
-          disabled={ownedHulls !== null && ownedHulls.length === 0}
+          disabled={!ownedHulls || ownedHulls.length === 0}
         >
           Fly
         </button>

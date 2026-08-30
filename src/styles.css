@@ -627,6 +627,12 @@ button:disabled { cursor: default; }
   margin-bottom:22px;
   display:grid
 }
+.starter-pick {
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  width:min(880px,100%);
+  margin-left:auto;
+  margin-right:auto
+}
 .ship-card {
   text-align:left;
   border-radius:var(--radius-xl);
@@ -2090,6 +2096,9 @@ button.pad-jump em {
   .ship-pick {
     grid-template-columns:1fr
   }
+  .starter-pick {
+    grid-template-columns:1fr
+  }
   .save-slots {
     grid-template-columns:1fr
   }
@@ -2491,8 +2500,15 @@ button.pad-jump em {
   padding: 18px 20px;
 }
 .pilot-glyph {
-  font-size: 56px;
-  line-height: 1;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  color: var(--color-text);
+}
+.pilot-glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .pilot-name {
   font-size: 28px;
@@ -2512,7 +2528,7 @@ button.pad-jump em {
 }
 .pilot-icons {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 .pilot-icon {
@@ -2529,6 +2545,16 @@ button.pad-jump em {
 .pilot-icon.on {
   background: #ececef14;
   border-color: #ececef73;
+}
+.pilot-icon-mark {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+.pilot-icon-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .pilot-icon em {
   font-style: normal;
@@ -2562,6 +2588,9 @@ button.pad-jump em {
   cursor: not-allowed;
 }
 @media (width<=720px) {
+  .pilot-icons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
   .map-body {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(12rem, 1fr) minmax(11rem, 42%);

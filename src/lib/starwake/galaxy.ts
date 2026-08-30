@@ -668,16 +668,22 @@ function pickNebula(x: number, y: number, rng: () => number, home = false): Nebu
 
 export const GALAXY_SEED = 0x8d42;
 
+/** Catalog id stays `helion` so saves, jobs, and planet keys keep working. */
+export const HOME_SYSTEM_ID = "helion";
+export const HOME_SYSTEM_NAME = "Helios";
+
 export function buildGalaxy(seed = GALAXY_SEED): StarSystem[] {
   const rng = mulberry32(seed);
   const systems: StarSystem[] = [];
 
   const homePlanets = makePlanets(mulberry32(seed ^ 0x11), "Helion", 88);
+  for (const p of homePlanets) p.name = p.name.replace(/^Helion\b/, HOME_SYSTEM_NAME);
   const homeExtra = dressSystem(homePlanets, mulberry32(seed ^ 0x31), "Helion", 88, true);
+  if (homeExtra.belt) homeExtra.belt.name = homeExtra.belt.name.replace(/^Helion\b/, HOME_SYSTEM_NAME);
   const homeStations = makeStations(homePlanets, mulberry32(seed ^ 0x21), true);
   systems.push({
-    id: "helion",
-    name: "Helion",
+    id: HOME_SYSTEM_ID,
+    name: HOME_SYSTEM_NAME,
     x: 0,
     y: 0,
     z: 0,
@@ -690,7 +696,7 @@ export function buildGalaxy(seed = GALAXY_SEED): StarSystem[] {
     nebula: pickNebula(0, 0, mulberry32(seed ^ 0x51), true),
   });
 
-  const used = new Set(["helion", "hel"]);
+  const used = new Set([HOME_SYSTEM_ID, "hel", HOME_SYSTEM_NAME.toLowerCase()]);
   for (let i = 0; i < 47; i++) {
     const ang = rng() * Math.PI * 2;
     const rad = 6 + rng() * 38;
@@ -958,7 +964,7 @@ export function distLy(a: StarSystem, b: StarSystem) {
   return Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
 }
 
-/** Pull isolated stars toward the Helion component so a stock courier (12 ly) can plot a route to every system. */
+/** Pull isolated stars toward the Helios component so a stock courier (12 ly) can plot a route to every system. */
 function stitchGalaxy(systems: StarSystem[], range: number) {
   const origin = systems[0];
   if (!origin) return;

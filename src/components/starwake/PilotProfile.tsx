@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getMyProfile, saveMyProfile } from "@/lib/player-profile/api";
+import { PilotGlyph } from "@/lib/player-profile/glyphs";
 import {
-  PILOT_ICONS,
   getStarterIcons,
+  isProfileComplete,
   type PilotIconId,
   type PlayerProfile,
 } from "@/lib/player-profile/types";
@@ -12,9 +13,12 @@ import { useStarwake } from "@/lib/starwake/store";
 
 type Props = {
   onBack: () => void;
+  /** First-run: no Menu / Esc until the profile is saved. */
+  required?: boolean;
+  onSaved?: () => void;
 };
 
-export function PilotProfile({ onBack }: Props) {
+export function PilotProfile({ onBack, required, onSaved }: Props) {
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [editing, setEditing] = useState(false);
   const [iconId, setIconId] = useState<PilotIconId>("pilot-01");
@@ -33,11 +37,11 @@ export function PilotProfile({ onBack }: Props) {
       .then((loaded) => {
         if (cancelled) return;
         setProfile(loaded);
-        if (loaded) {
+        if (loaded && isProfileComplete(loaded)) {
           setIconId(loaded.iconId);
           setDisplayName(loaded.displayName);
           setCallSign(loaded.callSign);
-          setEditing(!loaded.callSign || loaded.callSign === "PILOT");
+          setEditing(Boolean(required));
         } else {
           setEditing(true);
         }
@@ -53,24 +57,33 @@ export function PilotProfile({ onBack }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Escape") return;
+      if (required && editing) return;
       e.preventDefault();
       e.stopPropagation();
       onBack();
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onBack]);
+  }, [onBack, required, editing]);
 
   async function onSave(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
+      const name = displayName.trim();
+      const call = callSign.trim().toUpperCase();
+      if (name === "Pilot" && call === "PILOT") {
+        setError("Pick a name and call sign of your own");
+        setBusy(false);
+        return;
+      }
       const next = await saveMyProfile({
-        data: { displayName: displayName.trim(), callSign: callSign.trim(), iconId },
+        data: { displayName: name, callSign: call, iconId },
       });
       setProfile(next);
       setEditing(false);
+      onSaved?.();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -78,13 +91,17 @@ export function PilotProfile({ onBack }: Props) {
     }
   }
 
-  const glyph = PILOT_ICONS.find((i) => i.id === (profile?.iconId ?? iconId))?.svg ?? "👨‍✈️";
+  const glyphId = profile?.iconId ?? iconId;
 
   return (
     <div className="gate hangar" data-ui>
       <header className="hangar-head">
-        <h1>Pilot</h1>
-        <p className="lede">Name, call sign, rank, and the hauls you have delivered.</p>
+        <h1>{required ? "Call sign" : "Pilot"}</h1>
+        <p className="lede">
+          {required
+            ? "Name and call sign first. Then you pick a hull and wake in Helios."
+            : "Name, call sign, rank, and the hauls you have delivered."}
+        </p>
       </header>
 
       {error && <p className="station-repair-err">{error}</p>}
@@ -92,7 +109,7 @@ export function PilotProfile({ onBack }: Props) {
       {!editing && profile ? (
         <div className="pilot-card">
           <div className="pilot-glyph" aria-hidden="true">
-            {glyph}
+            <PilotGlyph id={glyphId} />
           </div>
           <div>
             <p className="hull-dossier-kicker">
@@ -132,7 +149,9 @@ export function PilotProfile({ onBack }: Props) {
                 className={`pilot-icon${iconId === icon.id ? " on" : ""}`}
                 onClick={() => setIconId(icon.id)}
               >
-                <span aria-hidden="true">{icon.svg}</span>
+                <span className="pilot-icon-mark" aria-hidden="true">
+                  <PilotGlyph id={icon.id} />
+                </span>
                 <em>{icon.name}</em>
               </button>
             ))}
@@ -162,7 +181,7 @@ export function PilotProfile({ onBack }: Props) {
             <button type="submit" className="engage" disabled={busy}>
               {busy ? "Saving…" : profile ? "Save" : "Create"}
             </button>
-            {profile && (
+            {profile && !required && (
               <button type="button" className="engage ghost" onClick={() => setEditing(false)}>
                 Cancel
               </button>
@@ -171,7 +190,7 @@ export function PilotProfile({ onBack }: Props) {
         </form>
       )}
 
-      <section className="job-board pilot-diary" aria-label="Job diary">
+      {!required && <section className="job-board pilot-diary" aria-label="Job diary">
         <div className="job-board-head">
           <h2>Diary</h2>
           <span>
@@ -195,8 +214,9 @@ export function PilotProfile({ onBack }: Props) {
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
+      {!required && (
       <div className="gate-acts">
         <button type="button" className="engage ghost" onClick={onBack}>
           Menu
@@ -207,6 +227,7 @@ export function PilotProfile({ onBack }: Props) {
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

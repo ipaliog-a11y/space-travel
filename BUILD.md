@@ -13,6 +13,7 @@ Source for economy / mining / fleet flavour: [`docs/sessions/session-2026-08-28-
 - **Jump** = lock a star first, then charge → tunnel → drop
 - Maps: **System** (planets) and **Galaxy** (stars). Intergalactic held
 - Hub-local jobs, diary, Rel, Pilot, Market, wear HUD
+- New game: create a pilot, pick Courier / Hauler / Scout, start in **Helios**
 
 ## Build order
 
@@ -77,6 +78,7 @@ Buy a station somewhere. Storage first, then price / hold leverage for the merch
 
 | Slice | What |
 |-------|------|
+| — | Ship HUD (instrument cluster). Include a **Park** lamp, not only the lock-line word. On when capture hold is active (`regime === "park"`); off when Well / Free / Od / Dock. Do not require look-at-planet. |
 | — | Intergalactic map (after this galaxy is deep enough) |
 | — | Combat |
 | — | Android wrap (Capacitor / Play) — keep WebGL1 + touch-first |

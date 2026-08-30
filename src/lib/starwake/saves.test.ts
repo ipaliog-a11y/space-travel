@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { jumpT2Cost, refuelQuote, SHIPS, T1_CREDIT_PER_UNIT, T2_CHARGE, T2_CREDIT_PER_UNIT } from "./catalog.ts";
+import { jumpT2Cost, refuelQuote, SHIPS, STARTER_HULLS, T1_CREDIT_PER_UNIT, T2_CHARGE, T2_CREDIT_PER_UNIT } from "./catalog.ts";
 import { emptySlot, migrateSlots } from "./saves.ts";
 
 describe("save slots", () => {
@@ -36,6 +36,18 @@ describe("save slots", () => {
     });
     assert.equal(activeSlotId, "2");
     assert.equal(slots["2"].shipId, "scout");
+  });
+});
+
+describe("home system", () => {
+  it("new slots start at helion (Helios)", () => {
+    assert.equal(emptySlot("1").systemId, "helion");
+  });
+});
+
+describe("starter hulls", () => {
+  it("offers courier, hauler, scout", () => {
+    assert.deepEqual(STARTER_HULLS, ["courier", "hauler", "scout"]);
   });
 });
 

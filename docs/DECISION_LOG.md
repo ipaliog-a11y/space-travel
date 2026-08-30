@@ -383,11 +383,30 @@ Ship the high-confidence slices only. Do not reopen merchant #010 (hub bias / bi
 
 - **Well:** keep Kepler-relative frame. Coast damps at `1-exp(-0.35 h)` instead of zeroing relative velocity. Park spring on Arrive / first SOI capture only; throttle or OD clears hold. Slow leftover vectors get a light circularize. Keep-out, OD punch-out, station-nav exception, docking corridor unchanged.
 - **Camera:** `viewFromLook` uses `clamp(bankRoll, -0.35, 0.35)`. Zero roll in dock / berth / jump. No auto-bank from yaw.
-- **HUD:** Free / Well / Park / Od / Dock. Speed labelled inertial (`spd`), planet-relative (`rel`), or coast-in-well (`orb`).
+- **HUD:** Free / Well / Park / Od / Dock. Speed labelled inertial (`spd`), planet-relative (`rel`), or coast-in-well (`orb`). When the ship HUD is built, add a dedicated **Park** lamp on capture hold — lock-line text is easy to miss. Looking at the planet is not required.
 - **Jump pay:** `JUMP_LY_AS_AU = 0.3`. Local courier ₡220 stays. Do not add interdiction in this pass.
 
 ### Review Date
 After the next playtest of Arrive → coast in well → OD out → dock.
+
+---
+
+## Decision #012: Onboarding — profile, starter hull, Helios
+
+**Date:** 2026-08-29  
+**Status:** ✅ Implemented  
+**Session:** live loop
+
+### Context
+Players could Engage and haul on the catalog Courier with no `player_ships` row. Pilot was optional. Home star was named Helion.
+
+### Decision
+- New game: **create a pilot** (name + call sign, not the stub `Pilot` / `PILOT`), then **pick one of three free hulls** (Courier, Hauler, Scout). Rank 1 still has one bay — this is pick-one, not own-three. `starter_claimed` is once per account; selling the last hull does not refund a second free ship.
+- Flight, job pay, trade, fuel, and Market require a finished profile. Job pay also requires at least one owned hull.
+- Home system **display name is Helios**. Catalog id stays `helion` so planet ids (`helion-0` …) and save `systemId` stay valid.
+
+### Review Date
+After first-run playtest: Create → pick hull → wake in Helios → dock and take a job.
 
 ---
 
@@ -404,4 +423,4 @@ After the next playtest of Arrive → coast in well → OD out → dock.
 ---
 
 **Last Updated:** 2026-08-29  
-**Total Decisions:** 12 approved, 2 pending
+**Total Decisions:** 13 approved, 2 pending

@@ -14,5 +14,13 @@ export const saveMyProfile = createServerFn({ method: "POST" })
   .validator((data: CreateProfileData) => data)
   .handler(async ({ context, data }): Promise<PlayerProfile> => {
     const { createPlayerProfile } = await import("./server.ts");
-    return createPlayerProfile(context.userId, data);
+    const name = data.displayName.trim();
+    const call = data.callSign.trim().toUpperCase();
+    if (!name || call.length < 3) throw new Error("Name and call sign are required");
+    if (name === "Pilot" && call === "PILOT") throw new Error("Pick a name and call sign of your own");
+    return createPlayerProfile(context.userId, {
+      displayName: name,
+      callSign: call,
+      iconId: data.iconId,
+    });
   });

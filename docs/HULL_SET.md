@@ -43,7 +43,7 @@ Research (NASA cryogenic tanker / depot concepts; orbital transfer vehicles / ME
 | Survey | 4.4 s | 6.4 s | **3.1 s** | 4.6 s | 5.8 s | 5.2 s |
 | Boosts | 5 | 5 | 6 | 4 | **8** | 7 |
 
-Clipper cannot plot every Helion-component hop in one lock (galaxy was tuned for a 12 ly Courier). Chain jumps. Scout skips hops and logs wild worlds. Tug stays in-system unless you chain with a friend.
+Clipper cannot plot every Helios-component hop in one lock (galaxy was tuned for a 12 ly Courier). Chain jumps. Scout skips hops and logs wild worlds. Tug stays in-system unless you chain with a friend.
 
 ## Hangar UI
 

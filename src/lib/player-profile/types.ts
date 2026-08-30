@@ -2,18 +2,33 @@
  * Player Profile System - Types
  */
 
-export type PilotIconId = 
-  | 'pilot-01' | 'pilot-02' | 'pilot-03' | 'pilot-04'
-  | 'pilot-05' | 'pilot-06' | 'pilot-07' | 'pilot-08'
-  | 'ace-01' | 'ace-02' | 'ace-03' | 'ace-04'
-  | 'veteran-01' | 'veteran-02' | 'veteran-03' | 'veteran-04';
+export type PilotIconId =
+  | "pilot-01"
+  | "pilot-02"
+  | "pilot-03"
+  | "pilot-04"
+  | "pilot-05"
+  | "pilot-06"
+  | "pilot-07"
+  | "pilot-08"
+  | "pilot-09"
+  | "pilot-10"
+  | "pilot-11"
+  | "pilot-12"
+  | "pilot-13"
+  | "pilot-14"
+  | "pilot-15"
+  | "pilot-16"
+  | "pilot-17"
+  | "pilot-18"
+  | "pilot-19"
+  | "pilot-20";
 
 export interface PilotIcon {
   id: PilotIconId;
   name: string;
-  category: 'starter' | 'ace' | 'veteran';
+  category: "starter" | "ace" | "veteran";
   unlockRequirement?: string;
-  svg: string;
 }
 
 export interface PlayerProfile {
@@ -27,6 +42,7 @@ export interface PlayerProfile {
   currentRank: number;
   credits: number;
   hangarBonusSlots: number;
+  starterClaimed: boolean;
 }
 
 export interface CreateProfileData {
@@ -35,147 +51,59 @@ export interface CreateProfileData {
   iconId: PilotIconId;
 }
 
-/** Available pilot icons */
+const STUB_CALL = "PILOT";
+const STUB_NAME = "Pilot";
+
+/** Stub `ensurePlayerRow` names are not a finished pilot. */
+export function isProfileComplete(profile: PlayerProfile | null | undefined): profile is PlayerProfile {
+  if (!profile) return false;
+  const name = profile.displayName.trim();
+  const call = profile.callSign.trim().toUpperCase();
+  if (name.length < 1 || call.length < 3) return false;
+  if (call === STUB_CALL && name === STUB_NAME) return false;
+  return true;
+}
+
+/** Twenty original line marks. All available at create-profile. Rank gates come with the rank ladder. */
 export const PILOT_ICONS: PilotIcon[] = [
-  // Starter Icons (available to all)
-  {
-    id: 'pilot-01',
-    name: 'Rookie',
-    category: 'starter',
-    svg: '👨‍✈️',
-  },
-  {
-    id: 'pilot-02',
-    name: 'Explorer',
-    category: 'starter',
-    svg: '🧑‍🚀',
-  },
-  {
-    id: 'pilot-03',
-    name: 'Trader',
-    category: 'starter',
-    svg: '👩‍💼',
-  },
-  {
-    id: 'pilot-04',
-    name: 'Hauler',
-    category: 'starter',
-    svg: '👷',
-  },
-  {
-    id: 'pilot-05',
-    name: 'Scout',
-    category: 'starter',
-    svg: '🕵️',
-  },
-  {
-    id: 'pilot-06',
-    name: 'Racer',
-    category: 'starter',
-    svg: '🏎️',
-  },
-  {
-    id: 'pilot-07',
-    name: 'Mechanic',
-    category: 'starter',
-    svg: '🔧',
-  },
-  {
-    id: 'pilot-08',
-    name: 'Engineer',
-    category: 'starter',
-    svg: '⚙️',
-  },
-  
-  // Ace Icons (unlock at rank 5)
-  {
-    id: 'ace-01',
-    name: 'Ace Pilot',
-    category: 'ace',
-    unlockRequirement: 'Reach Rank 5',
-    svg: '🦅',
-  },
-  {
-    id: 'ace-02',
-    name: 'Hotshot',
-    category: 'ace',
-    unlockRequirement: 'Reach Rank 5',
-    svg: '🔥',
-  },
-  {
-    id: 'ace-03',
-    name: 'Sharpshooter',
-    category: 'ace',
-    unlockRequirement: 'Reach Rank 5',
-    svg: '🎯',
-  },
-  {
-    id: 'ace-04',
-    name: 'Storm',
-    category: 'ace',
-    unlockRequirement: 'Reach Rank 5',
-    svg: '⚡',
-  },
-  
-  // Veteran Icons (unlock at rank 10)
-  {
-    id: 'veteran-01',
-    name: 'Veteran',
-    category: 'veteran',
-    unlockRequirement: 'Reach Rank 10',
-    svg: '⭐',
-  },
-  {
-    id: 'veteran-02',
-    name: 'Legend',
-    category: 'veteran',
-    unlockRequirement: 'Reach Rank 10',
-    svg: '👑',
-  },
-  {
-    id: 'veteran-03',
-    name: 'Commander',
-    category: 'veteran',
-    unlockRequirement: 'Reach Rank 10',
-    svg: '💫',
-  },
-  {
-    id: 'veteran-04',
-    name: 'Elite',
-    category: 'veteran',
-    unlockRequirement: 'Reach Rank 10',
-    svg: '🌟',
-  },
+  { id: "pilot-01", name: "Chevron", category: "starter" },
+  { id: "pilot-02", name: "Helios", category: "starter" },
+  { id: "pilot-03", name: "Ring", category: "starter" },
+  { id: "pilot-04", name: "Hold", category: "starter" },
+  { id: "pilot-05", name: "Needle", category: "starter" },
+  { id: "pilot-06", name: "Lock", category: "starter" },
+  { id: "pilot-07", name: "Well", category: "starter" },
+  { id: "pilot-08", name: "Fork", category: "starter" },
+  { id: "pilot-09", name: "Orbit", category: "starter" },
+  { id: "pilot-10", name: "Shard", category: "starter" },
+  { id: "pilot-11", name: "Beacon", category: "starter" },
+  { id: "pilot-12", name: "Wake", category: "starter" },
+  { id: "pilot-13", name: "Drift", category: "starter" },
+  { id: "pilot-14", name: "Pad", category: "starter" },
+  { id: "pilot-15", name: "Spiral", category: "starter" },
+  { id: "pilot-16", name: "Cross", category: "starter" },
+  { id: "pilot-17", name: "Crescent", category: "starter" },
+  { id: "pilot-18", name: "Bands", category: "starter" },
+  { id: "pilot-19", name: "Lens", category: "starter" },
+  { id: "pilot-20", name: "Spark", category: "starter" },
 ];
 
-/** Get starter icons (always available) */
 export function getStarterIcons(): PilotIcon[] {
-  return PILOT_ICONS.filter(icon => icon.category === 'starter');
+  return PILOT_ICONS.filter((icon) => icon.category === "starter");
 }
 
-/** Get all icons (for profile view, showing locked ones) */
-export function getAllIcons(currentRank: number): PilotIcon[] {
-  return PILOT_ICONS.map(icon => {
-    const isUnlocked = 
-      icon.category === 'starter' ||
-      (icon.category === 'ace' && currentRank >= 5) ||
-      (icon.category === 'veteran' && currentRank >= 10);
-    
-    return {
-      ...icon,
-      svg: isUnlocked ? icon.svg : '🔒',
-    };
-  });
+export function getAllIcons(_currentRank: number): PilotIcon[] {
+  return PILOT_ICONS;
 }
 
-/** Check if icon is unlocked */
-export function isIconUnlocked(iconId: PilotIconId, currentRank: number): boolean {
-  const icon = PILOT_ICONS.find(i => i.id === iconId);
-  if (!icon) return false;
-  
-  if (icon.category === 'starter') return true;
-  if (icon.category === 'ace') return currentRank >= 5;
-  if (icon.category === 'veteran') return currentRank >= 10;
-  
-  return false;
+export function isPilotIconId(id: string): id is PilotIconId {
+  return PILOT_ICONS.some((i) => i.id === id);
+}
+
+export function coercePilotIconId(id: string | null | undefined): PilotIconId {
+  return id && isPilotIconId(id) ? id : "pilot-01";
+}
+
+export function isIconUnlocked(iconId: PilotIconId, _currentRank: number): boolean {
+  return isPilotIconId(iconId);
 }

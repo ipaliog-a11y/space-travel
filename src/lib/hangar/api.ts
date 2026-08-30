@@ -18,11 +18,18 @@ export const claimStarterShip = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { shipType: ShipType }) => data)
   .handler(async ({ context, data }): Promise<HangarShip> => {
-    const { ensurePlayerRow } = await import("../player-profile/server.ts");
-    const { acquireShip } = await import("../ship-ownership/server.ts");
+    const { requireCompleteProfile, markStarterClaimed } = await import("../player-profile/server.ts");
+    const { acquireShip, getPlayerShips } = await import("../ship-ownership/server.ts");
+    const { STARTER_HULLS } = await import("../starwake/catalog.ts");
     const { toHangarShip } = await import("./server.ts");
-    await ensurePlayerRow(context.userId);
+    const profile = await requireCompleteProfile(context.userId);
+    if (!(STARTER_HULLS as string[]).includes(data.shipType)) {
+      throw new Error("Pick Courier, Hauler, or Scout");
+    }
+    const owned = await getPlayerShips(context.userId);
+    if (profile.starterClaimed || owned.length > 0) throw new Error("Starter already claimed");
     const ship = await acquireShip(context.userId, data.shipType);
+    await markStarterClaimed(context.userId);
     return toHangarShip(ship);
   });
 
@@ -254,7 +261,8 @@ export const payJobDelivery = createServerFn({ method: "POST" })
   }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
     const { jobPayout } = await import("../starwake/jobs.ts");
-    const { ensurePlayerRow, modifyCredits } = await import("../player-profile/server.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const { getPlayerShips } = await import("../ship-ownership/server.ts");
     const kinds = ["courier", "hauler", "tender", "tug"] as const;
     const kind = kinds.includes(data.job.kind as (typeof kinds)[number])
       ? (data.job.kind as (typeof kinds)[number])
@@ -268,7 +276,9 @@ export const payJobDelivery = createServerFn({ method: "POST" })
       from: data.job.from,
       to: data.job.to,
     });
-    await ensurePlayerRow(context.userId);
+    await requireCompleteProfile(context.userId);
+    const ships = await getPlayerShips(context.userId);
+    if (ships.length === 0) throw new Error("Need a hull in the bay");
     const profile = await modifyCredits(context.userId, paid);
     return { credits: profile.credits, paid };
   });
@@ -285,7 +295,7 @@ export const tradeCargo = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number; unit: number }> => {
     const { hubKey, hubTrades, isGoodId, quoteGood } = await import("../starwake/market.ts");
     const { getStation } = await import("../starwake/galaxy.ts");
-    const { ensurePlayerRow, modifyCredits } = await import("../player-profile/server.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
     if (!isGoodId(data.goodId)) throw new Error("Unknown good");
     const qty = Math.max(0, Math.round(data.qty));
     if (qty <= 0) throw new Error("Need a quantity");
@@ -295,7 +305,7 @@ export const tradeCargo = createServerFn({ method: "POST" })
     }
     const unit = quoteGood(data.goodId);
     const paid = unit * qty;
-    await ensurePlayerRow(context.userId);
+    await requireCompleteProfile(context.userId);
     if (data.side === "buy") {
       const profile = await modifyCredits(context.userId, -paid);
       return { credits: profile.credits, paid, unit };
@@ -309,13 +319,13 @@ export const buyFuel = createServerFn({ method: "POST" })
   .validator((data: { t1: number; t2: number }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; cost: number }> => {
     const { refuelQuote } = await import("../starwake/catalog.ts");
-    const { ensurePlayerRow, modifyCredits, getPlayerProfile } = await import(
+    const { requireCompleteProfile, modifyCredits, getPlayerProfile } = await import(
       "../player-profile/server.ts"
     );
     const t1 = Math.max(0, data.t1);
     const t2 = Math.max(0, data.t2);
     const { cost } = refuelQuote(t1, t2);
-    await ensurePlayerRow(context.userId);
+    await requireCompleteProfile(context.userId);
     if (cost <= 0) {
       const profile = await getPlayerProfile(context.userId);
       return { credits: profile?.credits ?? 0, cost: 0 };
@@ -329,19 +339,16 @@ export const buyModuleFit = createServerFn({ method: "POST" })
   .validator((data: { moduleId: string }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; cost: number }> => {
     const { MODULES, moduleFitCost } = await import("../starwake/catalog.ts");
-    const { ensurePlayerRow, modifyCredits } = await import("../player-profile/server.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
     const mod = MODULES[data.moduleId];
     if (!mod) throw new Error("Unknown fit");
     const cost = moduleFitCost(mod);
+    const profile = await requireCompleteProfile(context.userId);
     if (cost <= 0) {
-      const { getPlayerProfile } = await import("../player-profile/server.ts");
-      await ensurePlayerRow(context.userId);
-      const profile = await getPlayerProfile(context.userId);
-      return { credits: profile?.credits ?? 0, cost: 0 };
+      return { credits: profile.credits, cost: 0 };
     }
-    await ensurePlayerRow(context.userId);
-    const profile = await modifyCredits(context.userId, -cost);
-    return { credits: profile.credits, cost };
+    const next = await modifyCredits(context.userId, -cost);
+    return { credits: next.credits, cost };
   });
 
 export type MarketListing = {
@@ -362,11 +369,11 @@ export type MarketView = {
 export const loadShipMarket = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<MarketView> => {
-    const { ensurePlayerRow } = await import("../player-profile/server.ts");
+    const { requireCompleteProfile } = await import("../player-profile/server.ts");
     const { getHangarShips } = await import("./server.ts");
     const { hangarSlotCapacity, SHIP_BASE_PRICES } = await import("../ship-ownership/types.ts");
     const { SHIP_ORDER } = await import("../starwake/catalog.ts");
-    const profile = await ensurePlayerRow(context.userId);
+    const profile = await requireCompleteProfile(context.userId);
     const ships = await getHangarShips(context.userId);
     const ownedCount: Record<string, number> = {};
     for (const ship of ships) {
@@ -390,7 +397,7 @@ export const buyMarketShip = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { shipType: ShipType; tradeInId?: string }) => data)
   .handler(async ({ context, data }): Promise<MarketView> => {
-    const { ensurePlayerRow, modifyCredits, getPlayerProfile } = await import(
+    const { requireCompleteProfile, modifyCredits, getPlayerProfile } = await import(
       "../player-profile/server.ts"
     );
     const { acquireShip, sellShip } = await import("../ship-ownership/server.ts");
@@ -400,7 +407,7 @@ export const buyMarketShip = createServerFn({ method: "POST" })
     );
     const { SHIP_ORDER } = await import("../starwake/catalog.ts");
 
-    await ensurePlayerRow(context.userId);
+    await requireCompleteProfile(context.userId);
     const price = SHIP_BASE_PRICES[data.shipType];
     if (price == null) throw new Error("Unknown hull");
 

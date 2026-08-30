@@ -3,6 +3,7 @@ import { fittedShip } from "@/lib/starwake/catalog";
 import { holdUsed } from "@/lib/starwake/jobs";
 import {
   cargoOf,
+  EMPTY_HOLD,
   goodById,
   hubKey,
   hubListings,
@@ -31,7 +32,7 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
   const shipId = useStarwake((s) => s.shipId);
   const loadout = useStarwake((s) => s.loadout);
   const man = useStarwake((s) => s.manifests[s.shipId]);
-  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? []);
+  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
   const warehouses = useStarwake((s) => s.warehouses);
   const stowBuy = useStarwake((s) => s.stowBuy);
   const dumpSell = useStarwake((s) => s.dumpSell);
@@ -40,7 +41,7 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(() => Math.floor(Date.now() / MARKET_TICK_MS));
   const hub = hubKey(systemId, stationId);
-  const ware = warehouses[hub] ?? [];
+  const ware = warehouses[hub] ?? EMPTY_HOLD;
   const cap = fittedShip(shipId, loadout).cargoCap;
   const used = holdUsed(man, cargo);
   const free = Math.max(0, cap - used);

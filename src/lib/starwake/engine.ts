@@ -107,6 +107,7 @@ export type EngineHandle = {
   };
   goToBody: (t: LocalTarget) => void;
   lookAtBody: (t: LocalTarget, keepMap?: boolean) => void;
+  arrive: (id: string) => void;
   [key: string]: unknown;
 };
 
@@ -3090,6 +3091,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		},
 		goToBody,
 		lookAtBody,
+		arrive,
 		unlockAudio() {
 			audio.unlock();
 		},

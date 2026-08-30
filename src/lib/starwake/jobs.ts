@@ -1,4 +1,4 @@
-import { distLy, GALAXY, getPlanet, getStation, getSystem, planetOfStation } from "./galaxy";
+import { distLy, GALAXY, HOME_SYSTEM_ID, getPlanet, getStation, getSystem, planetOfStation } from "./galaxy";
 import { hashu, mulberry32 } from "./math";
 import type { CargoJob, JobKind, JobLogEntry, JobStop, Manifest, ShipId } from "./types";
 import { fittedShip, SHIP_ORDER } from "./catalog";
@@ -167,8 +167,8 @@ export function sanitizeJobLog(raw: unknown): JobLogEntry[] {
   for (const row of raw) {
     if (!row || typeof row !== "object") continue;
     const j = row as JobLogEntry;
-    const from = coerceStop(j.from, "helion");
-    const to = coerceStop(j.to, "helion");
+    const from = coerceStop(j.from, HOME_SYSTEM_ID);
+    const to = coerceStop(j.to, HOME_SYSTEM_ID);
     if (!from || !to) continue;
     if (typeof j.pay !== "number" || j.pay < 0) continue;
     out.push({
@@ -232,8 +232,8 @@ export function sanitizeManifests(raw: unknown): Record<ShipId, Manifest | null>
   for (const hull of SHIP_ORDER) {
     const m = rec[hull];
     if (!m?.job?.id) continue;
-    const from = coerceStop(m.job.from, "helion");
-    const to = coerceStop(m.job.to, "helion");
+    const from = coerceStop(m.job.from, HOME_SYSTEM_ID);
+    const to = coerceStop(m.job.to, HOME_SYSTEM_ID);
     if (!from || !to) continue;
     out[hull] = { job: { ...m.job, from, to }, loaded: Boolean(m.loaded) };
   }

@@ -4,8 +4,8 @@
  */
 
 import { getSql } from "../db.ts";
-import type { CreateProfileData, PilotIconId, PlayerProfile } from "./types.ts";
-import { isIconUnlocked } from "./types.ts";
+import type { CreateProfileData, PlayerProfile } from "./types.ts";
+import { coercePilotIconId, isIconUnlocked, isProfileComplete } from "./types.ts";
 
 type PlayerRow = {
   id: string;
@@ -18,6 +18,7 @@ type PlayerRow = {
   current_rank: number;
   credits: number;
   hangar_bonus_slots?: number;
+  starter_claimed?: boolean;
 };
 
 export function mapPlayer(row: PlayerRow): PlayerProfile {
@@ -25,13 +26,14 @@ export function mapPlayer(row: PlayerRow): PlayerProfile {
     id: row.id,
     displayName: row.display_name,
     callSign: row.call_sign || "",
-    iconId: (row.icon_id as PilotIconId) || "pilot-01",
+    iconId: coercePilotIconId(row.icon_id),
     profileCreatedAt: row.profile_created_at,
     lastLoginAt: row.last_login_at ?? undefined,
     totalXp: Number(row.total_xp ?? 0),
     currentRank: Number(row.current_rank ?? 1),
     credits: Number(row.credits ?? 0),
     hangarBonusSlots: Number(row.hangar_bonus_slots ?? 0),
+    starterClaimed: Boolean(row.starter_claimed),
   };
 }
 
@@ -48,7 +50,8 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfile 
       total_xp,
       current_rank,
       credits,
-      hangar_bonus_slots
+      hangar_bonus_slots,
+      starter_claimed
     FROM players
     WHERE id = ${playerId}
   `;
@@ -89,12 +92,13 @@ export async function createPlayerProfile(
       total_xp,
       current_rank,
       credits,
-      hangar_bonus_slots
+      hangar_bonus_slots,
+      starter_claimed
   `;
   return mapPlayer(result[0]);
 }
 
-/** Stub row so player_ships FK succeeds before the player fills in a profile. */
+/** Stub row so player_ships FK succeeds before the player fills in a profile. Do not treat this as onboarded. */
 export async function ensurePlayerRow(playerId: string): Promise<PlayerProfile> {
   const existing = await getPlayerProfile(playerId);
   if (existing) return existing;
@@ -103,6 +107,14 @@ export async function ensurePlayerRow(playerId: string): Promise<PlayerProfile> 
     callSign: "PILOT",
     iconId: "pilot-01",
   });
+}
+
+export async function requireCompleteProfile(playerId: string): Promise<PlayerProfile> {
+  const profile = await getPlayerProfile(playerId);
+  if (!isProfileComplete(profile)) {
+    throw new Error("Create a pilot profile first");
+  }
+  return profile;
 }
 
 export async function updatePlayerProfile(
@@ -135,9 +147,19 @@ export async function updatePlayerProfile(
       total_xp,
       current_rank,
       credits,
-      hangar_bonus_slots
+      hangar_bonus_slots,
+      starter_claimed
   `;
   return mapPlayer(result[0]);
+}
+
+export async function markStarterClaimed(playerId: string): Promise<void> {
+  const sql = await getSql();
+  await sql`
+    UPDATE players
+    SET starter_claimed = true
+    WHERE id = ${playerId}
+  `;
 }
 
 export async function addXp(playerId: string, amount: number): Promise<PlayerProfile> {
@@ -148,7 +170,7 @@ export async function addXp(playerId: string, amount: number): Promise<PlayerPro
     WHERE id = ${playerId}
     RETURNING
       id, display_name, call_sign, icon_id, profile_created_at, last_login_at,
-      total_xp, current_rank, credits, hangar_bonus_slots
+      total_xp, current_rank, credits, hangar_bonus_slots, starter_claimed
   `;
   if (result.length === 0) throw new Error("Player not found");
   return mapPlayer(result[0]);
@@ -167,7 +189,7 @@ export async function modifyCredits(playerId: string, amount: number): Promise<P
     WHERE id = ${playerId}
     RETURNING
       id, display_name, call_sign, icon_id, profile_created_at, last_login_at,
-      total_xp, current_rank, credits, hangar_bonus_slots
+      total_xp, current_rank, credits, hangar_bonus_slots, starter_claimed
   `;
   return mapPlayer(result[0]);
 }

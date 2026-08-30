@@ -3,7 +3,7 @@ import { BookMarked, Map as MapIcon, Settings, Volume2, VolumeX } from "lucide-r
 import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
 import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
 import { formatStop, holdUsed } from "@/lib/starwake/jobs";
-import { lotLabel } from "@/lib/starwake/market";
+import { EMPTY_HOLD, lotLabel } from "@/lib/starwake/market";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
@@ -260,7 +260,7 @@ export function FlightChrome({
   const { wear, applyWear } = useFlightWear(shipId, mode, drive.boosting);
   const setWearPenalty = useStarwake((s) => s.setWearPenalty);
   const man = useStarwake((s) => s.manifests[s.shipId]);
-  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? []);
+  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
 
   useEffect(() => {
     setWearPenalty(

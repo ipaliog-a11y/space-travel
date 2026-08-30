@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CargoJob, FlightMode, JobLogEntry, Loadout, Manifest, MapLayer, MenuView, ShipId, SlotId } from "./types";
 import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, fullTanks2, liveShip, moduleById } from "./catalog";
+import { HOME_SYSTEM_ID } from "./galaxy";
 import { hubBoard } from "./job-hub";
 import {
   addCargo,
@@ -187,7 +188,7 @@ export const useStarwake = create<StarwakeState>()(
       version: SAVE_VERSION,
       entered: false,
       shipId: "courier",
-      systemId: "helion",
+      systemId: HOME_SYSTEM_ID,
       lockedSystemId: null,
       mode: "docked",
       mapOpen: false,
@@ -233,7 +234,13 @@ export const useStarwake = create<StarwakeState>()(
         "2": emptySlot("2"),
         "3": emptySlot("3"),
       },
-      setEntered: (v) => set({ entered: v, mode: v ? "local" : "docked", menuView: v ? get().menuView : "menu" }),
+      setEntered: (v) =>
+        set({
+          entered: v,
+          mode: v ? "local" : "docked",
+          menuView: v ? get().menuView : "menu",
+          systemId: v && !get().systemId ? HOME_SYSTEM_ID : get().systemId,
+        }),
       setMenuView: (v) => set({ menuView: v }),
       setShipId: (id) => {
         if (get().mode === "charging" || get().mode === "hyperspace" || get().mode === "transit") return;

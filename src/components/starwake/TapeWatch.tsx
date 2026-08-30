@@ -4,6 +4,7 @@ import {
   cargoAvg,
   cargoOf,
   cargoQty,
+  EMPTY_HOLD,
   GOODS,
   lotLabel,
   KINDS,
@@ -33,7 +34,7 @@ export function TapeWatch({ onBack }: Props) {
   const [tick, setTick] = useState(() => Math.floor(Date.now() / MARKET_TICK_MS));
   const [focus, setFocus] = useState<GoodId>("ore");
   const shipId = useStarwake((s) => s.shipId);
-  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? []);
+  const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
   const warehouses = useStarwake((s) => s.warehouses);
   const pads = listedPads(warehouses);
 

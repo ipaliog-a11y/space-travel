@@ -5,6 +5,7 @@
 
 import { getSql } from "../db.ts";
 import { getPlayerProfile } from "../player-profile/server.ts";
+import { isProfileComplete } from "../player-profile/types.ts";
 import type { HardpointTier, PlayerShip, ShipType, WearTier } from "./types.ts";
 import {
   calculateResaleValue,
@@ -46,7 +47,7 @@ export function mapShip(row: ShipRow): PlayerShip {
 export async function acquireShip(playerId: string, shipType: ShipType): Promise<PlayerShip> {
   const sql = await getSql();
   const profile = await getPlayerProfile(playerId);
-  if (!profile) {
+  if (!isProfileComplete(profile)) {
     throw new Error("Create a pilot profile before acquiring a ship");
   }
 

@@ -142,6 +142,8 @@ export const SHIPS: Record<ShipId, ShipDef> = {
 };
 
 export const SHIP_ORDER: ShipId[] = ["courier", "hauler", "scout", "clipper", "tender", "tug"];
+/** First free hull. Rank 1 has one bay — pick one, then buy the rest. */
+export const STARTER_HULLS: ShipId[] = ["courier", "hauler", "scout"];
 export const SHIP_SETS: { id: "line" | "yard"; label: string; blurb: string; hulls: ShipId[] }[] = [
   { id: "line", label: "Line", blurb: "Packet, bulk, pathfinder, runner.", hulls: ["courier", "hauler", "scout", "clipper"] },
   { id: "yard", label: "Yard", blurb: "Fuel and harbor. New set.", hulls: ["tender", "tug"] },

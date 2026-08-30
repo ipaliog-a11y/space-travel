@@ -17,7 +17,7 @@ npm run dev
 Visit each type of world to see the enhanced textures:
 
 **Stars:**
-- Look at Helion (the sun in the home system)
+- Look at Helios (the sun in the home system)
 - Should see granulation, sunspots, limb darkening
 
 **Rocky Worlds:**

@@ -116,6 +116,8 @@ Speed: always say whether the number is **relative** or **inertial**. Keep `orb`
 
 Small chrome change, big “I understand why I stuck.”
 
+When the ship HUD (instrument cluster) is built, add a dedicated **Park** lamp on `regime === "park"`. Lock-line text is easy to miss; looking at the planet is not the gate.
+
 ### 5. Hull-forward thrust (optional, after 1)
 
 Today drive follows the camera. Elite points the nose; look is independent.
@@ -160,10 +162,10 @@ Leave docking, jump, transit, surveys, and station meshes untouched.
 
 ### QA (existing Playwright + hands)
 
-- Arrive Helion I: still parks, no lithobrake.
+- Arrive Helios I: still parks, no lithobrake.
 - Throttle off in well: drift / orbit, not glue.
 - OD out of well: still punches free.
-- Dock Helion I Lock: same 10-bay corridor, berth thresholds unchanged.
+- Dock Helios I Lock: same 10-bay corridor, berth thresholds unchanged.
 - Q/E: horizon banks, recenters.
 - Courier vs hauler: spool difference on the same throttle.
 - Survey: still requires well; no pause regression.
