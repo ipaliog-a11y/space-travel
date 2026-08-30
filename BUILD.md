@@ -20,7 +20,7 @@ Source for economy / mining / fleet flavour: [`docs/sessions/session-2026-08-28-
 Do not start mining or fleet until **1–7** land in Play.
 
 ### 1. Save state slots — in play
-Three named slots on Gate / Options: Continue, New (wipes the active slot), copy, delete. Each slot keeps ship, fuel, board, diary, and local hangar fits. Credits and owned hulls stay on the account. Active slot is the one Play writes. Old `starwake-v2` blobs migrate into slot 1.
+Three named slots on Gate / Options. Creating a profile occupies a slot and stores the pilot with that slot’s progress. Continue loads the active career. Create / delete live on Pilot (confirm before wipe). Copy still on the slot rail. Credits and owned hulls stay on the account. Old `starwake-v2` blobs migrate into slot 1.
 
 ### 2. T2 fuel for jumps — in play
 T1 stays in-system (cruise / boost). T2 is spent on FSD charge + the hop (floor + ly). Jump lock is gated by T2 remaining. HUD shows T1 and T2. Courier: small T2, sips T1. Hauler: fat T2, hungrier T1.

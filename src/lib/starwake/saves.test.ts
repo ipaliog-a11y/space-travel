@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { jumpT2Cost, refuelQuote, SHIPS, STARTER_HULLS, T1_CREDIT_PER_UNIT, T2_CHARGE, T2_CREDIT_PER_UNIT } from "./catalog.ts";
-import { emptySlot, migrateSlots } from "./saves.ts";
+import { emptySlot, firstEmptySlotId, firstOccupiedSlotId, migrateSlots, snapshotFromUnknown } from "./saves.ts";
 
 describe("save slots", () => {
   it("folds a v13 blob into slot 1 and leaves 2 and 3 empty", () => {
@@ -37,11 +37,53 @@ describe("save slots", () => {
     assert.equal(activeSlotId, "2");
     assert.equal(slots["2"].shipId, "scout");
   });
+
+  it("keeps a career on a slot and names it from the call sign", () => {
+    const raw = emptySlot("1");
+    raw.hasSave = true;
+    raw.career = { displayName: "Iona Vale", callSign: "WAKE", iconId: "pilot-02" };
+    const slot = snapshotFromUnknown(raw, emptySlot("1"));
+    assert.equal(slot.name, "WAKE");
+    assert.equal(slot.career?.callSign, "WAKE");
+    assert.equal(slot.career?.iconId, "pilot-02");
+    assert.equal(slot.hasSave, true);
+  });
+
+  it("drops stub Pilot/PILOT careers", () => {
+    const raw = emptySlot("1");
+    raw.career = { displayName: "Pilot", callSign: "PILOT", iconId: "pilot-01" };
+    const slot = snapshotFromUnknown(raw, emptySlot("1"));
+    assert.equal(slot.career, null);
+  });
+
+  it("picks the first empty slot and the first occupied slot", () => {
+    const one = emptySlot("1");
+    one.hasSave = true;
+    one.career = { displayName: "Iona", callSign: "WAKE", iconId: "pilot-01" };
+    const slots = { "1": one, "2": emptySlot("2"), "3": emptySlot("3") };
+    assert.equal(firstEmptySlotId(slots), "2");
+    assert.equal(firstEmptySlotId(slots, "3"), "3");
+    assert.equal(firstOccupiedSlotId(slots), "1");
+    assert.equal(firstOccupiedSlotId(slots, "1"), null);
+  });
+
+  it("moves active off an empty slot onto an occupied one", () => {
+    const two = emptySlot("2");
+    two.hasSave = true;
+    two.career = { displayName: "Iona", callSign: "WAKE", iconId: "pilot-01" };
+    const { activeSlotId } = migrateSlots({
+      activeSlotId: "1",
+      slots: { "1": emptySlot("1"), "2": two, "3": emptySlot("3") },
+    });
+    assert.equal(activeSlotId, "2");
+  });
 });
 
 describe("home system", () => {
   it("new slots start at helion (Helios)", () => {
     assert.equal(emptySlot("1").systemId, "helion");
+    assert.equal(emptySlot("1").career, null);
+    assert.equal(emptySlot("1").hasSave, false);
   });
 });
 

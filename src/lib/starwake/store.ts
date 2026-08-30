@@ -31,23 +31,28 @@ import {
 } from "./jobs";
 import {
   SAVE_SLOT_IDS,
+  SAVE_SLOT_NAMES,
   emptySlot,
+  firstEmptySlotId,
+  firstOccupiedSlotId,
   isSaveSlotId,
   liveFromSlot,
   migrateSlots,
   slotFromLive,
   type SaveSlotId,
   type SaveSlotSnapshot,
+  type SlotCareer,
   type SlotLive,
 } from "./saves";
 
-export type { SaveSlotId, SaveSlotSnapshot } from "./saves";
+export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 15;
+const SAVE_VERSION = 16;
 
 function captureLive(s: {
   hasSave: boolean;
   lastSaveAt: number;
+  career: SlotCareer | null;
   shipId: ShipId;
   systemId: string;
   scanned: Record<string, true>;
@@ -72,6 +77,7 @@ function captureLive(s: {
   return {
     hasSave: s.hasSave,
     lastSaveAt: s.lastSaveAt,
+    career: s.career,
     shipId: s.shipId,
     systemId: s.systemId,
     scanned: s.scanned,
@@ -101,6 +107,7 @@ function applyLive(live: SlotLive) {
 
 export type StarwakeState = {
   version: number;
+  hydrated: boolean;
   entered: boolean;
   shipId: ShipId;
   systemId: string;
@@ -136,6 +143,7 @@ export type StarwakeState = {
   ownedModules: string[];
   hasSave: boolean;
   lastSaveAt: number;
+  career: SlotCareer | null;
   activeSlotId: SaveSlotId;
   slots: Record<SaveSlotId, SaveSlotSnapshot>;
   setEntered: (v: boolean) => void;
@@ -180,12 +188,17 @@ export type StarwakeState = {
   copySlot: (from: SaveSlotId, to: SaveSlotId) => void;
   deleteSlot: (id: SaveSlotId) => void;
   renameSlot: (id: SaveSlotId, name: string) => void;
+  setCareer: (career: SlotCareer) => void;
+  beginNewCareer: () => SaveSlotId | null;
+  seedCareerIfMissing: (career: SlotCareer) => void;
+  deleteCareerSlot: (id: SaveSlotId) => SaveSlotId | null;
 };
 
 export const useStarwake = create<StarwakeState>()(
   persist(
     (set, get) => ({
       version: SAVE_VERSION,
+      hydrated: false,
       entered: false,
       shipId: "courier",
       systemId: HOME_SYSTEM_ID,
@@ -228,6 +241,7 @@ export const useStarwake = create<StarwakeState>()(
       ownedModules: [],
       hasSave: false,
       lastSaveAt: 0,
+      career: null,
       activeSlotId: "1",
       slots: {
         "1": emptySlot("1"),
@@ -520,8 +534,9 @@ export const useStarwake = create<StarwakeState>()(
         if (!isSaveSlotId(id)) return;
         const st = get();
         if (id === st.activeSlotId) return;
-        const parked = slotFromLive(captureLive(st), st.slots[st.activeSlotId].name);
         const next = st.slots[id];
+        if (!next.hasSave && !next.career) return;
+        const parked = slotFromLive(captureLive(st), st.slots[st.activeSlotId].name);
         set({
           ...applyLive(liveFromSlot(next)),
           slots: { ...st.slots, [st.activeSlotId]: parked },
@@ -563,7 +578,7 @@ export const useStarwake = create<StarwakeState>()(
             : st.slots[from];
         const copy: SaveSlotSnapshot = {
           ...source,
-          name: st.slots[to].name,
+          name: source.career?.callSign.slice(0, 24) ?? st.slots[to].name,
           lastSaveAt: Date.now(),
           hasSave: source.hasSave,
         };
@@ -610,6 +625,86 @@ export const useStarwake = create<StarwakeState>()(
             [id]: { ...st.slots[id], name: trimmed },
           },
         });
+      },
+      setCareer: (career) => {
+        const st = get();
+        const name = career.callSign.slice(0, 24);
+        const parked = slotFromLive({ ...captureLive(st), career, hasSave: true, lastSaveAt: Date.now() }, name);
+        set({
+          career,
+          hasSave: true,
+          lastSaveAt: parked.lastSaveAt,
+          slots: { ...st.slots, [st.activeSlotId]: parked },
+        });
+      },
+      beginNewCareer: () => {
+        const st = get();
+        const target = firstEmptySlotId(st.slots, st.activeSlotId);
+        if (!target) return null;
+        if (target === st.activeSlotId && !st.career && !st.hasSave) return target;
+        const parked = slotFromLive(captureLive(st), st.slots[st.activeSlotId].name);
+        const fresh = emptySlot(target);
+        const slots = { ...st.slots, [st.activeSlotId]: parked, [target]: fresh };
+        set({
+          ...applyLive(liveFromSlot(fresh)),
+          slots,
+          activeSlotId: target,
+          entered: false,
+          menuView: "menu",
+          mode: "docked",
+          mapOpen: false,
+          lockedSystemId: null,
+          charge01: 0,
+          wearPenalty: 0,
+        });
+        return target;
+      },
+      seedCareerIfMissing: (career) => {
+        const st = get();
+        const name = career.callSign.slice(0, 24);
+        let next = st.slots;
+        for (const id of SAVE_SLOT_IDS) {
+          if (!st.slots[id].hasSave || st.slots[id].career) continue;
+          if (next === st.slots) next = { ...st.slots };
+          next[id] = { ...st.slots[id], career, name };
+        }
+        const liveCareer = st.career ?? next[st.activeSlotId].career ?? (st.hasSave ? career : null);
+        if (next === st.slots && liveCareer === st.career) return;
+        if (liveCareer && liveCareer !== st.career) {
+          next = {
+            ...next,
+            [st.activeSlotId]: slotFromLive(
+              { ...captureLive(st), career: liveCareer, hasSave: true },
+              liveCareer.callSign.slice(0, 24),
+            ),
+          };
+        }
+        set({ career: liveCareer, hasSave: Boolean(liveCareer) || st.hasSave, slots: next });
+      },
+      deleteCareerSlot: (id) => {
+        if (!isSaveSlotId(id)) return null;
+        const st = get();
+        const wiped = emptySlot(id, SAVE_SLOT_NAMES[id]);
+        const slots = { ...st.slots, [id]: wiped };
+        if (id !== st.activeSlotId) {
+          set({ slots });
+          return st.activeSlotId;
+        }
+        const nextId = firstOccupiedSlotId(slots, id) ?? firstEmptySlotId(slots) ?? "1";
+        const next = slots[nextId];
+        set({
+          ...applyLive(liveFromSlot(next)),
+          slots,
+          activeSlotId: nextId,
+          entered: false,
+          menuView: "menu",
+          mode: "docked",
+          mapOpen: false,
+          lockedSystemId: null,
+          charge01: 0,
+          wearPenalty: 0,
+        });
+        return nextId;
       },
     }),
     {
@@ -666,9 +761,16 @@ export const useStarwake = create<StarwakeState>()(
           wearPenalty: 0,
         };
       },
+      onRehydrateStorage: () => (_state, _error) => {
+        queueMicrotask(() => useStarwake.setState({ hydrated: true }));
+      },
     },
   ),
 );
+
+if (useStarwake.persist.hasHydrated()) {
+  useStarwake.setState({ hydrated: true });
+}
 
 export function getStarwake() {
   return useStarwake.getState();

@@ -102,14 +102,15 @@ export function Gate({
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot
         </button>
-        {hasSave && onContinue && (
+        {hasSave && onContinue ? (
           <button type="button" className="engage ghost" onClick={onContinue}>
             Continue
           </button>
+        ) : (
+          <button type="button" className="engage ghost" onClick={onEngage}>
+            Engage
+          </button>
         )}
-        <button type="button" className="engage ghost" onClick={onEngage}>
-          {hasSave ? "New" : "Engage"}
-        </button>
       </div>
       {completed > 0 && (
         <p className="menu-runs">

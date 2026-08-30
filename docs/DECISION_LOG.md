@@ -330,7 +330,7 @@ Week 1 hangar / haul loop is in play. Need a build order for the next economy fl
 BUILD items 1–3 were still pending: one persist blob, one T1 tank, free Refuel. Credits and owned hulls already live on the server player, not in Zustand.
 
 ### Decision
-- **Three named slots** on Gate / Options. New wipes the active slot. Copy / delete per slot. Each slot keeps ship, fuel (T1+T2), board, diary, local fits. **Credits and owned hulls stay account-wide.** A v13 `starwake-v2` blob migrates into slot 1.
+- **Three named slots** on Gate / Options. Each slot keeps ship, fuel (T1+T2), board, diary, local fits. **Credits and owned hulls stay account-wide.** A v13 `starwake-v2` blob migrates into slot 1. Gate New and per-slot wipe moved to career-per-slot in Decision #013.
 - **T2** is FSD fuel. Burn = charge sip (`0.6`) + hop (`max(1.4, ly × 0.22)`). Jump lock gated by remaining T2. Stock tanks: Courier 24, Hauler 48, Scout 32, Clipper 16, Tender 56, Tug 12. Tank alts scale T2 with T1. HUD shows both.
 - **Pump prices** are flat at every hub: T1 ₡2 / unit, T2 ₡8 / unit. Station and Hangar Refuel debit via `buyFuel`. In-flight F / HUD fill is no longer a free cheat. Scoop later.
 
@@ -410,6 +410,27 @@ After first-run playtest: Create → pick hull → wake in Helios → dock and t
 
 ---
 
+## Decision #013: Career per save slot
+
+**Date:** 2026-08-28  
+**Status:** ✅ Implemented  
+**Session:** live loop
+
+### Context
+Gate **New** wiped the active slot’s flight progress with no confirm and left the account profile (name, call sign, hangar, credits). Profile lived on one `players` row; slots did not store identity.
+
+### Decision
+- Creating a pilot **occupies a save slot**. That slot persists progress **including** name, call sign, and mark.
+- Remove **New** from Gate. Continue / Engage stay. Empty slots are not selectable.
+- **Create new profile** lives on Pilot. It parks the current career and occupies the next empty slot (max 3). Cancel restores the previous career.
+- **Delete profile** lives on Pilot, with a confirm. It wipes that slot and switches to another occupied slot, or back to call-sign if none remain.
+- **Credits and owned hulls stay account-wide** (Decision #008). Slot careers share the wallet and hangar. `starter_claimed` stays once per account.
+
+### Review Date
+After create → occupy slot → Continue restores that call sign, and delete-with-confirm leaves other slots intact.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -422,5 +443,5 @@ After first-run playtest: Create → pick hull → wake in Helios → dock and t
 
 ---
 
-**Last Updated:** 2026-08-29  
-**Total Decisions:** 13 approved, 2 pending
+**Last Updated:** 2026-08-28  
+**Total Decisions:** 14 approved, 2 pending

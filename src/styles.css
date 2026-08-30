@@ -727,6 +727,10 @@ button:disabled { cursor: default; }
   padding:10px 12px 8px;
   cursor:pointer
 }
+.save-slot-pick:disabled {
+  cursor:default;
+  opacity:.7
+}
 .save-slot-pick strong {
   display:block;
   letter-spacing:.12em;
@@ -2525,6 +2529,10 @@ button.pad-jump em {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+.pilot-delete {
+  width: min(640px, 100%);
+  margin: 0 auto 18px;
 }
 .pilot-icons {
   display: grid;

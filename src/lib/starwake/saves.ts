@@ -1,3 +1,4 @@
+import { coercePilotIconId, type PilotIconId } from "../player-profile/types.ts";
 import {
   SHIPS,
   SHIP_ORDER,
@@ -21,10 +22,17 @@ export const SAVE_SLOT_NAMES: Record<SaveSlotId, string> = {
   "3": "Slot 3",
 };
 
+export type SlotCareer = {
+  displayName: string;
+  callSign: string;
+  iconId: PilotIconId;
+};
+
 export type SaveSlotSnapshot = {
   name: string;
   hasSave: boolean;
   lastSaveAt: number;
+  career: SlotCareer | null;
   shipId: ShipId;
   systemId: string;
   scanned: Record<string, true>;
@@ -73,6 +81,35 @@ export function isSaveSlotId(v: unknown): v is SaveSlotId {
   return v === "1" || v === "2" || v === "3";
 }
 
+export function sanitizeCareer(raw: unknown): SlotCareer | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Partial<SlotCareer>;
+  const displayName = typeof p.displayName === "string" ? p.displayName.trim().slice(0, 100) : "";
+  const callSign = typeof p.callSign === "string" ? p.callSign.trim().toUpperCase().slice(0, 20) : "";
+  if (displayName.length < 1 || callSign.length < 3) return null;
+  if (displayName === "Pilot" && callSign === "PILOT") return null;
+  return { displayName, callSign, iconId: coercePilotIconId(p.iconId) };
+}
+
+export function slotIsEmpty(slot: SaveSlotSnapshot): boolean {
+  return !slot.hasSave && !slot.career;
+}
+
+export function firstEmptySlotId(
+  slots: Record<SaveSlotId, SaveSlotSnapshot>,
+  prefer?: SaveSlotId,
+): SaveSlotId | null {
+  if (prefer && slotIsEmpty(slots[prefer])) return prefer;
+  return SAVE_SLOT_IDS.find((id) => slotIsEmpty(slots[id])) ?? null;
+}
+
+export function firstOccupiedSlotId(
+  slots: Record<SaveSlotId, SaveSlotSnapshot>,
+  except?: SaveSlotId,
+): SaveSlotId | null {
+  return SAVE_SLOT_IDS.find((id) => id !== except && !slotIsEmpty(slots[id])) ?? null;
+}
+
 function sanitizeHolds(raw: unknown): Record<ShipId, CargoHold> {
   const out = emptyHolds() as Record<ShipId, CargoHold>;
   if (!raw || typeof raw !== "object") return out;
@@ -98,6 +135,7 @@ export function emptySlot(id: SaveSlotId, name = SAVE_SLOT_NAMES[id]): SaveSlotS
     name,
     hasSave: false,
     lastSaveAt: 0,
+    career: null,
     shipId: "courier",
     systemId: "helion",
     scanned: {},
@@ -127,6 +165,7 @@ export function snapshotFromUnknown(raw: unknown, fallback: SaveSlotSnapshot): S
   const shipId = p.shipId && SHIPS[p.shipId] ? p.shipId : fallback.shipId;
   const retired = sanitizeRetired(p.retiredJobs ?? fallback.retiredJobs);
   const name = typeof p.name === "string" && p.name.trim() ? p.name.trim().slice(0, 24) : fallback.name;
+  const career = sanitizeCareer(p.career);
   const manifests = { ...EMPTY_MANIFESTS };
   if (p.manifests && typeof p.manifests === "object") {
     const rec = p.manifests as Partial<Record<ShipId, Manifest | null>>;
@@ -136,13 +175,15 @@ export function snapshotFromUnknown(raw: unknown, fallback: SaveSlotSnapshot): S
     }
   }
   return {
-    name,
+    name: career ? career.callSign.slice(0, 24) : name,
     hasSave: Boolean(
       p.hasSave ||
+        career ||
         (p.scanned && Object.keys(p.scanned).length) ||
         (p.surveys && Object.keys(p.surveys).length),
     ),
     lastSaveAt: typeof p.lastSaveAt === "number" ? p.lastSaveAt : fallback.lastSaveAt,
+    career,
     shipId,
     systemId: typeof p.systemId === "string" && p.systemId ? p.systemId : fallback.systemId,
     scanned: p.scanned ?? {},
@@ -181,7 +222,9 @@ export function migrateSlots(persisted: Record<string, unknown> | null | undefin
       slots[id] = snapshotFromUnknown(rec[id], emptySlot(id));
     }
     const active = isSaveSlotId(p.activeSlotId) ? p.activeSlotId : "1";
-    return { activeSlotId: active, slots };
+    const occupied = firstOccupiedSlotId(slots);
+    const activeSlotId = slotIsEmpty(slots[active]) && occupied ? occupied : active;
+    return { activeSlotId, slots };
   }
   const legacy = snapshotFromUnknown(p, emptySlot("1"));
   return {

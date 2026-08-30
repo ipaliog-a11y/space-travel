@@ -11,7 +11,6 @@ export function SaveSlots({ compact }: Props) {
   const slots = useStarwake((s) => s.slots);
   const setActiveSlot = useStarwake((s) => s.setActiveSlot);
   const copySlot = useStarwake((s) => s.copySlot);
-  const deleteSlot = useStarwake((s) => s.deleteSlot);
   const activeHasSave = slots[activeSlotId]?.hasSave;
 
   return (
@@ -19,13 +18,20 @@ export function SaveSlots({ compact }: Props) {
       {SAVE_SLOT_IDS.map((id) => {
         const slot = slots[id];
         const on = id === activeSlotId;
+        const occupied = slot.hasSave || Boolean(slot.career);
+        const label = slot.career?.callSign ?? slot.name;
         return (
           <div key={id} className={`save-slot${on ? " on" : ""}`}>
-            <button type="button" className="save-slot-pick" onClick={() => setActiveSlot(id)}>
-              <strong>{slot.name}</strong>
+            <button
+              type="button"
+              className="save-slot-pick"
+              disabled={!occupied}
+              onClick={() => occupied && setActiveSlot(id)}
+            >
+              <strong>{label}</strong>
               <span>
-                {slot.hasSave
-                  ? `${SHIPS[slot.shipId].name} · ${slot.systemId}`
+                {occupied
+                  ? `${slot.career?.displayName ? `${slot.career.displayName} · ` : ""}${SHIPS[slot.shipId].name}`
                   : "Empty"}
               </span>
             </button>
@@ -33,11 +39,6 @@ export function SaveSlots({ compact }: Props) {
               {id !== activeSlotId && activeHasSave && (
                 <button type="button" className="save-slot-act" onClick={() => copySlot(activeSlotId, id)}>
                   Copy in
-                </button>
-              )}
-              {slot.hasSave && (
-                <button type="button" className="save-slot-act" onClick={() => deleteSlot(id)}>
-                  Delete
                 </button>
               )}
             </div>

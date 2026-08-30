@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.17] - 2026-08-28
+
+### Changed
+- A save slot is a career: name, call sign, and mark persist with flight progress. Creating a profile occupies a slot. Gate no longer has New. Create / delete live on Pilot, with a confirm before wipe. Credits and owned hulls stay account-wide.
+
 ## [v0.1.16] - 2026-08-29
 
 ### Added
