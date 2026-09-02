@@ -431,6 +431,32 @@ After create → occupy slot → Continue restores that call sign, and delete-wi
 
 ---
 
+## Decision #014: Flight HUD is Helion Cluster
+
+**Date:** 2026-09-02  
+**Status:** ✅ Approved (spec; implementation in game still pending)  
+**Session:** HUD lab A vs B
+
+### Context
+The live HUD is debug chrome (mute, options, stacked numbers). Prototyped two languages over the same chase-cam: A Dispatch Glass (sparse freight tape) and B Helion Cluster (instrument plates).
+
+### Decision
+**B · Helion Cluster.** One HUD for every hull.
+
+- Ivory `#d8d0c0` + teal `#6fbfb6` on ink. Not Elite orange, not SC cyan glass.
+- Left plate: lock + compact radar (radar stays in the plate, never on the ship).
+- Right plate: own ship, MFD Ship / Hold / Jump.
+- Top left: system. Top right: speed + Free / Well / Park / Od / Dock, with `spd` / `rel` / `orb` and a Park lamp.
+- No mute / settings / debug on the canopy.
+- Docked Board and Watch use the same plate language, not a second website UI.
+
+Spec and paste-ready Grok Build prompt: [`HUD_HELION_CLUSTER.md`](HUD_HELION_CLUSTER.md).
+
+### Review Date
+After the first in-game Helion Cluster pass.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -443,5 +469,5 @@ After create → occupy slot → Continue restores that call sign, and delete-wi
 
 ---
 
-**Last Updated:** 2026-08-28  
-**Total Decisions:** 14 approved, 2 pending
+**Last Updated:** 2026-09-02  
+**Total Decisions:** 15 approved, 2 pending
