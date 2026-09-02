@@ -108,6 +108,7 @@ export type EngineHandle = {
   goToBody: (t: LocalTarget) => void;
   lookAtBody: (t: LocalTarget, keepMap?: boolean) => void;
   arrive: (id: string) => void;
+  returnToHangar: () => void;
   [key: string]: unknown;
 };
 
@@ -755,14 +756,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				undockFromStation();
 				return;
 			}
-			if (stEsc.entered) {
-				flushFuel(true);
-				stEsc.setEntered(false);
-				stEsc.setMode("docked");
-				stEsc.markSave();
-				mode = "docked";
-				halt();
-			}
+			// Flight HUD owns Escape while flying (options overlay).
 		}
 	}
 	function onKeyUp(e) {
@@ -2917,6 +2911,17 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		goToBody,
 		lookAtBody,
 		arriveAt: (id) => arrive(id),
+		arrive: (id) => arrive(id),
+		returnToHangar: () => {
+			const st = getStarwake();
+			if (!st.entered) return;
+			flushFuel(true);
+			st.setEntered(false);
+			st.setMode("docked");
+			st.markSave();
+			mode = "docked";
+			halt();
+		},
 		requestJump: () => {
 			jumpQueued = true;
 		},

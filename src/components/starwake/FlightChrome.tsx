@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookMarked, Map as MapIcon, Settings, Volume2, VolumeX } from "lucide-react";
 import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
 import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
 import { formatStop, holdUsed } from "@/lib/starwake/jobs";
@@ -27,15 +26,13 @@ type Props = {
   onJump: () => void;
 };
 
+type Mfd = "ship" | "hold" | "jump";
+
 function regimeLabel(drive: DriveHud) {
   if (drive.regime === "dock") return "Dock";
   if (drive.regime === "od") return drive.boosting ? "Boost" : "Od";
-  if (drive.regime === "park") {
-    return drive.well ? <>Park <strong>{drive.well}</strong></> : "Park";
-  }
-  if (drive.regime === "well") {
-    return drive.well ? <>Well <strong>{drive.well}</strong></> : "Well";
-  }
+  if (drive.regime === "park") return "Park";
+  if (drive.regime === "well") return "Well";
   return "Free";
 }
 
@@ -109,6 +106,8 @@ export function FlightChrome({
   const [savedFlash, setSavedFlash] = useState(false);
   const [opts, setOpts] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [tab, setTab] = useState<Mfd>("hold");
+  const driveRef = useRef(drive);
 
   const syncThr = useCallback((t: number, heat = 0) => {
     const el = thrRef.current;
@@ -124,6 +123,7 @@ export function FlightChrome({
     if (!engine) return;
     return engine.subscribeDrive((d) => {
       setDrive(d);
+      driveRef.current = d;
       syncThr(d.throttle, d.heat01);
     });
   }, [engine, syncThr]);
@@ -151,16 +151,20 @@ export function FlightChrome({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "Escape") return;
-      if (!dossier && !opts && !logOpen) return;
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
+      const d = driveRef.current;
       if (dossier) setDossier(false);
       else if (logOpen) setLogOpen(false);
-      else setOpts(false);
+      else if (opts) setOpts(false);
+      else if (mapOpen) onMap();
+      else if (d.docking) engine?.cancelDock();
+      else if (d.berthed) engine?.undock();
+      else setOpts(true);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [dossier, opts, logOpen]);
+  }, [dossier, opts, logOpen, mapOpen, onMap, engine]);
 
   useEffect(() => {
     const stick = stickRef.current;
@@ -263,9 +267,7 @@ export function FlightChrome({
   const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
 
   useEffect(() => {
-    setWearPenalty(
-      wear ? calculateWearPenalty(wear.wearPoints, wear.maxWearPool) : 0,
-    );
+    setWearPenalty(wear ? calculateWearPenalty(wear.wearPoints, wear.maxWearPool) : 0);
   }, [setWearPenalty, wear?.wearPoints, wear?.maxWearPool]);
   const body = drive.atPlanetId ? getCatalog(systemId, drive.atPlanetId) : null;
   const known = Boolean(drive.atPlanetId && scanned[drive.atPlanetId]);
@@ -288,8 +290,8 @@ export function FlightChrome({
   const tagName = drive.navName || drive.focusName;
   const dist = drive.navDist;
   const eta = formatEta(drive.etaSec);
-  const thrClass = `throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}`;
-  const cap = fittedShip(shipId, loadout).cargoCap;
+  const hull = fittedShip(shipId, loadout);
+  const cap = hull.cargoCap;
   const used = holdUsed(man, cargo);
   const canDock = Boolean(drive.atStationId && !drive.docking && !drive.berthed && !jumping);
   const logged = Boolean(body && surveys[body.id]);
@@ -304,13 +306,14 @@ export function FlightChrome({
       !drive.docking &&
       !drive.berthed,
   );
+  const hullPct = wear ? Math.max(0, 100 - wear.wearPercentage) / 100 : 1;
+  const t1 = drive.fuelCap > 0 ? drive.fuel / drive.fuelCap : 0;
+  const t2 = drive.fuelCap2 > 0 ? drive.fuel2 / drive.fuelCap2 : 0;
+  const lockAngle = tagName ? (hash01(tagName) * 0.7 + 0.15) : 0.22;
+  const headAngle = 0.62 + drive.throttle * 0.08;
 
   return (
-    <div className={`hud${mapOpen || opts ? " mapped" : ""}${logOpen ? " logged" : ""}`}>
-      <div className={`crosshair${tagName ? " locked" : ""}`} aria-hidden="true">
-        <span />
-        <span />
-      </div>
+    <div className={`hud helion${mapOpen || opts ? " mapped" : ""}${logOpen ? " logged" : ""}`}>
       {tagName && (
         <div ref={tagRef} className={`planet-tag${drive.atPlanet ? " near" : ""}`}>
           {tagName}
@@ -323,231 +326,169 @@ export function FlightChrome({
         </div>
       )}
 
-      <div className="lock-line">
-        <div>{here.name}</div>
-        {mode === "transit" && tagName ? (
-          <div>
-            Transit <strong>{tagName}</strong>
-          </div>
-        ) : tagName && (
-          <div>
-            {drive.navName ? "Look" : "On"} <strong>{tagName}</strong>
-            {dist != null && (
-              <span className="tag-dist">
-                {" "}
-                {dist < 10 ? dist.toFixed(1) : dist.toFixed(0)}
-                {eta ? ` · ${eta}` : ""}
-              </span>
-            )}
-          </div>
-        )}
-        <div className={drive.regime === "free" ? "well" : "well on"}>
-          {regimeLabel(drive)}
-        </div>
-        {drive.surveying && (
-          <div className={drive.surveyPaused ? "well" : "well on"}>
-            {drive.surveyPaused
-              ? "Survey hold — reenter well"
-              : <>Survey <strong>{Math.round(drive.survey01 * 100)}</strong></>}
-          </div>
-        )}
-        {drive.atPlanet && !drive.navName && !drive.well && (
-          <div>
-            At <strong>{drive.atPlanet}</strong>
-          </div>
-        )}
-        {locked && (
-          <div>
-            Locked <strong>{locked.name}</strong>
-          </div>
-        )}
+      <div className="helion-sys">
+        System
+        <strong>{here.name}</strong>
       </div>
 
-      <div className="speed-read" aria-label="Speed">
+      <div className="helion-speed">
         <strong>{Math.round(drive.speed)}</strong>
-        <span>{speedUnit(drive)}</span>
+        <span>
+          {speedUnit(drive)} · {regimeLabel(drive)}
+          {drive.regime === "park" ? " · hold" : drive.well ? ` · ${drive.well}` : ""}
+        </span>
+        {drive.regime === "park" && <i className="park-lamp" aria-label="Park" />}
       </div>
-      <div className={`fuel-read${drive.dry ? " dry" : ""}`} aria-label="Type one fuel">
-        <strong>{Math.max(0, Math.round(drive.fuel))}</strong>
-        <span>t1</span>
-      </div>
-      <div className={`fuel-read t2${drive.dry2 ? " dry" : ""}`} aria-label="Type two fuel">
-        <strong>{Math.max(0, Math.round(drive.fuel2))}</strong>
-        <span>t2</span>
-      </div>
-      {wear && (
-        <div
-          className={`wear-read${wear.wearPercentage > 20 ? " worn" : ""}`}
-          aria-label="Hull condition"
-        >
-          <strong>{Math.max(0, 100 - wear.wearPercentage).toFixed(2)}</strong>
-          <span>
-            {wear.activity === "jump" || wear.activity === "dock"
-              ? `${wear.ratePerMin.toFixed(1)}/evt`
-              : `${wear.ratePerMin.toFixed(2)}/min`}
-          </span>
-          {wear.wearPercentage > 20 && (
-            <span>
-              -{Math.round(calculateWearPenalty(wear.wearPoints, wear.maxWearPool) * 100)}%
-            </span>
+
+      <div className="helion-plate left">
+        <div className="k">Lock</div>
+        <div className="name">{tagName || locked?.name || "—"}</div>
+        <div className="meta">
+          {mode === "transit" && tagName
+            ? `Transit ${tagName}`
+            : dist != null
+              ? `${dist < 10 ? dist.toFixed(1) : dist.toFixed(0)} · ${eta}`
+              : locked
+                ? `Jump lock ${locked.name}`
+                : "No look"}
+        </div>
+        <Radar heading={headAngle} lock={lockAngle} hasLock={Boolean(tagName)} />
+        <div className="helion-acts" data-ui>
+          {body && (
+            <button type="button" className="h-btn" onClick={() => (known ? setDossier(true) : onScan())}>
+              {known ? "File" : "Scan"}
+            </button>
           )}
+          {canSurvey && !drive.surveying && (
+            <button type="button" className="h-btn" onClick={() => engine?.requestSurvey()}>
+              Survey
+            </button>
+          )}
+          {canDock && (
+            <button type="button" className="h-btn" onClick={() => engine?.requestDock()}>
+              Dock
+            </button>
+          )}
+          {drive.docking && (
+            <button type="button" className="h-btn" onClick={() => engine?.cancelDock()}>
+              Abort
+            </button>
+          )}
+          <button type="button" className={`h-btn${mapOpen ? " on" : ""}`} onClick={onMap}>
+            Charts
+          </button>
         </div>
-      )}
-      {wear && (
-        <div className="wear-debug" aria-label="Wear rate debug">
-          <span>{wear.activity}</span>
-          <strong>
-            {wear.activity === "jump" || wear.activity === "dock"
-              ? `${wear.ratePerMin.toFixed(1)}/evt`
-              : `${wear.ratePerMin.toFixed(2)}/min`}
-          </strong>
-          <span>+{wear.pendingPoints.toFixed(3)} pend</span>
-          <span>
-            {wear.wearPoints.toFixed(2)}/{Math.round(wear.maxWearPool)}
-          </span>
-        </div>
-      )}
-
-      {(man || cargo.length > 0) && (
-        <div className="job-chip" data-ui>
-          <span className="job-chip-kind">
-            {man ? `${man.loaded ? "hold" : "pickup"} · ${man.job.qty}u` : "own"}
-          </span>
-          <span className="job-chip-title">{man ? man.job.cargo : "owned"}</span>
-          <span className="job-chip-route">
-            {man ? `${formatStop(man.job.from)} → ${formatStop(man.job.to)}` : lotLabel(cargo)}
-          </span>
-          <span className="job-chip-hold">{used}/{Math.round(cap)}</span>
-        </div>
-      )}
-
-      <div className="top-right" data-ui>
-        <button type="button" className="icon-btn" onClick={onSave} aria-label="Save">
-          {savedFlash ? "Ok" : "Save"}
-        </button>
-        <button type="button" className={`icon-btn${opts ? " on" : ""}`} onClick={() => setOpts((v) => !v)} aria-label="Options">
-          <Settings size={16} strokeWidth={1.75} />
-        </button>
-        <button type="button" className={`icon-btn${logOpen ? " on" : ""}`} onClick={() => setLogOpen((v) => !v)} aria-label="Log">
-          <BookMarked size={16} strokeWidth={1.75} />
-        </button>
-        <button type="button" className={`icon-btn${mapOpen ? " on" : ""}`} onClick={onMap} aria-label="Map">
-          <MapIcon size={16} strokeWidth={1.75} />
-        </button>
-        <button type="button" className="icon-btn" onClick={onMute} aria-label={muted ? "Unmute" : "Mute"}>
-          {muted ? <VolumeX size={16} strokeWidth={1.75} /> : <Volume2 size={16} strokeWidth={1.75} />}
-        </button>
       </div>
 
       <div className="stick" ref={stickRef} data-ui aria-label="Ship stick">
-        <label>Stick</label>
         <div className="stick-knob" ref={knobRef} />
       </div>
 
       <div className="drive-dock">
-      <div className={thrClass} ref={thrRef} data-ui aria-label="Throttle">
-        <label>{drive.overheated ? "Heat" : drive.overdrive ? "Od" : "Thr"}</label>
-        <div className="throttle-track">
-          <div className="throttle-od-zone" />
-          <div className="throttle-heat" ref={heatRef} />
-          <div className="throttle-fill" ref={fillRef} />
-          <div className="throttle-notch" />
+        <div
+          className={`throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}`}
+          ref={thrRef}
+          data-ui
+          aria-label="Throttle"
+        >
+          <div className="throttle-track">
+            <div className="throttle-od-zone" />
+            <div className="throttle-heat" ref={heatRef} />
+            <div className="throttle-fill" ref={fillRef} />
+            <div className="throttle-notch" />
+          </div>
+          <div className="throttle-knob" ref={thrKnobRef} />
         </div>
-        <div className="throttle-knob" ref={thrKnobRef} />
       </div>
 
-      <div className="flight-actions" data-ui>
-        {body && (
-          <button
-            type="button"
-            className="act-btn scan"
-            onClick={() => (known ? setDossier(true) : onScan())}
-          >
-            {known ? "Dossier" : "Scan"}
-          </button>
-        )}
-        {canSurvey && !drive.surveying && (
-          <button
-            type="button"
-            className="act-btn scan"
-            onClick={() => engine?.requestSurvey()}
-          >
-            Survey
-          </button>
-        )}
-        {drive.surveying && !drive.surveyPaused && (
-          <button type="button" className="act-btn scan active" disabled>
-            Surveying
-          </button>
-        )}
-        {canDock && (
-          <button
-            type="button"
-            className="act-btn scan"
-            onClick={() => engine?.requestDock()}
-          >
-            Dock
-          </button>
-        )}
-        {drive.docking && (
-          <button
-            type="button"
-            className="act-btn scan"
-            onClick={() => engine?.cancelDock()}
-          >
-            Abort
-          </button>
-        )}
-        <button
-          type="button"
-          className="act-btn jump"
-          disabled={!canJump}
-          onClick={onJump}
-        >
-          Jump
-        </button>
-        <div className="boost-col">
-          <div className="boost-pips" aria-label={`${drive.boostCharges} boosts`}>
-            {Array.from({ length: drive.boostMax }, (_, i) => (
-              <span key={i} className={i < drive.boostCharges ? "on" : ""} />
-            ))}
+      <div className="helion-plate right">
+        <div className="k">{tab === "jump" ? "Fsd" : tab === "ship" ? "Hull" : "Own"}</div>
+        <div className="name">{tab === "jump" ? (locked?.name ?? "Jump") : hull.name}</div>
+        <div className="meta">
+          {tab === "jump"
+            ? canJump
+              ? "Aligned"
+              : jumping
+                ? "Spooling"
+                : "Heading off"
+            : tab === "ship"
+              ? wear
+                ? `wear ${wear.wearPercentage.toFixed(0)}% · bst ${drive.boostCharges}/${drive.boostMax}`
+                : `bst ${drive.boostCharges}/${drive.boostMax}`
+              : man
+                ? `${man.job.cargo} · ${man.job.qty}u`
+                : cargo.length
+                  ? lotLabel(cargo)
+                  : "empty hold"}
+        </div>
+        {tab === "jump" ? (
+          <div className="bars">
+            <Bar label="T2" value={t2} teal dry={drive.dry2} />
+            <Bar label="Head" value={canJump ? 0.92 : 0.34} warn={!canJump} />
+            <Bar label="Lock" value={locked ? 0.8 : 0.12} />
           </div>
-          <BoostButton
-            engine={engine}
-            disabled={jumping || !drive.boostArmed || (drive.boostCharges <= 0 && !drive.boosting)}
-            active={drive.boosting}
-          />
-          <button
-            type="button"
-            className="refill"
-            onClick={() => engine?.refillBoosts()}
-          >
-            Refill
+        ) : tab === "ship" ? (
+          <div className="bars">
+            <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
+            <Bar label="Heat" value={drive.heat01} warn={drive.overheated} />
+            <Bar label="Thr" value={drive.throttle} />
+            <Bar label="Bst" value={drive.boostMax ? drive.boostCharges / drive.boostMax : 0} teal />
+          </div>
+        ) : (
+          <div className="bars">
+            <Bar label="T1" value={t1} teal dry={drive.dry} />
+            <Bar label="T2" value={t2} dry={drive.dry2} />
+            <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
+            <Bar label="Hold" value={cap ? used / cap : 0} />
+          </div>
+        )}
+        {tab === "hold" && (man || cargo.length > 0) && (
+          <div className="hold-line">
+            {man ? `${formatStop(man.job.from)} → ${formatStop(man.job.to)}` : lotLabel(cargo)}
+            <span>
+              {used}/{Math.round(cap)}
+            </span>
+          </div>
+        )}
+        <div className="mfd" data-ui>
+          <button type="button" data-on={tab === "ship"} onClick={() => setTab("ship")}>
+            Ship
           </button>
-          <button
-            type="button"
-            className={`refill${drive.dry || drive.dry2 ? " dry" : ""}`}
-            disabled
-            title="Fill at a lock"
-          >
-            Pump
+          <button type="button" data-on={tab === "hold"} onClick={() => setTab("hold")}>
+            Hold
+          </button>
+          <button type="button" data-on={tab === "jump"} onClick={() => setTab("jump")}>
+            Jump
           </button>
         </div>
-      </div>
+        {tab === "jump" && (
+          <button type="button" className="h-btn jump" data-ui disabled={!canJump} onClick={onJump}>
+            {jumping ? "Spool" : "Jump"}
+          </button>
+        )}
+        {tab === "ship" && (
+          <div className="boost-row" data-ui>
+            <BoostButton
+              engine={engine}
+              disabled={jumping || !drive.boostArmed || (drive.boostCharges <= 0 && !drive.boosting)}
+              active={drive.boosting}
+            />
+          </div>
+        )}
       </div>
 
       {(mode === "charging" || mode === "transit" || drive.surveying) && (
         <div className={`charge-bar${mode === "transit" ? " cruise" : ""}`} aria-hidden="true">
-          <span style={{ width: `${Math.round((mode === "charging" || mode === "transit" ? charge01 : drive.survey01) * 100)}%` }} />
+          <span
+            style={{
+              width: `${Math.round((mode === "charging" || mode === "transit" ? charge01 : drive.survey01) * 100)}%`,
+            }}
+          />
         </div>
       )}
 
       {dossier && drive.atPlanetId && (
-        <Dossier
-          systemId={systemId}
-          planetId={drive.atPlanetId}
-          onClose={() => setDossier(false)}
-        />
+        <Dossier systemId={systemId} planetId={drive.atPlanetId} onClose={() => setDossier(false)} />
       )}
 
       {drive.docking && (
@@ -555,9 +496,24 @@ export function FlightChrome({
           <div className="dock-title">Threading gate {drive.gateIndex + 1} / 10</div>
           <div className="dock-gate" aria-hidden="true" />
           <div className="dock-meters">
-            <div><span>Offset</span><i><b style={{ width: `${Math.max(4, Math.min(100, (1 - drive.alignOff) * 100))}%` }} /></i></div>
-            <div><span>Heading</span><i><b style={{ width: `${Math.max(4, Math.min(100, drive.alignHead * 100))}%` }} /></i></div>
-            <div><span>Speed</span><i><b style={{ width: `${Math.max(4, Math.min(100, (1 - drive.alignSpd) * 100))}%` }} /></i></div>
+            <div>
+              <span>Offset</span>
+              <i>
+                <b style={{ width: `${Math.max(4, Math.min(100, (1 - drive.alignOff) * 100))}%` }} />
+              </i>
+            </div>
+            <div>
+              <span>Heading</span>
+              <i>
+                <b style={{ width: `${Math.max(4, Math.min(100, drive.alignHead * 100))}%` }} />
+              </i>
+            </div>
+            <div>
+              <span>Speed</span>
+              <i>
+                <b style={{ width: `${Math.max(4, Math.min(100, (1 - drive.alignSpd) * 100))}%` }} />
+              </i>
+            </div>
           </div>
           <p className="dock-hint">Slow. Center the gate. Fly through.</p>
         </div>
@@ -597,23 +553,118 @@ export function FlightChrome({
             <span>Planet orbit lines</span>
             <input type="checkbox" checked={showOrbits} onChange={() => useStarwake.getState().toggleOrbits()} />
           </label>
+          <button type="button" className="h-btn" onClick={onSave}>
+            {savedFlash ? "Saved" : "Save"}
+          </button>
+          <button type="button" className="h-btn" onClick={() => setLogOpen(true)}>
+            Log
+          </button>
+          <button
+            type="button"
+            className="h-btn"
+            onClick={() => {
+              setOpts(false);
+              engine?.returnToHangar();
+            }}
+          >
+            Hangar
+          </button>
           <SaveSlots compact />
           <div className="opt-keys" aria-label="Key bindings">
-            <div><kbd>A</kbd> <kbd>Z</kbd><span>throttle</span></div>
-            <div><kbd>Q</kbd> <kbd>E</kbd><span>roll</span></div>
-            <div><kbd>W</kbd> <kbd>S</kbd><span>pitch</span></div>
-            <div><kbd>←</kbd> <kbd>→</kbd><span>yaw</span></div>
-            <div><kbd>Space</kbd><span>boost</span></div>
-            <div><kbd>R</kbd><span>boosts</span></div>
-            <div><kbd>N</kbd><span>map</span></div>
-            <div><kbd>J</kbd><span>jump</span></div>
-            <div><kbd>Esc</kbd><span>menu</span></div>
+            <div>
+              <kbd>A</kbd> <kbd>Z</kbd>
+              <span>throttle</span>
+            </div>
+            <div>
+              <kbd>Q</kbd> <kbd>E</kbd>
+              <span>roll</span>
+            </div>
+            <div>
+              <kbd>W</kbd> <kbd>S</kbd>
+              <span>pitch</span>
+            </div>
+            <div>
+              <kbd>←</kbd> <kbd>→</kbd>
+              <span>yaw</span>
+            </div>
+            <div>
+              <kbd>Space</kbd>
+              <span>boost</span>
+            </div>
+            <div>
+              <kbd>N</kbd>
+              <span>charts</span>
+            </div>
+            <div>
+              <kbd>J</kbd>
+              <span>jump</span>
+            </div>
+            <div>
+              <kbd>Esc</kbd>
+              <span>menu</span>
+            </div>
           </div>
         </div>
       )}
       {logOpen && <LogBook onClose={() => setLogOpen(false)} />}
     </div>
   );
+}
+
+function Bar({
+  label,
+  value,
+  teal,
+  warn,
+  dry,
+}: {
+  label: string;
+  value: number;
+  teal?: boolean;
+  warn?: boolean;
+  dry?: boolean;
+}) {
+  const pct = Math.max(0, Math.min(100, value * 100));
+  return (
+    <div className="bar">
+      <span>{label}</span>
+      <i>
+        <b
+          className={dry || warn ? "warn" : teal ? "teal" : ""}
+          style={{ ["--fill" as string]: `${pct}%` }}
+        />
+      </i>
+      <span>{Math.round(pct)}</span>
+    </div>
+  );
+}
+
+function Radar({ heading, lock, hasLock }: { heading: number; lock: number; hasLock: boolean }) {
+  const hx = 80 + Math.cos(heading * Math.PI * 2) * 48;
+  const hy = 80 + Math.sin(heading * Math.PI * 2) * 48;
+  const lx = 80 + Math.cos(lock * Math.PI * 2) * 36;
+  const ly = 80 + Math.sin(lock * Math.PI * 2) * 36;
+  return (
+    <svg className="helion-radar" viewBox="0 0 160 160" aria-hidden="true">
+      <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(216,208,192,0.2)" strokeWidth="1" />
+      <circle cx="80" cy="80" r="46" fill="none" stroke="rgba(111,191,182,0.28)" strokeWidth="1" />
+      <circle cx="80" cy="80" r="22" fill="none" stroke="rgba(216,208,192,0.18)" strokeWidth="1" />
+      <line x1="80" y1="10" x2="80" y2="150" stroke="rgba(216,208,192,0.12)" />
+      <line x1="10" y1="80" x2="150" y2="80" stroke="rgba(216,208,192,0.12)" />
+      <g className="sweep">
+        <path d="M80 80 L80 12 A68 68 0 0 1 128 36 Z" fill="rgba(111,191,182,0.12)" />
+      </g>
+      {hasLock && <circle cx={lx} cy={ly} r="3.2" fill="#6fbfb6" />}
+      <circle cx={hx} cy={hy} r="2.2" fill="#d8d0c0" />
+      <polygon points="80,72 84,88 80,84 76,88" fill="#d8d0c0" />
+    </svg>
+  );
+}
+
+function hash01(s: string) {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return (n % 1000) / 1000;
 }
 
 function formatEta(sec: number | null | undefined) {
@@ -658,7 +709,7 @@ function BoostButton({
     };
   }, [engine]);
   return (
-    <button ref={ref} type="button" className={`act-btn boost${active ? " active" : ""}`} disabled={disabled}>
+    <button ref={ref} type="button" className={`h-btn boost${active ? " on" : ""}`} disabled={disabled}>
       Boost
     </button>
   );

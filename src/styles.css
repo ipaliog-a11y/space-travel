@@ -1,9 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600&display=swap");
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600&display=swap");
 
 @theme {
   --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
   --font-display: "Instrument Serif", "Times New Roman", serif;
+  --font-helion: "Barlow Condensed", "Outfit", sans-serif;
+  --font-helion-mono: "IBM Plex Mono", ui-monospace, monospace;
   --color-bg: #05050a;
   --color-surface: #121216;
   --color-fg: #ececef;
@@ -12,6 +14,12 @@
   --color-primary: #c5ced8;
   --color-border: #ececef1f;
   --color-accent-fg: #05050a;
+  --color-helion-ink: #07090b;
+  --color-helion-plate: #0c1014;
+  --color-helion-ivory: #d8d0c0;
+  --color-helion-dim: #9a9284;
+  --color-helion-teal: #6fbfb6;
+  --color-helion-warn: #c47a4a;
 }
 
 html, body, #app {
@@ -104,8 +112,8 @@ button:disabled { cursor: default; }
 .hud [data-ui] {
   pointer-events:auto
 }
-.hud.mapped .stick,.hud.mapped .throttle,.hud.mapped .flight-actions,.hud.mapped .crosshair,.hud.mapped .planet-tag,.hud.mapped .speed-read,.hud.mapped .fuel-read,.hud.mapped .wear-read,.hud.mapped .wear-debug,.hud.mapped .job-chip,.hud.mapped .dossier,.hud.mapped .dock-hud,.hud.mapped .station-bay,
-.hud.logged .stick,.hud.logged .throttle,.hud.logged .flight-actions,.hud.logged .crosshair,.hud.logged .planet-tag,.hud.logged .speed-read,.hud.logged .fuel-read,.hud.logged .wear-read,.hud.logged .wear-debug,.hud.logged .job-chip,.hud.logged .dock-hud {
+.hud.mapped .stick,.hud.mapped .throttle,.hud.mapped .flight-actions,.hud.mapped .crosshair,.hud.mapped .planet-tag,.hud.mapped .speed-read,.hud.mapped .fuel-read,.hud.mapped .wear-read,.hud.mapped .wear-debug,.hud.mapped .job-chip,.hud.mapped .dossier,.hud.mapped .dock-hud,.hud.mapped .station-bay,.hud.mapped .helion-plate,.hud.mapped .helion-sys,.hud.mapped .helion-speed,
+.hud.logged .stick,.hud.logged .throttle,.hud.logged .flight-actions,.hud.logged .crosshair,.hud.logged .planet-tag,.hud.logged .speed-read,.hud.logged .fuel-read,.hud.logged .wear-read,.hud.logged .wear-debug,.hud.logged .job-chip,.hud.logged .dock-hud,.hud.logged .helion-plate,.hud.logged .helion-sys,.hud.logged .helion-speed {
   visibility:hidden;
   pointer-events:none
 }
@@ -151,6 +159,12 @@ button:disabled { cursor: default; }
   pointer-events:none
 }
 .hud:has(.station-bay) .dock-hud {
+  visibility:hidden;
+  pointer-events:none
+}
+.hud:has(.station-bay) .helion-plate,
+.hud:has(.station-bay) .helion-sys,
+.hud:has(.station-bay) .helion-speed {
   visibility:hidden;
   pointer-events:none
 }
@@ -2609,4 +2623,303 @@ button.pad-jump em {
   .map-hud-hint { display: none; }
   .nav-route { max-height: 7.5rem; }
   .map-search { min-height: 36px; }
+}
+
+.hud.helion {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-helion-ivory);
+}
+.helion-sys {
+  position: absolute;
+  top: max(1.2rem, env(safe-area-inset-top));
+  left: max(1.1rem, env(safe-area-inset-left));
+  z-index: 4;
+  font-family: var(--font-helion);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-helion-dim);
+}
+.helion-sys strong {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--color-helion-ivory);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+.helion-speed {
+  position: absolute;
+  top: max(1.2rem, env(safe-area-inset-top));
+  right: max(1.2rem, env(safe-area-inset-right));
+  z-index: 4;
+  text-align: right;
+  font-family: var(--font-helion);
+}
+.helion-speed strong {
+  display: block;
+  font-family: var(--font-helion-mono);
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--color-helion-ivory);
+}
+.helion-speed span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-helion-teal);
+}
+.park-lamp {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-helion-teal);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--color-helion-teal) 55%, transparent);
+  vertical-align: middle;
+}
+.helion-plate {
+  position: absolute;
+  bottom: max(1.1rem, env(safe-area-inset-bottom));
+  z-index: 4;
+  width: min(36vw, 230px);
+  padding: 0.7rem 0.8rem 0.75rem;
+  background: color-mix(in oklab, var(--color-helion-plate) 55%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  font-family: var(--font-helion);
+}
+.helion-plate.left { left: max(1rem, env(safe-area-inset-left)); }
+.helion-plate.right { right: max(1rem, env(safe-area-inset-right)); }
+.helion-plate::before,
+.helion-plate::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--color-helion-teal);
+  border-style: solid;
+}
+.helion-plate::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.helion-plate::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.helion-plate .k {
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-helion-teal);
+  margin-bottom: 0.2rem;
+}
+.helion-plate .name {
+  font-size: 1.15rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-helion-ivory);
+}
+.helion-plate .meta {
+  font-family: var(--font-helion-mono);
+  font-size: 0.68rem;
+  color: var(--color-helion-dim);
+  margin-top: 0.15rem;
+}
+.helion-radar {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 0.4rem;
+}
+.helion-radar .sweep {
+  transform-origin: 80px 80px;
+  animation: helion-sweep 6s linear infinite;
+}
+@keyframes helion-sweep { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .helion-radar .sweep { animation: none; }
+}
+.helion-plate .bars {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+.helion-plate .bar {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr 2.2rem;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-helion-mono);
+  font-size: 0.62rem;
+  color: var(--color-helion-dim);
+}
+.helion-plate .bar i {
+  display: block;
+  height: 4px;
+  background: color-mix(in oklab, var(--color-helion-ivory) 12%, transparent);
+}
+.helion-plate .bar i b {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: var(--color-helion-ivory);
+}
+.helion-plate .bar i b.teal { background: var(--color-helion-teal); }
+.helion-plate .bar i b.warn { background: var(--color-helion-warn); }
+.helion-plate .hold-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  font-family: var(--font-helion-mono);
+  font-size: 0.65rem;
+  color: var(--color-helion-teal);
+}
+.helion-plate .mfd {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+.helion-plate .mfd button {
+  flex: 1;
+  min-height: 2.15rem;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: transparent;
+  color: var(--color-helion-dim);
+  font-family: var(--font-helion);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.helion-plate .mfd button[data-on="true"] {
+  color: var(--color-helion-ink);
+  background: var(--color-helion-ivory);
+  border-color: var(--color-helion-ivory);
+}
+.helion-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+.h-btn {
+  min-height: 2.15rem;
+  padding: 0 0.7rem;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 28%, transparent);
+  background: transparent;
+  color: var(--color-helion-ivory);
+  font-family: var(--font-helion);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.h-btn.on, .h-btn.boost.on {
+  background: var(--color-helion-ivory);
+  color: var(--color-helion-ink);
+}
+.h-btn.jump {
+  width: 100%;
+  margin-top: 0.45rem;
+  border-color: var(--color-helion-teal);
+  color: var(--color-helion-teal);
+}
+.h-btn.jump:disabled {
+  opacity: 0.35;
+  border-color: var(--color-helion-dim);
+  color: var(--color-helion-dim);
+}
+.boost-row { margin-top: 0.45rem; }
+.boost-row .h-btn { width: 100%; }
+.hud.helion .stick {
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(0.6rem, env(safe-area-inset-bottom));
+  width: 72px;
+  height: 72px;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: color-mix(in oklab, var(--color-helion-plate) 40%, transparent);
+  opacity: 0.85;
+}
+.hud.helion .stick label { display: none; }
+.hud.helion .drive-dock {
+  right: calc(max(1rem, env(safe-area-inset-right)) + min(36vw, 230px) + 10px);
+  bottom: max(1.2rem, env(safe-area-inset-bottom));
+}
+.hud.helion .throttle {
+  width: 28px;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: color-mix(in oklab, var(--color-helion-plate) 40%, transparent);
+}
+.hud.helion .throttle label { display: none; }
+.hud.helion .planet-tag {
+  font-family: var(--font-helion);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-helion-ivory);
+  border: 0;
+  background: transparent;
+}
+.hud.helion .opt-panel {
+  top: max(3.4rem, calc(env(safe-area-inset-top) + 2.6rem));
+  right: max(1rem, env(safe-area-inset-right));
+  border-radius: 0;
+  background: color-mix(in oklab, var(--color-helion-plate) 88%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  color: var(--color-helion-ivory);
+  font-family: var(--font-helion);
+}
+.hud.helion .opt-panel::before,
+.hud.helion .opt-panel::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--color-helion-teal);
+  border-style: solid;
+  pointer-events: none;
+}
+.hud.helion .opt-panel::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.hud.helion .opt-panel::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.hud.helion .opt-title {
+  color: var(--color-helion-teal);
+  letter-spacing: 0.22em;
+}
+.hud.helion .opt-row {
+  color: var(--color-helion-ivory);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+.hud.helion .opt-row input { accent-color: var(--color-helion-teal); }
+.hud.helion .opt-keys { color: var(--color-helion-dim); }
+.opt-panel .h-btn {
+  margin: 0.35rem 0.35rem 0 0;
+}
+
+@media (max-width: 720px) {
+  .helion-plate {
+    width: calc(50% - 1.4rem);
+    padding: 0.5rem 0.55rem 0.55rem;
+  }
+  .helion-plate .name { font-size: 0.95rem; }
+  .helion-radar {
+    width: 70%;
+    margin-inline: auto;
+    margin-top: 0.25rem;
+  }
+  .helion-plate .bar {
+    grid-template-columns: 1.7rem 1fr 1.5rem;
+    font-size: 0.55rem;
+  }
+  .helion-plate .mfd button { min-height: 2rem; font-size: 0.6rem; }
+  .h-btn { min-height: 2rem; }
+  .hud.helion .drive-dock { display: none; }
+  .hud.helion .stick {
+    width: 56px;
+    height: 56px;
+    bottom: max(0.25rem, env(safe-area-inset-bottom));
+  }
 }
