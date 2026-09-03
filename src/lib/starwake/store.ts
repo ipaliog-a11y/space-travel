@@ -47,7 +47,7 @@ import {
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 16;
+const SAVE_VERSION = 17;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -224,13 +224,14 @@ export const useStarwake = create<StarwakeState>()(
         clipper: { ...STOCK_LOADOUT.clipper },
         tender: { ...STOCK_LOADOUT.tender },
         tug: { ...STOCK_LOADOUT.tug },
+        extractor: { ...STOCK_LOADOUT.extractor },
       },
       fuel: fullTanks(),
       fuel2: fullTanks2(),
       menuView: "menu",
       board: [],
       boardStationId: null,
-      manifests: { courier: null, hauler: null, scout: null, clipper: null, tender: null, tug: null },
+      manifests: { courier: null, hauler: null, scout: null, clipper: null, tender: null, tug: null, extractor: null },
       cargo: emptyHolds() as Record<ShipId, CargoHold>,
       warehouses: {},
       completed: 0,

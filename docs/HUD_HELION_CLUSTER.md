@@ -61,7 +61,7 @@ T2, heading alignment, lock quality. Jump control lives here, not as a floating 
 
 Same language. Plates become Gate / Hangar / Watch / Board. Still ivory + teal plates. No separate “website UI”. Board and market watch are station screens, not a glass ticker on the canopy.
 
-**Implemented** on the live docked overlays: `helion-dock` ink plates, teal kickers, square ivory CTAs, hairline cards. Charts / File / Log use the same sheet language.
+**Implemented** on the live docked overlays: `helion-dock` ink plates, teal kickers, square ivory CTAs, hairline cards. Charts / File / Log use the same sheet language. Flight plates gained **Extract** (same charge bar as Survey) for hub-less worlds.
 
 ---
 

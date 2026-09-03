@@ -21,6 +21,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     fuelCap: 100,
     fuelCap2: 24,
     surveySec: 4.4,
+    extractSec: 14,
     accent: "#d7dde4",
     audioPitch: 1.08,
   },
@@ -44,6 +45,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     fuelCap: 120,
     fuelCap2: 48,
     surveySec: 6.4,
+    extractSec: 10.5,
     accent: "#b7c0c8",
     audioPitch: 0.9,
   },
@@ -67,6 +69,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     fuelCap: 88,
     fuelCap2: 32,
     surveySec: 3.1,
+    extractSec: 12,
     accent: "#d2d8d0",
     audioPitch: 1.16,
   },
@@ -90,6 +93,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     fuelCap: 72,
     fuelCap2: 16,
     surveySec: 4.6,
+    extractSec: 16,
     accent: "#d8d2c8",
     audioPitch: 1.22,
   },
@@ -113,6 +117,7 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     fuelCap: 200,
     fuelCap2: 56,
     surveySec: 5.8,
+    extractSec: 12.5,
     accent: "#c4c8c0",
     audioPitch: 0.84,
   },
@@ -136,17 +141,42 @@ export const SHIPS: Record<ShipId, ShipDef> = {
     fuelCap: 90,
     fuelCap2: 12,
     surveySec: 5.2,
+    extractSec: 9.5,
     accent: "#c8c4bc",
     audioPitch: 0.98,
   },
+  extractor: {
+    id: "extractor",
+    name: "Extractor",
+    role: "Miner",
+    blurb: "Intake boom. Ore bins. Built to pull a wild world.",
+    detail: "Orbital miner — box hull, scoop boom, twin bins. Parks in a well and drinks crust, ice, or haze. Fat hold for dirt. Slow FSD. You came to harvest, not to run packets.",
+    mass: 1.38,
+    turnRate: 0.92,
+    cruiseSpeed: 9.4,
+    overdriveSpeed: 70,
+    overdriveSec: 10,
+    boostCapacity: 5,
+    boostSec: 10,
+    fsdChargeSec: 2.4,
+    jumpRangeLy: 11,
+    cargoCap: 28,
+    coolSec: 8.5,
+    fuelCap: 108,
+    fuelCap2: 22,
+    surveySec: 5.4,
+    extractSec: 2.6,
+    accent: "#c4c0b6",
+    audioPitch: 0.86,
+  },
 };
 
-export const SHIP_ORDER: ShipId[] = ["courier", "hauler", "scout", "clipper", "tender", "tug"];
+export const SHIP_ORDER: ShipId[] = ["courier", "hauler", "scout", "clipper", "tender", "tug", "extractor"];
 /** First free hull. Rank 1 has one bay — pick one, then buy the rest. */
 export const STARTER_HULLS: ShipId[] = ["courier", "hauler", "scout"];
 export const SHIP_SETS: { id: "line" | "yard"; label: string; blurb: string; hulls: ShipId[] }[] = [
   { id: "line", label: "Line", blurb: "Packet, bulk, pathfinder, runner.", hulls: ["courier", "hauler", "scout", "clipper"] },
-  { id: "yard", label: "Yard", blurb: "Fuel and harbor. New set.", hulls: ["tender", "tug"] },
+  { id: "yard", label: "Yard", blurb: "Fuel, harbor, and pull.", hulls: ["tender", "tug", "extractor"] },
 ];
 export const SLOTS: SlotId[] = ["thruster", "drive", "fsd", "hold", "tank", "hx"];
 export const SLOT_LABEL: Record<SlotId, string> = {
@@ -303,6 +333,24 @@ export const MODULES: Record<string, ModuleDef> = {
   "g-hx-stock": { id: "g-hx-stock", slot: "hx", hull: "tug", name: "Bay Fin", blurb: "Stock harbor sink.", stock: true, delta: {} },
   "g-hx-cold": { id: "g-hx-cold", slot: "hx", hull: "tug", name: "Cold Block", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 3, coolSec: 1, mass: 0.05 } },
   "g-hx-vent": { id: "g-hx-vent", slot: "hx", hull: "tug", name: "Bleed", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -2, coolSec: -2 } },
+  "x-thr-stock": { id: "x-thr-stock", slot: "thruster", hull: "extractor", name: "Pull Ring", blurb: "Stock miner gimbals.", stock: true, delta: {} },
+  "x-thr-bite": { id: "x-thr-bite", slot: "thruster", hull: "extractor", name: "Hard Bite", blurb: "Turns harder. Costs mass.", delta: { turnRate: 0.22, mass: 0.08 } },
+  "x-thr-soft": { id: "x-thr-soft", slot: "thruster", hull: "extractor", name: "Soft Ring", blurb: "Lazier. Lighter ring.", delta: { turnRate: -0.16, mass: -0.05 } },
+  "x-drv-stock": { id: "x-drv-stock", slot: "drive", hull: "extractor", name: "Scoop Pulse", blurb: "Stock miner drive.", stock: true, delta: {} },
+  "x-drv-sprint": { id: "x-drv-sprint", slot: "drive", hull: "extractor", name: "Kick Coil", blurb: "Hot OD. Shorter cruise.", delta: { cruiseSpeed: -1.2, overdriveSpeed: 14, overdriveSec: -2, mass: 0.07 } },
+  "x-drv-cruise": { id: "x-drv-cruise", slot: "drive", hull: "extractor", name: "Lane Tube", blurb: "More cruise. Tamer OD.", delta: { cruiseSpeed: 1.6, overdriveSpeed: -10, overdriveSec: 2 } },
+  "x-fsd-stock": { id: "x-fsd-stock", slot: "fsd", hull: "extractor", name: "Mid Spool", blurb: "Stock miner legs.", stock: true, delta: {} },
+  "x-fsd-far": { id: "x-fsd-far", slot: "fsd", hull: "extractor", name: "Stretch", blurb: "A little further. Slower lock.", delta: { jumpRangeLy: 3, fsdChargeSec: 0.8 } },
+  "x-fsd-quick": { id: "x-fsd-quick", slot: "fsd", hull: "extractor", name: "Instant", blurb: "Snaps. Shorter hop.", delta: { jumpRangeLy: -2, fsdChargeSec: -0.5 } },
+  "x-hld-stock": { id: "x-hld-stock", slot: "hold", hull: "extractor", name: "Ore Bay", blurb: "Dirt first. Open bins.", stock: true, delta: {} },
+  "x-hld-rack": { id: "x-hld-rack", slot: "hold", hull: "extractor", name: "Ore Rack", blurb: "More volume. Heavier stick.", delta: { cargoCap: 12, mass: 0.12, turnRate: -0.08 } },
+  "x-hld-seal": { id: "x-hld-seal", slot: "hold", hull: "extractor", name: "Slim Bay", blurb: "Less dirt. Lighter frame.", delta: { cargoCap: -8, mass: -0.08, turnRate: 0.06 } },
+  "x-tnk-stock": { id: "x-tnk-stock", slot: "tank", hull: "extractor", name: "Cell A", blurb: "Stock T1 / mid T2.", stock: true, delta: {} },
+  "x-tnk-long": { id: "x-tnk-long", slot: "tank", hull: "extractor", name: "Long Cell", blurb: "More T1 and T2. Heavier cell.", delta: { fuelCap: 32, fuelCap2: 8, mass: 0.08 } },
+  "x-tnk-light": { id: "x-tnk-light", slot: "tank", hull: "extractor", name: "Drop Tank", blurb: "Lighter. Shorter legs.", delta: { fuelCap: -24, fuelCap2: -6, mass: -0.05 } },
+  "x-hx-stock": { id: "x-hx-stock", slot: "hx", hull: "extractor", name: "Dust Fin", blurb: "Stock miner sink.", stock: true, delta: {} },
+  "x-hx-cold": { id: "x-hx-cold", slot: "hx", hull: "extractor", name: "Cold Block", blurb: "Longer OD. Heavier core.", delta: { overdriveSec: 3, coolSec: 1, mass: 0.06 } },
+  "x-hx-vent": { id: "x-hx-vent", slot: "hx", hull: "extractor", name: "Bleed", blurb: "Dumps fast. Runs hotter.", delta: { overdriveSec: -2, coolSec: -2 } },
 };
 
 export const STOCK_LOADOUT: Loadout = {
@@ -312,6 +360,7 @@ export const STOCK_LOADOUT: Loadout = {
   clipper: { thruster: "k-thr-stock", drive: "k-drv-stock", fsd: "k-fsd-stock", hold: "k-hld-stock", tank: "k-tnk-stock", hx: "k-hx-stock" },
   tender: { thruster: "n-thr-stock", drive: "n-drv-stock", fsd: "n-fsd-stock", hold: "n-hld-stock", tank: "n-tnk-stock", hx: "n-hx-stock" },
   tug: { thruster: "g-thr-stock", drive: "g-drv-stock", fsd: "g-fsd-stock", hold: "g-hld-stock", tank: "g-tnk-stock", hx: "g-hx-stock" },
+  extractor: { thruster: "x-thr-stock", drive: "x-drv-stock", fsd: "x-fsd-stock", hold: "x-hld-stock", tank: "x-tnk-stock", hx: "x-hx-stock" },
 };
 
 export function modulesFor(hull: ShipId, slot: SlotId): ModuleDef[] {
@@ -326,6 +375,7 @@ export function sanitizeLoadout(raw: unknown): Loadout {
     clipper: { ...STOCK_LOADOUT.clipper },
     tender: { ...STOCK_LOADOUT.tender },
     tug: { ...STOCK_LOADOUT.tug },
+    extractor: { ...STOCK_LOADOUT.extractor },
   };
   if (!raw || typeof raw !== "object") return out;
   const rec = raw as Partial<Loadout>;

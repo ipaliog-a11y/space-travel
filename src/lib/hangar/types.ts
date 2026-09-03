@@ -65,6 +65,7 @@ export const SHIP_TYPE_NAMES: Record<ShipType, string> = {
   clipper: 'Clipper',
   tender: 'Tender',
   tug: 'Tug',
+  extractor: 'Extractor',
 };
 
 /** Ship type descriptions */
@@ -75,6 +76,7 @@ export const SHIP_TYPE_DESCRIPTIONS: Record<ShipType, string> = {
   clipper: 'Luxury transport with premium amenities',
   tender: 'Support ship for fleet operations',
   tug: 'Industrial vessel for heavy lifting',
+  extractor: 'Orbital miner for hub-less resource worlds',
 };
 
 /** Wear tier colors for UI */
@@ -113,6 +115,7 @@ export function getShipIcon(type: ShipType): string {
     clipper: '✈️',
     tender: '🚁',
     tug: '🚜',
+    extractor: '⛏️',
   };
   return icons[type];
 }

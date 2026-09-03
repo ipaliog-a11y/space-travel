@@ -68,6 +68,14 @@ const POINTS: Record<ShipId, Record<SlotId, [number, number, number]>> = {
     hold: [0.18, 0.12, 0],
     thruster: [-1.72, 0, 0],
   },
+  extractor: {
+    hx: [-0.82, 0.48, 0],
+    tank: [0.18, -0.38, 0],
+    fsd: [1.05, 0.28, 0],
+    drive: [-0.32, 0.1, 0],
+    hold: [0.22, 0.16, 0],
+    thruster: [-2.05, 0, 0],
+  },
 };
 
 export function HullBay({ hull, slot, onSlot }: Props) {
@@ -263,6 +271,7 @@ function HullMesh({ hull }: { hull: ShipId }) {
   if (hull === "clipper") return <ClipperMesh />;
   if (hull === "tender") return <TenderMesh />;
   if (hull === "tug") return <TugMesh />;
+  if (hull === "extractor") return <ExtractorMesh />;
   return <CourierMesh />;
 }
 
@@ -615,6 +624,68 @@ function TugMesh() {
             <Steel color="#8a8680" metal={0.55} rough={0.4} />
           </mesh>
           <EngineGlow position={[-1.38, 0, s * 0.28]} radius={0.1} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function ExtractorMesh() {
+  return (
+    <group>
+      <mesh castShadow>
+        <boxGeometry args={[2.35, 0.72, 1.05]} />
+        <Steel color="#b0aaa0" metal={0.64} rough={0.46} />
+      </mesh>
+      <mesh position={[0.12, 0.1, 0]} castShadow>
+        <boxGeometry args={[1.45, 0.48, 0.78]} />
+        <Steel color="#7a746c" metal={0.55} rough={0.5} />
+      </mesh>
+      {[-1, 1].map((s) => (
+        <mesh key={`bin-${s}`} position={[0.15, -0.08, s * 0.62]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.28, 0.28, 1.15, 16]} />
+          <Steel color="#8a847a" metal={0.5} rough={0.52} />
+        </mesh>
+      ))}
+      <mesh position={[1.42, 0.08, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.12, 0.16, 0.85, 12]} />
+        <Steel color="#9a948a" metal={0.6} rough={0.42} />
+      </mesh>
+      <mesh position={[1.92, 0.04, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+        <coneGeometry args={[0.32, 0.42, 10]} />
+        <Steel color="#c8c2b6" metal={0.58} rough={0.4} />
+      </mesh>
+      <mesh position={[2.12, 0.04, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[0.28, 0.028, 8, 16]} />
+        <Steel color="#d8d2c6" metal={0.72} rough={0.28} />
+      </mesh>
+      <mesh position={[0.28, 0.34, 0]} scale={[0.38, 0.16, 0.3]} castShadow>
+        <sphereGeometry args={[1, 12, 10]} />
+        <meshStandardMaterial
+          color="#6a7a82"
+          metalness={0.1}
+          roughness={0.14}
+          emissive="#2e3e46"
+          emissiveIntensity={0.24}
+        />
+      </mesh>
+      {[-0.55, 0.35].map((x) => (
+        <mesh key={x} position={[x, 0.4, 0]} castShadow>
+          <boxGeometry args={[0.42, 0.12, 0.7]} />
+          <Steel color="#5a564e" metal={0.45} rough={0.58} />
+        </mesh>
+      ))}
+      <mesh position={[-1.32, 0, 0]} castShadow>
+        <boxGeometry args={[0.62, 0.7, 0.88]} />
+        <Steel color="#6a6660" metal={0.55} rough={0.46} />
+      </mesh>
+      {[-0.28, 0.28].map((z) => (
+        <group key={z}>
+          <mesh position={[-1.72, 0, z]} rotation={[0, 0, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.14, 0.22, 0.52, 12]} />
+            <Steel color="#8a8680" metal={0.52} rough={0.42} />
+          </mesh>
+          <EngineGlow position={[-2.02, 0, z]} radius={0.12} />
         </group>
       ))}
     </group>

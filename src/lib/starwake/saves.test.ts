@@ -91,6 +91,13 @@ describe("starter hulls", () => {
   it("offers courier, hauler, scout", () => {
     assert.deepEqual(STARTER_HULLS, ["courier", "hauler", "scout"]);
   });
+
+  it("empty slots include the Extractor hold", () => {
+    const slot = emptySlot("1");
+    assert.ok("extractor" in slot.cargo);
+    assert.ok("extractor" in slot.loadout);
+    assert.equal(slot.manifests.extractor, null);
+  });
 });
 
 describe("T2 jump fuel", () => {

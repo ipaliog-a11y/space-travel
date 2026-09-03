@@ -78,6 +78,9 @@ const IDLE_DRIVE: DriveHud = {
   surveying: false,
   surveyPaused: false,
   survey01: 0,
+  extracting: false,
+  extractPaused: false,
+  extract01: 0,
   regime: "free",
   speedRel: false,
 };
@@ -316,7 +319,21 @@ export function FlightChrome({
       drive.well &&
       !jumping &&
       !drive.docking &&
-      !drive.berthed,
+      !drive.berthed &&
+      !drive.extracting,
+  );
+  const canExtract = Boolean(
+    body &&
+      body.wild &&
+      body.prospect &&
+      body.prospect.mining > 0 &&
+      logged &&
+      drive.well &&
+      !jumping &&
+      !drive.docking &&
+      !drive.berthed &&
+      !drive.surveying &&
+      used < cap,
   );
   const hullPct = wear ? Math.max(0, 100 - wear.wearPercentage) / 100 : 1;
   const t1 = drive.fuelCap > 0 ? drive.fuel / drive.fuelCap : 0;
@@ -374,6 +391,16 @@ export function FlightChrome({
           {canSurvey && !drive.surveying && (
             <button type="button" className="h-btn" onClick={() => engine?.requestSurvey()}>
               Survey
+            </button>
+          )}
+          {canExtract && !drive.extracting && (
+            <button type="button" className="h-btn" onClick={() => engine?.requestExtract()}>
+              Extract
+            </button>
+          )}
+          {drive.extracting && (
+            <button type="button" className="h-btn" onClick={() => engine?.requestExtract()}>
+              Abort
             </button>
           )}
           {canDock && (
@@ -489,11 +516,17 @@ export function FlightChrome({
         )}
       </div>
 
-      {(mode === "charging" || mode === "transit" || drive.surveying) && (
+      {(mode === "charging" || mode === "transit" || drive.surveying || drive.extracting) && (
         <div className={`charge-bar${mode === "transit" ? " cruise" : ""}`} aria-hidden="true">
           <span
             style={{
-              width: `${Math.round((mode === "charging" || mode === "transit" ? charge01 : drive.survey01) * 100)}%`,
+              width: `${Math.round(
+                (mode === "charging" || mode === "transit"
+                  ? charge01
+                  : drive.extracting
+                    ? drive.extract01
+                    : drive.survey01) * 100,
+              )}%`,
             }}
           />
         </div>

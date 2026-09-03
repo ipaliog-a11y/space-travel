@@ -9,7 +9,7 @@
 // ============================================================================
 
 /** Available ship types in the game */
-export type ShipType = 'courier' | 'hauler' | 'scout' | 'clipper' | 'tender' | 'tug';
+export type ShipType = 'courier' | 'hauler' | 'scout' | 'clipper' | 'tender' | 'tug' | 'extractor';
 
 /** Wear tier classifications based on wear percentage */
 export type WearTier = 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
@@ -87,6 +87,7 @@ export const SHIP_WEAR_POOLS: Record<ShipType, number> = {
   clipper: 90,
   tender: 115,
   tug: 100,
+  extractor: 110,
 };
 
 /** Hardpoint progression bonuses */
@@ -113,6 +114,7 @@ export const SHIP_BASE_PRICES: Record<ShipType, number> = {
   clipper: 200000,
   tender: 180000,
   tug: 130000,
+  extractor: 160000,
 };
 
 /** Credits charged per wear point restored (full repair rounds up). */
@@ -320,5 +322,12 @@ export const SHIP_DEFINITIONS: Record<ShipType, ShipDefinition> = {
     role: 'Harbor',
     baseWearPool: 100,
     description: 'Short legs. Hard RCS. Built to shove a lock.',
+  },
+  extractor: {
+    id: 'extractor',
+    name: 'Extractor',
+    role: 'Miner',
+    baseWearPool: 110,
+    description: 'Intake boom. Ore bins. Built to pull a wild world.',
   },
 };

@@ -202,7 +202,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
       <header className="hangar-head">
         <div className="k">Hangar</div>
         <h1>{SHIPS[shipId].name}</h1>
-        <p className="lede">Two sets. Line flies the routes. Yard fuels and shoves. Pick a bay, fit it, fly.</p>
+        <p className="lede">Two sets. Line flies the routes. Yard fuels, shoves, and pulls. Pick a bay, fit it, fly.</p>
         <p className="keys-hint">
           {completed} run{completed === 1 ? "" : "s"}
           {earned > 0 && (
@@ -342,6 +342,11 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
             <li>
               <em>Survey</em>
               <strong>{fitted.surveySec.toFixed(1)}</strong>
+              <span>s</span>
+            </li>
+            <li>
+              <em>Pull</em>
+              <strong>{fitted.extractSec.toFixed(1)}</strong>
               <span>s</span>
             </li>
             <li>

@@ -8,6 +8,8 @@ import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetMu, plan
 import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, perspective, quatFromEuler, quatFromAxisAngle, quatInvert, quatLook, quatMul, quatNormalize, quatSlerp, quatToMat4, rotateVec, translation, viewFromLook, wrapDelta } from "./math";
 import { BODY_FS, BODY_VS, DUST_FS, DUST_VS, NEBULA_FS, NEBULA_VS, RING_FS, RING_VS, LINE_FS, LINE_VS, STAR_FS, STAR_VS, STREAK_FS, STREAK_VS, WARP_FS, WARP_VS } from "./shaders";
 import { getStarwake } from "./store";
+import { holdUsed } from "./jobs";
+import { extractLots, sourceFromCatalog } from "./mining";
 import { DOCK, HULL, layoutStation, makeBoxMesh, makeCone, makeCylinder, makeTorus, makeUnitSphere, stationLod } from "./station-mesh";
 
 export type LocalTarget =
@@ -71,6 +73,9 @@ export type DriveHud = {
   surveying: boolean;
   surveyPaused: boolean;
   survey01: number;
+  extracting: boolean;
+  extractPaused: boolean;
+  extract01: number;
   regime: "free" | "well" | "park" | "od" | "dock";
   speedRel: boolean;
 };
@@ -83,6 +88,7 @@ export type EngineHandle = {
   cancelDock: () => void;
   undock: () => void;
   requestSurvey: () => void;
+  requestExtract: () => void;
   refillBoosts: () => void;
   refuel: () => void;
   setBoost: (v: boolean) => void;
@@ -291,6 +297,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	let surveyPaused = false;
 	let surveyT = 0;
 	let surveyPlanetId = null;
+	let extracting = false;
+	let extractPaused = false;
+	let extractT = 0;
+	let extractPlanetId = null;
 	function hull() {
 		const st = getStarwake();
 		return liveShip(st.shipId, st.loadout, st.wearPenalty);
@@ -364,6 +374,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			surveying,
 			surveyPaused,
 			survey01: surveyT,
+			extracting,
+			extractPaused,
+			extract01: extractT,
 			regime: flightRegime(),
 			speedRel: Boolean(boundId) || mode === "docking" || mode === "berthed",
 		};
@@ -1602,6 +1615,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		if (st.surveys[id]) return;
 		if (boundId !== id && atPlanetId !== id) return;
 		st.scanPlanet(id);
+		extracting = false;
+		extractPaused = false;
 		if (surveyPlanetId !== id) {
 			surveyPlanetId = id;
 			surveyT = 0;
@@ -1630,6 +1645,76 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		flashT = .4;
 		pushDrive();
 		return true;
+	}
+	function wildLockId() {
+		const sysNow = getSystem(getStarwake().systemId);
+		let id = atPlanetId;
+		if (!id && navTarget) {
+			if (navTarget.kind === "belt") id = sysNow.belt?.id;
+			else if (navTarget.kind !== "star" && navTarget.kind !== "station") id = navTarget.id;
+		}
+		return id;
+	}
+	function finishExtract(id) {
+		const st = getStarwake();
+		const e = getCatalog(st.systemId, id);
+		if (!e || !e.wild || !e.prospect) return false;
+		const src = sourceFromCatalog(e);
+		if (!src) return false;
+		const cap = hull().cargoCap;
+		const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
+		const lots = extractLots(src, cap - used);
+		if (!lots.length) return false;
+		for (const lot of lots) st.stowBuy(lot.goodId, lot.qty, 0);
+		punchT = .28;
+		flashT = .32;
+		return true;
+	}
+	function requestExtract() {
+		if (!getStarwake().entered) return;
+		if (mode !== "local") return;
+		if (extracting) {
+			extracting = false;
+			extractPaused = false;
+			pushDrive();
+			return;
+		}
+		const id = wildLockId();
+		if (!id) return;
+		const e = getCatalog(getStarwake().systemId, id);
+		if (!e || !e.wild || !e.prospect || e.prospect.mining <= 0) return;
+		const st = getStarwake();
+		if (!st.surveys[id]) return;
+		if (boundId !== id && atPlanetId !== id) return;
+		const src = sourceFromCatalog(e);
+		const cap = hull().cargoCap;
+		const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
+		if (!src || !extractLots(src, cap - used).length) return;
+		surveying = false;
+		surveyPaused = false;
+		if (extractPlanetId !== id) {
+			extractPlanetId = id;
+			extractT = 0;
+		}
+		extracting = true;
+		extractPaused = false;
+		pushDrive();
+	}
+	function completeExtractQa() {
+		const id = wildLockId() ?? extractPlanetId;
+		if (!id) return false;
+		const e = getCatalog(getStarwake().systemId, id);
+		if (!e || !e.wild || !e.prospect) return false;
+		const st = getStarwake();
+		st.scanPlanet(id);
+		st.logSurvey(id);
+		extractPlanetId = id;
+		const ok = finishExtract(id);
+		extracting = false;
+		extractPaused = false;
+		extractT = 1;
+		pushDrive();
+		return ok;
 	}
 	function cancelDock() {
 		if (mode !== "docking") return;
@@ -2470,6 +2555,29 @@ export function createEngine(els: OverlayEls): EngineHandle {
 					}
 				}
 			}
+			if (extracting) {
+				const pid = extractPlanetId;
+				const inWell = Boolean(pid && boundId === pid && mode === "local" && !inJump);
+				extractPaused = !inWell;
+				if (inWell && pid) {
+					const dur = Math.max(1.6, def.extractSec || 8);
+					extractT = Math.min(1, extractT + dt / dur);
+					if (extractT >= 1) {
+						finishExtract(pid);
+						const st = getStarwake();
+						const e = getCatalog(st.systemId, pid);
+						const src = e ? sourceFromCatalog(e) : null;
+						const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
+						if (src && extractLots(src, def.cargoCap - used).length) {
+							extractT = 0;
+						} else {
+							extracting = false;
+							extractPaused = false;
+							extractT = 1;
+						}
+					}
+				}
+			}
 			const count = countStars();
 			const densityScaleClamped = clamp(Math.pow(1800 / Math.max(count, 800), .45), .28, 1);
 			wrapCloud(starPos, count, qInv[0], qInv[1], qInv[2], qInv[3], vz, dx, dy, 1, collapse);
@@ -2860,12 +2968,20 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		})),
 		requestSurvey: () => requestSurvey(),
 		completeSurvey: () => completeSurveyQa(),
+		requestExtract: () => requestExtract(),
+		completeExtract: () => completeExtractQa(),
 		getSurvey: () => ({
 			surveying,
 			paused: surveyPaused,
 			t: surveyT,
 			planetId: surveyPlanetId,
 			logged: Boolean(surveyPlanetId && getStarwake().surveys[surveyPlanetId] || atPlanetId && getStarwake().surveys[atPlanetId])
+		}),
+		getExtract: () => ({
+			extracting,
+			paused: extractPaused,
+			t: extractT,
+			planetId: extractPlanetId
 		}),
 		scanPlanet: (id) => getStarwake().scanPlanet(id),
 		getManifest: () => {
@@ -3091,6 +3207,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		},
 		requestSurvey() {
 			requestSurvey();
+		},
+		requestExtract() {
+			requestExtract();
 		},
 		requestJump() {
 			jumpQueued = true;

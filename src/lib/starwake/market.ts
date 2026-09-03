@@ -253,6 +253,7 @@ export function emptyHolds(): Record<string, CargoHold> {
     clipper: [],
     tender: [],
     tug: [],
+    extractor: [],
   };
 }
 

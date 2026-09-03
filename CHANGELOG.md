@@ -2,6 +2,16 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.19] - 2026-09-03
+
+### Added
+- **Extractor** hull (Yard). Scoop boom, ore bins, ₡160k. Fast well pull (`extractSec` 2.6). Other hulls can sip.
+- Planet mining on hub-less worlds. After a survey, Extract pulls gas / liquid / solid harvest into the hold at ₡0. Auto-repeats while you stay in the well. Sell on the watch.
+
+### Changed
+- Decision #007 mining slice is in play. Fleet / risk / player station / extractor pads stay later.
+- File / Hangar show yield lines and Pull time. Gate copy: Yard fuels, shoves, and pulls.
+
 ## [v0.1.18] - 2026-09-03
 
 ### Changed

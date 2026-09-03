@@ -1,4 +1,5 @@
 import { AU_UNITS, apoapsisAu, formatPeriodLine, formatProspect, getCatalog, getStation, periapsisAu } from "@/lib/starwake/galaxy";
+import { formatYieldLine, sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
 
@@ -16,6 +17,7 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
   const rgb = entry.color.map((c) => Math.round(c * 255)).join(" ");
   const wild = entry.wild;
   const port = !wild && entry.planet?.stationId ? getStation(systemId, entry.planet.stationId) : null;
+  const yieldSrc = wild ? sourceFromCatalog(entry) : null;
   const prospectLine = !wild
     ? null
     : !scanned
@@ -45,7 +47,14 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
               {wild ? prospectLine : port ? `${port.name} · ${STATION_KIND_LABEL[port.kind]}` : "Orbital lock"}
             </p>
             {wild && logged && entry.prospect && (
-              <p className="dossier-note">{entry.prospect.note}</p>
+              <>
+                <p className="dossier-note">{entry.prospect.note}</p>
+                {entry.prospect.mining > 0 && yieldSrc && (
+                  <p className="dossier-note">
+                    {formatYieldLine(yieldsFor(yieldSrc), entry.prospect.mining)} · Extract from the well.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -53,7 +62,7 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
           {wild && (
             <div className="wide">
               <dt>Port</dt>
-              <dd>None · orbital survey only</dd>
+              <dd>None · pull from the well</dd>
             </div>
           )}
           {entry.radiusKm != null && <div><dt>Radius</dt><dd>{entry.radiusKm.toLocaleString()} km</dd></div>}

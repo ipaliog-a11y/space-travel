@@ -32,6 +32,7 @@ describe('Ship Ownership System', () => {
       assert.strictEqual(SHIP_WEAR_POOLS.clipper, 90);
       assert.strictEqual(SHIP_WEAR_POOLS.tender, 115);
       assert.strictEqual(SHIP_WEAR_POOLS.tug, 100);
+      assert.strictEqual(SHIP_WEAR_POOLS.extractor, 110);
     });
 
     it('should return correct hardpoint bonuses', () => {

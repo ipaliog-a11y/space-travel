@@ -64,6 +64,7 @@ const EMPTY_MANIFESTS: Record<ShipId, Manifest | null> = {
   clipper: null,
   tender: null,
   tug: null,
+  extractor: null,
 };
 
 function stockLoadout(): Loadout {
@@ -74,6 +75,7 @@ function stockLoadout(): Loadout {
     clipper: { ...STOCK_LOADOUT.clipper },
     tender: { ...STOCK_LOADOUT.tender },
     tug: { ...STOCK_LOADOUT.tug },
+    extractor: { ...STOCK_LOADOUT.extractor },
   };
 }
 
