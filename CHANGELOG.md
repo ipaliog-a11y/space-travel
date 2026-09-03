@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.22] - 2026-09-03
+
+### Changed
+- Hangar hulls are **procedural meshes**, not stacked primitives. Needles are spline-lathed with groove rings; bricks are beveled silhouette extrudes; booms are tubes; Clipper is a faceted lathe. In-flight traffic still uses the lightweight kit.
+
 ## [v0.1.21] - 2026-09-03
 
 ### Added

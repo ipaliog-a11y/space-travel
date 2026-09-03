@@ -45,7 +45,7 @@ Keep contract jobs (safe loop). Buy cargo on a hub **Watch**, own it in the hold
 ### 8. Hull roles — Extractor in play
 Keep Courier / Hauler (cargo) and Scout (range). Tender stays fuel. **Extractor** is the Yard mining hull (scoop boom, ore bins, fast pull). Clipper → passenger / VIP and Tug → salvage stay later. Do not grow the roster blindly.
 
-3D hulls share a kit with the 2D portraits (needle courier, brick hauler, scoop extractor). Hangar bay and in-flight traffic use the same silhouettes. Combat still later.
+Hangar hulls are spline-lathed / extruded from the 2D portraits. In-flight traffic uses the lightweight kit. Combat still later.
 
 ### 9. Planet mining — in play
 Hub-less worlds are **resource planets**, not stations. Each yields a couple of harvest goods (gas / liquid / solid) from its kind. Scan, survey, then **Extract** from the well (gas / ice giants **Scoop** from the bands). Mined lots enter the hold at ₡0 and sell on the watch. Extractor drinks fast; other hulls sip so the loop is discoverable. Pads on those worlds and local surplus pricing stay later.
