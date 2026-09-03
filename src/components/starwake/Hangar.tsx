@@ -198,9 +198,10 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   }, [onBack]);
 
   return (
-    <div className="gate hangar" data-ui>
+    <div className="gate hangar helion-dock" data-ui>
       <header className="hangar-head">
-        <h1>Hangar</h1>
+        <div className="k">Hangar</div>
+        <h1>{SHIPS[shipId].name}</h1>
         <p className="lede">Two sets. Line flies the routes. Yard fuels and shoves. Pick a bay, fit it, fly.</p>
         <p className="keys-hint">
           {completed} run{completed === 1 ? "" : "s"}

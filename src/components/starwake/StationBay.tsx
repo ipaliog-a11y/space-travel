@@ -156,8 +156,9 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   if (!stn) return null;
 
   return (
-    <div className="station-bay" data-ui>
+    <div className="station-bay helion-dock" data-ui>
       <header className="station-head">
+        <div className="k">Board</div>
         <h2>{stn.name}</h2>
         <p>
           {planet?.name ?? sys.name} · {STATION_KIND_LABEL[stn.kind]}

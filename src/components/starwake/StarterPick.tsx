@@ -30,8 +30,9 @@ export function StarterPick({ shipId, onPick, onClaim }: Props) {
   }
 
   return (
-    <div className="gate hangar" data-ui>
+    <div className="gate hangar helion-dock" data-ui>
       <header className="hangar-head">
+        <div className="k">Gate</div>
         <h1>First hull</h1>
         <p className="lede">
           One free stock ship. Rank 1 has one bay. You start in {HOME_SYSTEM_NAME}.

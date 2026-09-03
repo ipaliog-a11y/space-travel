@@ -36,8 +36,9 @@ export function Gate({
   const earned = diaryEarnings(useStarwake((s) => s.jobLog));
 
   return (
-    <div className="gate menu" data-ui>
+    <div className="gate menu helion-dock" data-ui>
       <header className="hangar-head">
+        <div className="k">Gate</div>
         <h1>Starwake</h1>
         <p className="lede">Two hangar sets. Line flies the routes. Yard fuels and shoves. Home is Helios.</p>
         <p className="keys-hint">

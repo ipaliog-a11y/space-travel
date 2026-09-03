@@ -131,7 +131,7 @@ export function MapPanel({
 
   return (
     <>
-      <div className="map-panel nav-console" data-ui>
+      <div className="map-panel nav-console helion-dock" data-ui>
         <div className="map-head">
           <div className="nav-kicker">Nav</div>
           <div className="map-tabs">

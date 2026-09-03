@@ -76,9 +76,10 @@ export function ShipMarket({ onBack, onOwned }: Props) {
   const outgoing = view?.ships.find((s) => s.id === tradeInId);
 
   return (
-    <div className="gate hangar" data-ui>
+    <div className="gate hangar helion-dock" data-ui>
       <header className="hangar-head">
-        <h1>Market</h1>
+        <div className="k">Market</div>
+        <h1>Hulls</h1>
         <p className="lede">Stock hulls. Rank 1 is one bay — trade in to swap. Rel and slot fits stay in Hangar.</p>
         {view && (
           <p className="keys-hint">

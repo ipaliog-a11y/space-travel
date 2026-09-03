@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.18] - 2026-09-03
+
+### Changed
+- Decision #014 complete. Docked screens — Gate, Hangar, Watch, Board, plus Pilot / Market / First hull — use Helion Cluster plates: ivory + teal on ink, teal kickers, square hairline CTAs. No separate website UI. Charts / File / Log match the same sheet.
+
 ## [v0.1.17] - 2026-08-28
 
 ### Changed

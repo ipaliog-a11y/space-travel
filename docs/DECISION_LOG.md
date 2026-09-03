@@ -434,8 +434,8 @@ After create → occupy slot → Continue restores that call sign, and delete-wi
 ## Decision #014: Flight HUD is Helion Cluster
 
 **Date:** 2026-09-02  
-**Status:** ✅ Approved (spec; implementation in game still pending)  
-**Session:** HUD lab A vs B
+**Status:** ✅ Implemented  
+**Session:** HUD lab A vs B · docked restyle 2026-09-03
 
 ### Context
 The live HUD is debug chrome (mute, options, stacked numbers). Prototyped two languages over the same chase-cam: A Dispatch Glass (sparse freight tape) and B Helion Cluster (instrument plates).
@@ -452,8 +452,12 @@ The live HUD is debug chrome (mute, options, stacked numbers). Prototyped two la
 
 Spec and paste-ready Grok Build prompt: [`HUD_HELION_CLUSTER.md`](HUD_HELION_CLUSTER.md).
 
+### Implementation
+- Flight canopy shipped first (chase-cam plates, MFD, Park lamp, Escape → Options).
+- Docked overlays restyled to the same language: Gate / Hangar / Watch / Board, plus Pilot / Market / First hull. Ivory + teal instrument plates, square hairline CTAs, teal kickers. Charts / File / Log use the same sheet. No separate website UI.
+
 ### Review Date
-After the first in-game Helion Cluster pass.
+After mining / Extractor lands on the same plates.
 
 ---
 
@@ -469,5 +473,5 @@ After the first in-game Helion Cluster pass.
 
 ---
 
-**Last Updated:** 2026-09-02  
+**Last Updated:** 2026-09-03  
 **Total Decisions:** 15 approved, 2 pending

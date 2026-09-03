@@ -26,7 +26,7 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
           ? formatProspect(entry.prospect)
           : "Logged";
   return (
-    <div className="dossier" data-ui>
+    <div className="dossier helion-dock" data-ui>
       <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
         ×
       </button>

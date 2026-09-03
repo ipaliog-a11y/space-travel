@@ -122,8 +122,9 @@ export function PilotProfile({ onBack, required, onSaved, onCreateNew }: Props) 
   }
 
   return (
-    <div className="gate hangar" data-ui>
+    <div className="gate hangar helion-dock" data-ui>
       <header className="hangar-head">
+        <div className="k">Pilot</div>
         <h1>{required || creating ? "Call sign" : "Pilot"}</h1>
         <p className="lede">
           {required || creating

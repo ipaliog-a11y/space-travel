@@ -28,7 +28,7 @@ export function LogBook({ onClose }: Props) {
 
   return (
     <>
-      <div className="map-panel log-panel" data-ui>
+      <div className="map-panel log-panel helion-dock" data-ui>
         <div className="map-head">
           <div className="log-title">
             <strong>Log</strong>

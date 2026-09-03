@@ -115,9 +115,10 @@ export function TapeWatch({ onBack }: Props) {
   }
 
   return (
-    <div className="gate hangar tape-page" data-ui>
+    <div className="gate hangar tape-page helion-dock" data-ui>
       <header className="hangar-head">
-        <h1>Watch</h1>
+        <div className="k">Watch</div>
+        <h1>Tape</h1>
         <p className="lede">
           Forty goods, one galaxy tape. Your hold and pads sit at the top. Click a lot or a row to focus it.
         </p>

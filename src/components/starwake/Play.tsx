@@ -170,14 +170,16 @@ export function Play() {
       />
 
       {glError && (
-        <div className="gate">
+        <div className="gate helion-dock">
+          <div className="k">Gate</div>
           <h1>Starwake</h1>
           <p className="lede">{glError}. Try Chrome or Firefox.</p>
         </div>
       )}
 
       {!entered && !glError && (!hydrated || ownedHulls === null) && (
-        <div className="gate" data-ui>
+        <div className="gate helion-dock" data-ui>
+          <div className="k">Gate</div>
           <h1>Starwake</h1>
           <p className="lede">Opening the bay…</p>
         </div>
@@ -207,7 +209,8 @@ export function Play() {
       )}
 
       {!entered && !glError && needsMarket && menuView !== "market" && (
-        <div className="gate" data-ui>
+        <div className="gate helion-dock" data-ui>
+          <div className="k">Gate</div>
           <h1>Starwake</h1>
           <p className="lede">No hull in the bay. The free starter is spent. Buy one on Market.</p>
           <div className="gate-acts">
