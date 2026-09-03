@@ -231,7 +231,7 @@ export function MapPanel({
                           title={scanned[p.id] ? "Open dossier" : "Scan to unlock"}
                         >
                           {p.name}
-                          <em className="map-port">{p.interest === "port" ? (here.stations.find((s) => s.id === p.stationId)?.kind ?? "port") : surveys[p.id] ? "logged" : p.kind === "icegiant" ? "ice giant" : "wild"}</em>
+                          <em className="map-port">{p.interest === "port" ? (here.stations.find((s) => s.id === p.stationId)?.kind ?? "port") : surveys[p.id] && (p.kind === "gas" || p.kind === "icegiant") ? "scoop" : surveys[p.id] ? "logged" : p.kind === "gas" ? "gas giant" : p.kind === "icegiant" ? "ice giant" : "wild"}</em>
                         </button>
                         <span className="map-period" title={formatPeriodLine(p, "long")}>
                           {formatPeriodLine(p)}

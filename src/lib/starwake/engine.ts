@@ -9,7 +9,7 @@ import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, pers
 import { BODY_FS, BODY_VS, DUST_FS, DUST_VS, NEBULA_FS, NEBULA_VS, RING_FS, RING_VS, LINE_FS, LINE_VS, STAR_FS, STAR_VS, STREAK_FS, STREAK_VS, WARP_FS, WARP_VS } from "./shaders";
 import { getStarwake } from "./store";
 import { holdUsed } from "./jobs";
-import { extractLots, sourceFromCatalog } from "./mining";
+import { extractLots, inScoopBand, sourceFromCatalog, yieldsFor } from "./mining";
 import { DOCK, HULL, layoutStation, makeBoxMesh, makeCone, makeCylinder, makeTorus, makeUnitSphere, stationLod } from "./station-mesh";
 
 export type LocalTarget =
@@ -76,6 +76,7 @@ export type DriveHud = {
   extracting: boolean;
   extractPaused: boolean;
   extract01: number;
+  inBands: boolean;
   regime: "free" | "well" | "park" | "od" | "dock";
   speedRel: boolean;
 };
@@ -377,6 +378,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			extracting,
 			extractPaused,
 			extract01: extractT,
+			inBands: inHarvestBands(atPlanetId ?? boundId),
 			regime: flightRegime(),
 			speedRel: Boolean(boundId) || mode === "docking" || mode === "berthed",
 		};
@@ -1655,6 +1657,27 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		}
 		return id;
 	}
+	function harvestBody(id) {
+		if (!id) return null;
+		const st = getStarwake();
+		const e = getCatalog(st.systemId, id);
+		if (!e || !e.wild || !e.prospect) return null;
+		const src = sourceFromCatalog(e);
+		if (!src) return null;
+		const p = e.planet;
+		let dist = Infinity;
+		if (p) {
+			const [x, y, z] = planetWorld(p, worldTime);
+			dist = Math.hypot(shipPos.x - x, shipPos.y - y, shipPos.z - z);
+		}
+		return { e, src, phase: yieldsFor(src).phase, dist, radius: p?.radius ?? 0, planet: p };
+	}
+	function inHarvestBands(id) {
+		const h = harvestBody(id);
+		if (!h) return false;
+		if (h.phase !== "gas" || !h.planet) return Boolean(id && boundId === id && mode === "local");
+		return mode === "local" && inScoopBand(h.dist, h.radius);
+	}
 	function finishExtract(id) {
 		const st = getStarwake();
 		const e = getCatalog(st.systemId, id);
@@ -1685,11 +1708,14 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		if (!e || !e.wild || !e.prospect || e.prospect.mining <= 0) return;
 		const st = getStarwake();
 		if (!st.surveys[id]) return;
-		if (boundId !== id && atPlanetId !== id) return;
-		const src = sourceFromCatalog(e);
+		const h = harvestBody(id);
+		if (!h) return;
+		if (h.phase === "gas") {
+			if (!inHarvestBands(id)) return;
+		} else if (boundId !== id && atPlanetId !== id) return;
 		const cap = hull().cargoCap;
 		const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
-		if (!src || !extractLots(src, cap - used).length) return;
+		if (!extractLots(h.src, cap - used).length) return;
 		surveying = false;
 		surveyPaused = false;
 		if (extractPlanetId !== id) {
@@ -2557,18 +2583,24 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			}
 			if (extracting) {
 				const pid = extractPlanetId;
-				const inWell = Boolean(pid && boundId === pid && mode === "local" && !inJump);
-				extractPaused = !inWell;
-				if (inWell && pid) {
+				const h = harvestBody(pid);
+				const gas = h?.phase === "gas";
+				const inRange = Boolean(
+					pid &&
+						mode === "local" &&
+						!inJump &&
+						h &&
+						(gas ? inHarvestBands(pid) : boundId === pid),
+				);
+				extractPaused = !inRange;
+				if (inRange && pid && h) {
 					const dur = Math.max(1.6, def.extractSec || 8);
 					extractT = Math.min(1, extractT + dt / dur);
 					if (extractT >= 1) {
 						finishExtract(pid);
 						const st = getStarwake();
-						const e = getCatalog(st.systemId, pid);
-						const src = e ? sourceFromCatalog(e) : null;
 						const used = holdUsed(st.manifests[st.shipId], st.cargo[st.shipId]);
-						if (src && extractLots(src, def.cargoCap - used).length) {
+						if (extractLots(h.src, def.cargoCap - used).length) {
 							extractT = 0;
 						} else {
 							extracting = false;

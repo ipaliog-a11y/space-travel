@@ -3,6 +3,7 @@ import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
 import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
 import { formatStop, holdUsed } from "@/lib/starwake/jobs";
 import { EMPTY_HOLD, lotLabel } from "@/lib/starwake/market";
+import { sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
@@ -81,6 +82,7 @@ const IDLE_DRIVE: DriveHud = {
   extracting: false,
   extractPaused: false,
   extract01: 0,
+  inBands: false,
   regime: "free",
   speedRel: false,
 };
@@ -310,6 +312,9 @@ export function FlightChrome({
   const used = holdUsed(man, cargo);
   const canDock = Boolean(drive.atStationId && !drive.docking && !drive.berthed && !jumping);
   const logged = Boolean(body && surveys[body.id]);
+  const harvest = body && body.wild ? sourceFromCatalog(body) : null;
+  const harvestPhase = harvest ? yieldsFor(harvest).phase : null;
+  const gasHarvest = harvestPhase === "gas";
   const canSurvey = Boolean(
     body &&
       body.wild &&
@@ -328,12 +333,12 @@ export function FlightChrome({
       body.prospect &&
       body.prospect.mining > 0 &&
       logged &&
-      drive.well &&
       !jumping &&
       !drive.docking &&
       !drive.berthed &&
       !drive.surveying &&
-      used < cap,
+      used < cap &&
+      (gasHarvest ? drive.inBands : drive.well),
   );
   const hullPct = wear ? Math.max(0, 100 - wear.wearPercentage) / 100 : 1;
   const t1 = drive.fuelCap > 0 ? drive.fuel / drive.fuelCap : 0;
@@ -365,6 +370,7 @@ export function FlightChrome({
         <span>
           {speedUnit(drive)} · {regimeLabel(drive)}
           {drive.regime === "park" ? " · hold" : drive.well ? ` · ${drive.well}` : ""}
+          {drive.inBands ? " · bands" : ""}
         </span>
         {drive.regime === "park" && <i className="park-lamp" aria-label="Park" />}
       </div>
@@ -375,11 +381,15 @@ export function FlightChrome({
         <div className="meta">
           {mode === "transit" && tagName
             ? `Transit ${tagName}`
-            : dist != null
-              ? `${dist < 10 ? dist.toFixed(1) : dist.toFixed(0)} · ${eta}`
-              : locked
-                ? `Jump lock ${locked.name}`
-                : "No look"}
+            : gasHarvest && drive.inBands
+              ? `${dist != null ? (dist < 10 ? dist.toFixed(1) : dist.toFixed(0)) : "—"} · bands`
+              : gasHarvest && drive.well
+                ? `${dist != null ? (dist < 10 ? dist.toFixed(1) : dist.toFixed(0)) : "—"} · haze`
+                : dist != null
+                  ? `${dist < 10 ? dist.toFixed(1) : dist.toFixed(0)} · ${eta}`
+                  : locked
+                    ? `Jump lock ${locked.name}`
+                    : "No look"}
         </div>
         <Radar heading={headAngle} lock={lockAngle} hasLock={Boolean(tagName)} />
         <div className="helion-acts" data-ui>
@@ -395,7 +405,7 @@ export function FlightChrome({
           )}
           {canExtract && !drive.extracting && (
             <button type="button" className="h-btn" onClick={() => engine?.requestExtract()}>
-              Extract
+              {gasHarvest ? "Scoop" : "Extract"}
             </button>
           )}
           {drive.extracting && (

@@ -1,5 +1,5 @@
 import { AU_UNITS, apoapsisAu, formatPeriodLine, formatProspect, getCatalog, getStation, periapsisAu } from "@/lib/starwake/galaxy";
-import { formatYieldLine, sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
+import { formatYieldLine, harvestHint, sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
 
@@ -18,6 +18,7 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
   const wild = entry.wild;
   const port = !wild && entry.planet?.stationId ? getStation(systemId, entry.planet.stationId) : null;
   const yieldSrc = wild ? sourceFromCatalog(entry) : null;
+  const yieldInfo = yieldSrc ? yieldsFor(yieldSrc) : null;
   const prospectLine = !wild
     ? null
     : !scanned
@@ -49,9 +50,9 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
             {wild && logged && entry.prospect && (
               <>
                 <p className="dossier-note">{entry.prospect.note}</p>
-                {entry.prospect.mining > 0 && yieldSrc && (
+                {entry.prospect.mining > 0 && yieldSrc && yieldInfo && (
                   <p className="dossier-note">
-                    {formatYieldLine(yieldsFor(yieldSrc), entry.prospect.mining)} · Extract from the well.
+                    {formatYieldLine(yieldInfo, entry.prospect.mining)} · {harvestHint(yieldInfo.phase)}
                   </p>
                 )}
               </>
@@ -62,7 +63,7 @@ export function Dossier({ systemId, planetId, onClose }: Props) {
           {wild && (
             <div className="wide">
               <dt>Port</dt>
-              <dd>None · pull from the well</dd>
+              <dd>{yieldInfo?.phase === "gas" ? "None · scoop the bands" : "None · pull from the well"}</dd>
             </div>
           )}
           {entry.radiusKm != null && <div><dt>Radius</dt><dd>{entry.radiusKm.toLocaleString()} km</dd></div>}

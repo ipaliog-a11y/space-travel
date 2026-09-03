@@ -105,6 +105,23 @@ export function formatYieldLine(y: BodyYield, mining: ProspectGrade) {
   return `${PHASE_WORD[y.phase]} · ${names}`;
 }
 
+/** Inner keep-out matches `planetKeepOut` (r×1.13). Outer sits inside park (r×1.52) … proximity (r×5.6). */
+export const SCOOP_BAND_INNER = 1.13;
+export const SCOOP_BAND_OUTER = 2.4;
+
+export function isGasHarvest(kind?: PlanetKind | MoonKind | string) {
+  return kind === "gas" || kind === "icegiant";
+}
+
+export function harvestHint(phase: ResourcePhase) {
+  return phase === "gas" ? "Scoop from the bands." : "Extract from the well.";
+}
+
+export function inScoopBand(dist: number, radius: number) {
+  const r = Math.max(1, radius);
+  return dist > r * SCOOP_BAND_INNER && dist < r * SCOOP_BAND_OUTER;
+}
+
 /** Units pulled per well cycle. Grade is qty; Extractor is speed, not a bigger bite. */
 export function extractQty(mining: ProspectGrade) {
   return mining;

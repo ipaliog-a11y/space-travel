@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.20] - 2026-09-03
+
+### Changed
+- Gas and ice giants harvest as a **haze scoop**, not a well park. Drop inside the bands (inside ~2.4 radii; park is already there). HUD shows **Scoop** and **bands**. True gas worlds still yield hydrogen / helium-3; ice giants yield hydrogen / volatiles. Rocky / ice / volcanic pulls stay Extract from the well.
+
 ## [v0.1.19] - 2026-09-03
 
 ### Added

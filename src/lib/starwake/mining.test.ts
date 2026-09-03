@@ -7,6 +7,10 @@ import {
   extractQty,
   extractSecFor,
   formatYieldLine,
+  harvestHint,
+  inScoopBand,
+  isGasHarvest,
+  SCOOP_BAND_OUTER,
   sourceFromCatalog,
   yieldsFor,
   type YieldSource,
@@ -41,6 +45,30 @@ describe("planet mining yields", () => {
   it("gas worlds scoop hydrogen or helium-3", () => {
     const y = yieldsFor(src({ id: "g1", role: "planet", kind: "gas" }));
     assert.ok(y.goods.includes("hydrogen") || y.goods.includes("helium3"));
+    assert.equal(y.phase, "gas");
+  });
+
+  it("ice giants scoop haze, not crust", () => {
+    const y = yieldsFor(src({ id: "ig", role: "planet", kind: "icegiant" }));
+    assert.equal(y.phase, "gas");
+    assert.ok(y.goods.includes("hydrogen") || y.goods.includes("volatiles"));
+    assert.equal(harvestHint("gas"), "Scoop from the bands.");
+    assert.equal(harvestHint("solid"), "Extract from the well.");
+  });
+
+  it("treats gas and icegiant as band scoops; ringed stays a solid pull", () => {
+    assert.equal(isGasHarvest("gas"), true);
+    assert.equal(isGasHarvest("icegiant"), true);
+    assert.equal(isGasHarvest("ringed"), false);
+    assert.equal(yieldsFor(src({ id: "ring", role: "planet", kind: "ringed" })).phase, "solid");
+  });
+
+  it("scoop bands sit inside park and outside the keep-out", () => {
+    const r = 100;
+    assert.equal(inScoopBand(r * 1.52, r), true);
+    assert.equal(inScoopBand(r * 1.05, r), false);
+    assert.equal(inScoopBand(r * 8, r), false);
+    assert.equal(inScoopBand(r * SCOOP_BAND_OUTER - 1, r), true);
   });
 
   it("volcanic worlds can drop rare earths", () => {
