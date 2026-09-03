@@ -109,6 +109,18 @@ export function FlightChrome({
   const [tab, setTab] = useState<Mfd>("hold");
   const driveRef = useRef(drive);
 
+  const leaveToMenu = useCallback(() => {
+    setOpts(false);
+    setLogOpen(false);
+    setDossier(false);
+    if (typeof engine?.returnToHangar === "function") engine.returnToHangar();
+    const st = useStarwake.getState();
+    if (st.entered) {
+      st.setEntered(false);
+      st.markSave();
+    }
+  }, [engine]);
+
   const syncThr = useCallback((t: number, heat = 0) => {
     const el = thrRef.current;
     if (!el || !thrKnobRef.current || !fillRef.current) return;
@@ -559,15 +571,8 @@ export function FlightChrome({
           <button type="button" className="h-btn" onClick={() => setLogOpen(true)}>
             Log
           </button>
-          <button
-            type="button"
-            className="h-btn"
-            onClick={() => {
-              setOpts(false);
-              engine?.returnToHangar();
-            }}
-          >
-            Hangar
+          <button type="button" className="h-btn" onClick={leaveToMenu}>
+            Menu
           </button>
           <SaveSlots compact />
           <div className="opt-keys" aria-label="Key bindings">

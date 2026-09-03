@@ -817,6 +817,16 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		boostLeft = 0;
 		boostHeld = false;
 	}
+	function returnToHangar() {
+		const st = getStarwake();
+		if (!st.entered) return;
+		flushFuel(true);
+		st.setEntered(false);
+		st.setMode("docked");
+		st.markSave();
+		mode = "docked";
+		halt();
+	}
 	function faceWorld(dx, dy, dz) {
 		if (Math.hypot(dx, dy, dz) < 1e-6) return;
 		const yaw = Math.atan2(-dx, -dz);
@@ -2912,16 +2922,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		lookAtBody,
 		arriveAt: (id) => arrive(id),
 		arrive: (id) => arrive(id),
-		returnToHangar: () => {
-			const st = getStarwake();
-			if (!st.entered) return;
-			flushFuel(true);
-			st.setEntered(false);
-			st.setMode("docked");
-			st.markSave();
-			mode = "docked";
-			halt();
-		},
+		returnToHangar,
 		requestJump: () => {
 			jumpQueued = true;
 		},
@@ -3097,6 +3098,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		goToBody,
 		lookAtBody,
 		arrive,
+		returnToHangar,
 		unlockAudio() {
 			audio.unlock();
 		},
