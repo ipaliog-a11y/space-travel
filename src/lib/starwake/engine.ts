@@ -11,6 +11,8 @@ import { getStarwake } from "./store";
 import { holdUsed } from "./jobs";
 import { extractLots, inScoopBand, sourceFromCatalog, yieldsFor } from "./mining";
 import { DOCK, HULL, layoutStation, makeBoxMesh, makeCone, makeCylinder, makeTorus, makeUnitSphere, stationLod } from "./station-mesh";
+import { layoutHull } from "./hull-kit";
+import { systemTraffic } from "./traffic";
 
 export type LocalTarget =
   | { kind: "star" }
@@ -1962,17 +1964,52 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				composeAlongY(model, g.pos[0], g.pos[1], g.pos[2], g.out[0], g.out[1], g.out[2], lit ? 1.05 : 0.82, 2.4, lit ? 1.05 : 0.82);
 				drawPrim(stnCyl, col, lit ? 0.55 : occ[i] ? 0.04 : 0.16, cam, lit ? DOCK : HULL, seed);
 				drawBody(g.pos[0] + g.out[0] * 1.15, g.pos[1] + g.out[1] * 1.15, g.pos[2] + g.out[2] * 1.15, lit ? 0.72 : 0.48, col, lit ? 0.7 : occ[i] ? 0.04 : 0.22, cam, DOCK, seed);
-				if (occ[i] && lod > 1) {
-					const sx = g.pos[0] - g.out[0] * 2.35;
-					const sy = g.pos[1] - g.out[1] * 2.35;
-					const sz = g.pos[2] - g.out[2] * 2.35;
-					composeAlongY(model, sx, sy, sz, g.out[0], g.out[1], g.out[2], 0.38, 2.1, 0.38);
-					drawPrim(stnCyl, [0.28, 0.3, 0.34], 0.02, cam, HULL, seed);
-					drawBody(sx - g.out[0] * 1.05, sy - g.out[1] * 1.05, sz - g.out[2] * 1.05, 0.38, [0.32, 0.34, 0.38], 0.03, cam, HULL, seed);
-				}
 			}
 		}
 		if (ringProg) drawRing(hx, hy, hz, stn.ringR, cam, docking ? 0.55 : 0.22);
+	}
+	function drawHullAt(pose, cam) {
+		const dx = pose.pos[0] - cam[0], dy = pose.pos[1] - cam[1], dz = pose.pos[2] - cam[2];
+		const dist = Math.hypot(dx, dy, dz);
+		if (dist > 280) return;
+		const lod = dist > 95 ? 0 : dist > 38 ? 1 : 2;
+		const parts = layoutHull(pose.hull, lod);
+		const fx = pose.forward[0], fy = pose.forward[1], fz = pose.forward[2];
+		let ux = pose.up[0], uy = pose.up[1], uz = pose.up[2];
+		let rx = fy * uz - fz * uy;
+		let ry = fz * ux - fx * uz;
+		let rz = fx * uy - fy * ux;
+		const rl = Math.hypot(rx, ry, rz);
+		if (rl < 1e-4) {
+			rx = fz; ry = 0; rz = -fx;
+		} else {
+			rx /= rl; ry /= rl; rz /= rl;
+		}
+		ux = ry * fz - rz * fy;
+		uy = rz * fx - rx * fz;
+		uz = rx * fy - ry * fx;
+		const ul = Math.hypot(ux, uy, uz) || 1;
+		ux /= ul; uy /= ul; uz /= ul;
+		const scale = pose.scale;
+		const seed = seedOf(pose.stationId + pose.hull);
+		for (let i = 0; i < parts.length; i++) {
+			const p = parts[i];
+			const px = pose.pos[0] + (fx * p.p[0] + ux * p.p[1] + rx * p.p[2]) * scale;
+			const py = pose.pos[1] + (fy * p.p[0] + uy * p.p[1] + ry * p.p[2]) * scale;
+			const pz = pose.pos[2] + (fz * p.p[0] + uz * p.p[1] + rz * p.p[2]) * scale;
+			const ax = fx * p.ax[0] + ux * p.ax[1] + rx * p.ax[2];
+			const ay = fy * p.ax[0] + uy * p.ax[1] + ry * p.ax[2];
+			const az = fz * p.ax[0] + uz * p.ax[1] + rz * p.ax[2];
+			const sx = p.s[0] * scale, sy = p.s[1] * scale, sz = p.s[2] * scale;
+			if (p.along === "z") composeAlongZ(model, px, py, pz, ax, ay, az, sx, sy, sz);
+			else composeAlongY(model, px, py, pz, ax, ay, az, sx, sy, sz);
+			const emit = p.emit + (p.emit > 0.5 ? pose.glow * 0.35 : 0);
+			drawPrim(MESH[p.mesh] || stnSphere, p.color, emit, cam, p.shade, seed + i * 0.013);
+		}
+	}
+	function drawTraffic(sys, cam) {
+		const list = systemTraffic(sys, worldTime);
+		for (let i = 0; i < list.length; i++) drawHullAt(list[i], cam);
 	}
 	function drawRing(cx, cy, cz, radius, cam, alpha) {
 		if (!ringProg) return;
@@ -2827,6 +2864,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 					const planet = sys.planets.find((p) => p.id === stn.planetId);
 					if (planet) drawStation(stn, planet, cam);
 				}
+				if (mode !== "jump" && !inJump) drawTraffic(sys, cam);
 				drawBody(0, 0, 0, sys.starRadius, sys.starColor, 1.35, cam, 0, seedOf(sys.id));
 				if (st.showOrbits && lineProg) {
 					gl.disable(gl.DEPTH_TEST);
@@ -3015,6 +3053,12 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			t: extractT,
 			planetId: extractPlanetId
 		}),
+		getTraffic: () => systemTraffic(getSystem(getStarwake().systemId), worldTime).map((p) => ({
+			hull: p.hull,
+			role: p.role,
+			stationId: p.stationId,
+			pos: p.pos
+		})),
 		scanPlanet: (id) => getStarwake().scanPlanet(id),
 		getManifest: () => {
 			const st = getStarwake();

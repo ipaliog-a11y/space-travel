@@ -2,6 +2,12 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.21] - 2026-09-03
+
+### Added
+- Cosmetic NPC traffic: other hulls berth on occupied gates, approach the lock, and hop a lane between hubs. No contracts yet.
+- Shared hull kit so Hangar 3D and in-flight ships match the 2D portraits (needle Courier, brick Hauler with orange stripe, scoop Extractor, dish Scout).
+
 ## [v0.1.20] - 2026-09-03
 
 ### Changed

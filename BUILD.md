@@ -45,13 +45,13 @@ Keep contract jobs (safe loop). Buy cargo on a hub **Watch**, own it in the hold
 ### 8. Hull roles — Extractor in play
 Keep Courier / Hauler (cargo) and Scout (range). Tender stays fuel. **Extractor** is the Yard mining hull (scoop boom, ore bins, fast pull). Clipper → passenger / VIP and Tug → salvage stay later. Do not grow the roster blindly.
 
-3D Grok hulls are too low-poly vs `public/ships/` 2D art. Higher-detail 3D or a different pipeline; 2D portraits stay the quality bar. Combat still later.
+3D hulls share a kit with the 2D portraits (needle courier, brick hauler, scoop extractor). Hangar bay and in-flight traffic use the same silhouettes. Combat still later.
 
 ### 9. Planet mining — in play
-Hub-less worlds are **resource planets**, not stations. Each yields a couple of harvest goods (gas / liquid / solid) from its kind. Scan, survey, then **Extract** from the well. Mined lots enter the hold at ₡0 and sell on the watch. Extractor drinks fast; other hulls sip so the loop is discoverable. Pads on those worlds and local surplus pricing stay later.
+Hub-less worlds are **resource planets**, not stations. Each yields a couple of harvest goods (gas / liquid / solid) from its kind. Scan, survey, then **Extract** from the well (gas / ice giants **Scoop** from the bands). Mined lots enter the hold at ₡0 and sell on the watch. Extractor drinks fast; other hulls sip so the loop is discoverable. Pads on those worlds and local surplus pricing stay later.
 
 ### 10. Fleet
-Small transport company: a couple of NPC ships on **contracts only** (not merchant trading). Steady, lower-rate income; routes + upkeep so it is not free money. Player can fly jobs, trade, and run the fleet at the same time.
+**Cosmetic traffic in play** — other hulls berth on occupied gates and fly approaches / a lane between hubs. No contracts, no pay. Next: a couple of NPC ships on **contracts only** (not merchant trading). Steady, lower-rate income; routes + upkeep so it is not free money. Player can fly jobs, trade, and run the fleet at the same time.
 
 ### 11. Risk and events
 Pirate / interdiction on hauls. Market shocks (spikes / crashes that feed the watch). Reputation / faction contracts stay deprioritized.
