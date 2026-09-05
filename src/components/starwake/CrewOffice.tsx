@@ -129,12 +129,22 @@ export function CrewOffice({ onBack }: Props) {
       }
       if (pirate.lost) {
         useStarwake.getState().claimCrewRun(id, 0);
+        useStarwake.getState().pushNotice({
+          kicker: "Intercept",
+          title: `${row.name} stopped`,
+          body: "Packet gone.",
+        });
         setErr(`${row.name} lost the packet.`);
         return;
       }
       const r = await payCrewRun({ data: { hull: row.hull, job: row.run.job } });
       setCredits(r.credits);
       useStarwake.getState().claimCrewRun(id, r.paid);
+      useStarwake.getState().pushNotice({
+        kicker: "Line",
+        title: `${row.name} docked`,
+        body: `Cut ₡${r.paid.toLocaleString()}. Rel + tanks.`,
+      });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Cut failed");
     } finally {

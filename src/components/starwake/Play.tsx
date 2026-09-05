@@ -18,7 +18,9 @@ import { ShipMarket } from "./ShipMarket";
 import { StarterPick } from "./StarterPick";
 import { TapeWatch } from "./TapeWatch";
 import { CrewOffice } from "./CrewOffice";
+import { NoticeStack } from "./NoticeStack";
 import { isJumpMode, type ShipId } from "@/lib/starwake/types";
+import { shockLive, goodById } from "@/lib/starwake/market";
 
 export function Play() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -125,10 +127,20 @@ export function Play() {
             }
             if (pirate.lost) {
               useStarwake.getState().claimCrewRun(row.id, 0);
+              useStarwake.getState().pushNotice({
+                kicker: "Intercept",
+                title: `${row.name} stopped`,
+                body: "Packet gone.",
+              });
               continue;
             }
             const r = await payCrewRun({ data: { hull: row.hull, job: row.run.job } });
             useStarwake.getState().claimCrewRun(row.id, r.paid);
+            useStarwake.getState().pushNotice({
+              kicker: "Line",
+              title: `${row.name} docked`,
+              body: `Cut ₡${r.paid.toLocaleString()}. Rel + tanks.`,
+            });
           }
         } catch {
           /* leave unclaimed; office Collect still works */
@@ -136,6 +148,24 @@ export function Play() {
           busy = false;
         }
       })();
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let last = "";
+    const id = window.setInterval(() => {
+      const s = shockLive();
+      const key = s ? `${s.startTick}|${s.goodId}|${s.kind}` : "";
+      if (key && key !== last) {
+        last = key;
+        useStarwake.getState().pushNotice({
+          kicker: s!.kind === "spike" ? "Spike" : "Crash",
+          title: goodById(s!.goodId).name,
+          body: "Same tape everywhere.",
+        });
+      }
+      if (!key) last = "";
     }, 1000);
     return () => window.clearInterval(id);
   }, []);
@@ -206,6 +236,7 @@ export function Play() {
         className={`flash${isJumpMode(mode) ? " warp" : ""}${mode === "hyperspace" || mode === "charging" ? " fsd" : ""}`}
         ref={flashRef}
       />
+      <NoticeStack />
 
       {glError && (
         <div className="gate helion-dock">

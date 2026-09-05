@@ -150,3 +150,13 @@ export function systemTraffic(sys: StarSystem, t: number): TrafficPose[] {
   out.push(...laneTraffic(sys, t));
   return out;
 }
+
+export function trafficCensus(poses: { role: TrafficPose["role"] }[]) {
+  let fly = 0;
+  let pad = 0;
+  for (const p of poses) {
+    if (p.role === "berthed") pad += 1;
+    else fly += 1;
+  }
+  return { fly, pad, all: poses.length };
+}

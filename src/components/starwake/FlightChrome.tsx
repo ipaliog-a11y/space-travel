@@ -18,6 +18,8 @@ import { Dossier } from "./Dossier";
 import { LogBook } from "./LogBook";
 import { SaveSlots } from "./SaveSlots";
 import { StationBay } from "./StationBay";
+import { trafficCensus } from "@/lib/starwake/traffic";
+import { rollCrewPirate } from "@/lib/starwake/fleet-run";
 
 type Props = {
   engine: EngineHandle | null;
@@ -123,6 +125,7 @@ export function FlightChrome({
   const [hitErr, setHitErr] = useState<string | null>(null);
   const odSec = useRef(0);
   const lastHitAt = useRef(0);
+  const [npc, setNpc] = useState({ fly: 0, pad: 0 });
   const driveRef = useRef(drive);
 
   const leaveToMenu = useCallback(() => {
@@ -260,9 +263,40 @@ export function FlightChrome({
       setHitErr(null);
       setHit({ ransom });
       lastHitAt.current = Date.now();
+      useStarwake.getState().pushNotice({
+        kicker: "Intercept",
+        title: "A kite on the tape",
+        body: `Pay ₡${ransom.toLocaleString()}, dump, or boost.`,
+      });
     }, 1000);
     return () => window.clearInterval(id);
   }, [engine, hit]);
+
+  useEffect(() => {
+    if (!engine) return;
+    const tick = () => {
+      const list = (typeof engine.getTraffic === "function" ? engine.getTraffic() : []) as { role: "berthed" | "approach" | "lane" }[];
+      setNpc(trafficCensus(list));
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [engine]);
+
+  function onCrewEvent() {
+    const st = useStarwake.getState();
+    const flying = st.crew.find((c) => c.run?.phase === "flight");
+    if (!flying) {
+      st.pushNotice({ kicker: "Line", title: "No crew in the black", body: "Bond a hull, then Event." });
+      return;
+    }
+    const pirate = rollCrewPirate(flying, Date.now());
+    st.pushNotice({
+      kicker: "Intercept",
+      title: pirate.hit ? `${flying.name} stopped` : `${flying.name} kite`,
+      body: pirate.lost ? "Packet gone." : pirate.hit ? "Held the packet." : "Forced a kite. Lane was quiet.",
+    });
+  }
 
   useEffect(() => {
     const stick = stickRef.current;
@@ -667,6 +701,15 @@ export function FlightChrome({
         </div>
       )}
 
+      <div className="flight-debug" data-ui>
+        <span>
+          NPC {npc.fly} fly · {npc.pad} pad
+        </span>
+        <button type="button" className="h-btn" onClick={onCrewEvent}>
+          Event
+        </button>
+      </div>
+
       {hit && (
         <div className="helion-confirm" role="dialog" aria-modal="true" aria-labelledby="intercept-title">
           <div className="helion-confirm-card">
@@ -742,7 +785,7 @@ export function FlightChrome({
             </div>
             <div>
               <kbd>Q</kbd> <kbd>E</kbd>
-              <span>roll</span>
+              <span>roll · Q right</span>
             </div>
             <div>
               <kbd>W</kbd> <kbd>S</kbd>

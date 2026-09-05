@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.36] - 2026-09-05
+
+### Changed
+- 5s event toasts (intercept, crew dock, tape shock). Q/E roll swapped, no roll rebound. Flight debug: NPC count + Event.
+
 ## [v0.1.35] - 2026-09-05
 
 ### Changed

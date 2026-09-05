@@ -46,6 +46,7 @@ import {
 } from "./saves";
 import { dueCrews, dueRests, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
 import { claimCrew, launchCrew, makeCrew, originFromSave } from "./fleet-run";
+import { liveNotices, makeNotice, type Notice } from "./notices";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
@@ -149,6 +150,7 @@ export type StarwakeState = {
   lastSaveAt: number;
   career: SlotCareer | null;
   crew: Crew[];
+  notices: Notice[];
   activeSlotId: SaveSlotId;
   slots: Record<SaveSlotId, SaveSlotSnapshot>;
   setEntered: (v: boolean) => void;
@@ -207,6 +209,8 @@ export type StarwakeState = {
   dueCrews: (now?: number) => Crew[];
   launchDueCrews: (now?: number) => void;
   claimCrewRun: (id: string, paid: number, now?: number) => boolean;
+  pushNotice: (n: { kicker: string; title: string; body: string }, ms?: number) => void;
+  pruneNotices: (now?: number) => void;
 };
 
 export const useStarwake = create<StarwakeState>()(
@@ -259,6 +263,7 @@ export const useStarwake = create<StarwakeState>()(
       lastSaveAt: 0,
       career: null,
       crew: [],
+      notices: [],
       activeSlotId: "1",
       slots: {
         "1": emptySlot("1"),
@@ -840,6 +845,15 @@ export const useStarwake = create<StarwakeState>()(
           lastSaveAt: now,
         });
         return true;
+      },
+      pushNotice: (n, ms) => {
+        const next = liveNotices([...get().notices, makeNotice(n, Date.now(), ms)]);
+        set({ notices: next });
+      },
+      pruneNotices: (now = Date.now()) => {
+        const next = liveNotices(get().notices, now);
+        if (next.length === get().notices.length) return;
+        set({ notices: next });
       },
     }),
     {

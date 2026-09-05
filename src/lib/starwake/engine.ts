@@ -2141,8 +2141,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			if (held("ArrowRight")) yawInput -= 1 * invX;
 			if (held("KeyW") || held("ArrowUp")) pitchInput -= 1 * invY;
 			if (held("KeyS") || held("ArrowDown")) pitchInput += 1 * invY;
-			if (held("KeyQ")) rollInput += 1;
-			if (held("KeyE")) rollInput -= 1;
+			if (held("KeyQ")) rollInput -= 1;
+			if (held("KeyE")) rollInput += 1;
 			if (qaSteer != null) yawInput = qaSteer;
 			yawInput += -shapeAxis(stickX, .08) * invX;
 			pitchInput += shapeAxis(stickY, .08) * invY;
@@ -2319,17 +2319,16 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const targetSteerY = clamp(pitchInput, -1, 1);
 			const targetSteerR = clamp(rollInput, -1, 1);
 			const follow = 1 - Math.exp(-11 * dt);
-			const rollFollow = 1 - Math.exp(-6.2 * dt);
 			steerX += (targetSteerX - steerX) * follow;
 			steerY += (targetSteerY - steerY) * follow;
-			steerR += (targetSteerR - steerR) * rollFollow;
+			steerR = targetSteerR;
 			const turnRate = def.turnRate * (1 - boostAmt * .2) * lockedTurn;
 			const yawDelta = steerX * turnRate * dt;
 			const pitchDelta = steerY * turnRate * .85 * dt;
 			const rollDelta = steerR * turnRate * .42 * dt;
 			headingYaw += yawDelta;
 			shipRoll += rollDelta;
-			bankRoll += (steerR * .28 - bankRoll) * rollFollow;
+			bankRoll = steerR * 0.28;
 			const cyL = Math.cos(lookYaw), syL = Math.sin(lookYaw);
 			const cpL = Math.cos(lookPitch), spL = Math.sin(lookPitch);
 			const camRight = [
