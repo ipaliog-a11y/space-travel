@@ -2478,7 +2478,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 								rvy += (fwd[1] * drive - rvy) * k;
 								rvz += (fwd[2] * drive - rvz) * k;
 							} else {
-								const acc = drive * (drive < 0 ? 3.8 : 2.2);
+								const acc = drive * (drive < 0 ? 1.15 : 1.7);
 								rvx += fwd[0] * acc * h;
 								rvy += fwd[1] * acc * h;
 								rvz += fwd[2] * acc * h;

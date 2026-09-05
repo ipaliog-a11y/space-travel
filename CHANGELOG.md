@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.29] - 2026-09-05
+
+### Changed
+- Reverse is RCS only (~9% of cruise). Forward eases in so a crack of lever is not a jump.
+
 ## [v0.1.28] - 2026-09-05
 
 ### Changed

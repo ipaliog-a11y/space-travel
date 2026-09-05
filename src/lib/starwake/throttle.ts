@@ -1,13 +1,17 @@
 /**
  * Throttle lever: reverse below 0, idle halt near a pad, forward / overdrive above.
+ * Reverse is RCS only. Forward is eased so a crack of lever is not a jump.
  * Visual: reverse is the bottom 22% of the track; 0 sits on a detent.
  */
 export const THR_MIN = -1;
 export const THR_MAX = 1;
 export const THR_DEAD = 0.04;
 export const THR_DOCK_CAP = 0.26;
-export const THR_DOCK_REV = -0.55;
-export const THR_REV_FRAC = 0.62;
+export const THR_DOCK_REV = -1;
+/** Full reverse as a fraction of cruise — pad / station RCS, not a reverse gear. */
+export const THR_REV_FRAC = 0.09;
+/** Ease-in on 0..cruise. 1.75 keeps mid-stick useful, low stick quiet. */
+export const FWD_GAMMA = 1.75;
 export const THR_ZERO_VIS = 0.22;
 /** Relative speed (engine units) under which idle throttle kills residual drift near a pad. */
 export const HALT_REL = 7;
@@ -19,9 +23,14 @@ export function clampThrottle(t: number, overheated: boolean, odGate: number, do
   return Math.max(lo, Math.min(hi, t));
 }
 
+export function forwardShape(u: number): number {
+  const x = Math.max(0, Math.min(1, u));
+  return x ** FWD_GAMMA;
+}
+
 export function driveFromThrottle(t: number, cruise: number, odSpeed: number, odGate: number): number {
   if (t >= 0) {
-    if (t <= odGate) return (t / Math.max(0.05, odGate)) * cruise;
+    if (t <= odGate) return forwardShape(t / Math.max(0.05, odGate)) * cruise;
     const k = (t - odGate) / 0.25;
     return cruise + k * (odSpeed - cruise);
   }
@@ -51,9 +60,9 @@ export function idleHalt(
   return nearStation && relSpeed < HALT_REL;
 }
 
-/** Closing speed along heading while on the pad approach. Negative = reverse. */
+/** Closing speed along heading while on the pad approach. Negative = reverse. No +floor — that made the first millimetre a jump. */
 export function dockClose(throttle: number, drive: number): number {
-  if (throttle > THR_DEAD) return 1.4 + Math.max(0, drive) * 1.6;
-  if (throttle < -THR_DEAD) return drive * 1.35;
+  if (throttle > THR_DEAD) return Math.max(0, drive) * 0.92;
+  if (throttle < -THR_DEAD) return drive * 0.85;
   return 0;
 }
