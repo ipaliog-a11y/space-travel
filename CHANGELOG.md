@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.46] - 2026-09-05
+
+### Changed
+- Empty `public/starwake/ortho/` for upcoming orthographic sheets.
+
 ## [v0.1.45] - 2026-09-05
 
 ### Changed
