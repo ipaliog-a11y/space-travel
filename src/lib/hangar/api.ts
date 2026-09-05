@@ -320,6 +320,17 @@ export const buyOutpost = createServerFn({ method: "POST" })
     return { credits: next.credits, paid: OUTPOST_COST };
   });
 
+export const buyOutpostT1 = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<{ credits: number; paid: number }> => {
+    const { T1_COST } = await import("../starwake/outpost.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const profile = await requireCompleteProfile(context.userId);
+    if (profile.credits < T1_COST) throw new Error(`Need ₡${T1_COST.toLocaleString()}`);
+    const next = await modifyCredits(context.userId, -T1_COST);
+    return { credits: next.credits, paid: T1_COST };
+  });
+
 export const hireCrewBond = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { hull: "courier" | "hauler" | "extractor"; shipKey: string }) => data)
@@ -388,20 +399,23 @@ export const tradeCargo = createServerFn({ method: "POST" })
     side: "buy" | "sell";
     systemId: string;
     stationId: string;
+    yard?: boolean;
   }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number; unit: number }> => {
     const { hubKey, hubTrades, isGoodId, quoteGood } = await import("../starwake/market.ts");
     const { getStation } = await import("../starwake/galaxy.ts");
+    const { sellPaid } = await import("../starwake/outpost.ts");
     const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
     if (!isGoodId(data.goodId)) throw new Error("Unknown good");
     const qty = Math.max(0, Math.round(data.qty));
     if (qty <= 0) throw new Error("Need a quantity");
-    if (!getStation(data.systemId, data.stationId)) throw new Error("Unknown hub");
+    const ownLock = data.stationId.startsWith("st-own-");
+    if (!ownLock && !getStation(data.systemId, data.stationId)) throw new Error("Unknown hub");
     if (!hubTrades(hubKey(data.systemId, data.stationId), data.goodId)) {
       throw new Error("This lock does not list that good");
     }
     const unit = quoteGood(data.goodId);
-    const paid = unit * qty;
+    const paid = data.side === "sell" ? sellPaid(qty, unit, Boolean(data.yard)) : unit * qty;
     await requireCompleteProfile(context.userId);
     if (data.side === "buy") {
       const profile = await modifyCredits(context.userId, -paid);

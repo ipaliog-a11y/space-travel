@@ -20,6 +20,7 @@ import {
 } from "@/lib/starwake/market";
 import { useStarwake } from "@/lib/starwake/store";
 import { tradeCargo } from "@/lib/hangar/api";
+import { canRemoteSell, isOwnLock, YARD_CUT } from "@/lib/starwake/outpost";
 
 type Props = {
   systemId: string;
@@ -42,6 +43,12 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
   const dumpPad = useStarwake((s) => s.dumpPad);
   const stowPad = useStarwake((s) => s.stowPad);
   const storeHold = useStarwake((s) => s.storeHold);
+  const outpost = useStarwake((s) => s.outpost);
+  const own = isOwnLock(stationId, outpost);
+  const remote = canRemoteSell(systemId, stationId, outpost);
+  const annexHub = outpost ? hubKey(outpost.systemId, outpost.id) : "";
+  const annexWare = remote ? warehouses[annexHub] ?? EMPTY_HOLD : EMPTY_HOLD;
+  const yard = !own;
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(() => Math.floor(Date.now() / MARKET_TICK_MS));
   const hub = hubKey(systemId, stationId);
@@ -120,7 +127,7 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
     onError(null);
     try {
       const result = await tradeCargo({
-        data: { goodId, qty, side: "sell", systemId, stationId },
+        data: { goodId, qty, side: "sell", systemId, stationId, yard },
       });
       onCredits(result.credits);
     } catch (err) {
@@ -142,7 +149,7 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
     onError(null);
     try {
       const result = await tradeCargo({
-        data: { goodId, qty, side: "sell", systemId, stationId },
+        data: { goodId, qty, side: "sell", systemId, stationId, yard },
       });
       onCredits(result.credits);
     } catch (err) {
@@ -153,11 +160,37 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
     }
   }
 
+  async function onSellAnnex(goodId: GoodId, qty: number) {
+    if (busy || qty <= 0 || !outpost || !remote) return;
+    if (!hubListings(hub).includes(goodId)) {
+      onError("This lock does not take that lot");
+      return;
+    }
+    const pulled = dumpPad(goodId, qty, outpost.systemId, outpost.id);
+    if (!pulled) {
+      onError("Nothing on the annex");
+      return;
+    }
+    setBusy(`annex-${goodId}`);
+    onError(null);
+    try {
+      const result = await tradeCargo({
+        data: { goodId, qty, side: "sell", systemId, stationId, yard: false },
+      });
+      onCredits(result.credits);
+    } catch (err) {
+      stowPad(goodId, pulled.qty, outpost.systemId, outpost.id, pulled.paid);
+      onError(err instanceof Error ? err.message : "Sell failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <section className="job-board station-board market-watch" aria-label="Market watch">
       <div className="job-board-head">
         <h2>Watch</h2>
-        <span>This lock lists eight. Same ₡ on the galaxy tape. Jobs stay safe.</span>
+        <span>This lock lists eight. Same ₡ on the galaxy tape.{yard ? ` Public sell −${Math.round(YARD_CUT * 100)}%.` : " Annex sells full tape."}</span>
       </div>
       <p className="bay-caption">
         Hold {lotLabel(cargo)} · pad {lotLabel(ware)} · {used}/{Math.round(cap)} u
@@ -178,7 +211,9 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
         <div className="pad-now" aria-label="Cargo on this pad">
           <div className="job-board-head">
             <h2>This pad</h2>
-            <span>Stored here. Sell on this lock if it lists the good. No sell from the Watch warehouse.</span>
+            <span>
+              Stored here. {own ? "Full tape." : `Yard cut ${Math.round(YARD_CUT * 100)}%.`} Sell if this lock lists the good.
+            </span>
           </div>
           <div className="watch-grid">
             {markHold(ware).map((lot) => {
@@ -208,7 +243,42 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
                       disabled={busy !== null || !lists}
                       onClick={() => void onSellPad(lot.goodId, lot.qty)}
                     >
-                      {lists ? "Sell pad" : "No list"}
+                      {lists ? (own ? "Sell pad" : `Sell pad −${Math.round(YARD_CUT * 100)}%`) : "No list"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {remote && annexWare.length > 0 && (
+        <div className="pad-now" aria-label="Annex cargo">
+          <div className="job-board-head">
+            <h2>{outpost?.name ?? "Annex"}</h2>
+            <span>Same system. Sell through this lock at full tape if it lists the good.</span>
+          </div>
+          <div className="watch-grid">
+            {markHold(annexWare).map((lot) => {
+              const good = goodById(lot.goodId);
+              const lists = hubListings(hub).includes(lot.goodId);
+              return (
+                <article key={`annex-${lot.goodId}`} className="job-card watch-card">
+                  <span className="job-kind">
+                    annex · {KIND_LABEL[good.kind]} · ₡{lot.unit}
+                  </span>
+                  <span className="job-title">{good.name}</span>
+                  <span className="job-route">
+                    {lotBasis(annexWare, lot.goodId)} · {lot.pnl >= 0 ? "+" : "−"}₡{Math.abs(lot.pnl).toLocaleString()}
+                  </span>
+                  <div className="watch-acts">
+                    <button
+                      type="button"
+                      className="job-drop"
+                      disabled={busy !== null || !lists}
+                      onClick={() => void onSellAnnex(lot.goodId, lot.qty)}
+                    >
+                      {lists ? "Sell annex" : "No list"}
                     </button>
                   </div>
                 </article>
@@ -266,7 +336,7 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
                     disabled={busy !== null}
                     onClick={() => void onSell(row.good.id, have)}
                   >
-                    Sell
+                    Sell{yard ? ` −${Math.round(YARD_CUT * 100)}%` : ""}
                   </button>
                 )}
                 {have > 0 && (

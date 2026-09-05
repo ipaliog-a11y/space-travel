@@ -56,8 +56,8 @@ Hub-less worlds are **resource planets**, not stations. Each yields a couple of 
 ### 11. Risk and events — in play
 Pirate / interdiction on hauls (pay, dump, or boost — ship stays). Market shocks (spikes / crashes on the one galaxy tape). Reputation / faction contracts stay deprioritized.
 
-### 12. Player station — storage in play
-Buy one **annex lock** in the system you are docked in (₡36k). Wild-world anchor if the system has one. 120 u storage. Same tape. Price leverage and upgrades later. Extractor pads on resource worlds can share this track.
+### 12. Player station — storage + leverage in play
+Buy one **annex lock** (₡36k, 120 u). T1 expand ₡18k → 240 u. Public pads take **6%** on sell; annex sells full tape. Docked in the annex system, Watch can sell annex lots. Extractor pads on resource worlds later.
 
 ## Loops (run together)
 

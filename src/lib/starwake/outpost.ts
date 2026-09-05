@@ -6,6 +6,9 @@ import type { Station, StarSystem } from "./types.ts";
 
 export const OUTPOST_COST = 36_000;
 export const OUTPOST_CAP = 120;
+export const T1_COST = 18_000;
+export const T1_CAP = 240;
+export const YARD_CUT = 0.06;
 
 export type Outpost = {
   id: string;
@@ -24,13 +27,14 @@ export function sanitizeOutpost(raw: unknown): Outpost | null {
   if (typeof p.planetId !== "string" || !p.planetId) return null;
   const name = typeof p.name === "string" && p.name.trim() ? p.name.trim().slice(0, 32) : "Annex";
   const cap = typeof p.cap === "number" && p.cap > 0 ? Math.round(p.cap) : OUTPOST_CAP;
+  const tier = p.tier === 1 ? 1 : 0;
   return {
     id: p.id.slice(0, 48),
     systemId: p.systemId.slice(0, 48),
     planetId: p.planetId.slice(0, 48),
     name,
-    tier: 0,
-    cap: Math.max(24, Math.min(240, cap)),
+    tier,
+    cap: Math.max(24, Math.min(T1_CAP, tier === 1 ? Math.max(cap, T1_CAP) : cap)),
   };
 }
 
@@ -92,4 +96,19 @@ export function padCap(hub: string, o: Outpost | null): number | null {
   if (!o) return null;
   if (hub === `${o.systemId}:${o.id}`) return o.cap;
   return null;
+}
+
+export function sellPaid(qty: number, unit: number, yard: boolean) {
+  const gross = Math.max(0, Math.round(qty)) * Math.max(0, Math.round(unit));
+  if (!yard) return gross;
+  return Math.floor(gross * (1 - YARD_CUT));
+}
+
+export function canRemoteSell(systemId: string, stationId: string, o: Outpost | null) {
+  return Boolean(o && o.systemId === systemId && o.id !== stationId);
+}
+
+export function upgradeOutpost(o: Outpost): Outpost {
+  if (o.tier >= 1) return o;
+  return { ...o, tier: 1, cap: T1_CAP };
 }

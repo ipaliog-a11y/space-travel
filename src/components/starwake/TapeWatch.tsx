@@ -138,7 +138,7 @@ export function TapeWatch({ onBack }: Props) {
         </div>
         <p className="lede">
           {page === "house"
-            ? "Lots on your pads. Paper ₡ only. Sell when you are docked at that lock."
+            ? "Lots on your pads. Paper ₡. Public sell −6%. Annex is full tape, same system."
             : page === "scan"
               ? "Movers and wait-or-dump. Same tape everywhere. No sell from here."
               : "Forty goods, one galaxy tape. Click a lot or a row to focus it."}

@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  canRemoteSell,
   crewYieldHub,
   foundOutpost,
   isOwnLock,
@@ -8,7 +9,12 @@ import {
   OUTPOST_COST,
   padCap,
   sanitizeOutpost,
+  sellPaid,
+  T1_CAP,
+  T1_COST,
+  upgradeOutpost,
   withOutpost,
+  YARD_CUT,
 } from "./outpost.ts";
 import type { Planet, StarSystem, Station } from "./types.ts";
 
@@ -113,5 +119,24 @@ describe("player outpost", () => {
       cap: 120,
     });
     assert.equal(o?.id, "st-own-helion");
+  });
+
+  it("takes a yard cut on public sells and none on the annex", () => {
+    assert.equal(sellPaid(10, 100, false), 1000);
+    assert.equal(sellPaid(10, 100, true), Math.floor(1000 * (1 - YARD_CUT)));
+    assert.equal(YARD_CUT, 0.06);
+  });
+
+  it("expands to 240 u and allows same-system remote sell", () => {
+    const o = foundOutpost(sys(), "Kite");
+    assert.ok(o);
+    const up = upgradeOutpost(o);
+    assert.equal(up.tier, 1);
+    assert.equal(up.cap, T1_CAP);
+    assert.ok(T1_COST < OUTPOST_COST);
+    assert.equal(canRemoteSell("helion", "st-port", up), true);
+    assert.equal(canRemoteSell("helion", up.id, up), false);
+    assert.equal(canRemoteSell("vega", "st-x", up), false);
+    assert.equal(padCap(`helion:${up.id}`, up), T1_CAP);
   });
 });

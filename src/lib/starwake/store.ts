@@ -47,7 +47,7 @@ import {
 import { dueCrews, dueRests, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
 import { claimCrew, launchCrew, makeCrew, originFromSave } from "./fleet-run";
 import { liveNotices, makeNotice, type Notice } from "./notices";
-import { foundOutpost, crewYieldHub, padCap, type Outpost } from "./outpost";
+import { foundOutpost, crewYieldHub, padCap, upgradeOutpost, type Outpost } from "./outpost";
 import { crewYieldGood } from "./fleet-run";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
@@ -217,6 +217,7 @@ export type StarwakeState = {
   pushNotice: (n: { kicker: string; title: string; body: string }, ms?: number) => void;
   pruneNotices: (now?: number) => void;
   foundPlayerLock: () => boolean;
+  upgradePlayerLock: () => boolean;
 };
 
 export const useStarwake = create<StarwakeState>()(
@@ -894,6 +895,16 @@ export const useStarwake = create<StarwakeState>()(
         if (!next) return false;
         set({
           outpost: next,
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return true;
+      },
+      upgradePlayerLock: () => {
+        const st = get();
+        if (!st.outpost || st.outpost.tier >= 1) return false;
+        set({
+          outpost: upgradeOutpost(st.outpost),
           hasSave: true,
           lastSaveAt: Date.now(),
         });

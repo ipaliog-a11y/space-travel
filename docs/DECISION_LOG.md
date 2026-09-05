@@ -539,6 +539,8 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 **Quality bar:** `outpost.test.ts`. One annex per career. `padCap` only on the own hub.
 
+**Follow-up (2026-09-05):** Public yard cut 6%. Annex full tape. T1 ₡18k → 240 u. Same-system remote sell of annex lots. Still one tape.
+
 ---
 
 ## Pending Decisions

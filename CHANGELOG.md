@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.40] - 2026-09-05
+
+### Changed
+- Annex leverage: public sell −6%, annex full tape, T1 ₡18k → 240 u, same-system remote sell.
+
 ## [v0.1.39] - 2026-09-05
 
 ### Changed

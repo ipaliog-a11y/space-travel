@@ -7,8 +7,8 @@ import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
 import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
 import type { CargoJob } from "@/lib/starwake/types";
-import { buyFuel, buyOutpost, loadRepairStatus, payJobDelivery, repairCurrentHull, type WearSnapshot } from "@/lib/hangar/api";
-import { foundOutpost, isOwnLock, OUTPOST_CAP, OUTPOST_COST } from "@/lib/starwake/outpost";
+import { buyFuel, buyOutpost, buyOutpostT1, loadRepairStatus, payJobDelivery, repairCurrentHull, type WearSnapshot } from "@/lib/hangar/api";
+import { foundOutpost, isOwnLock, OUTPOST_CAP, OUTPOST_COST, T1_CAP, T1_COST } from "@/lib/starwake/outpost";
 import { HelionConfirm } from "./HelionConfirm";
 import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
 import type { HardpointTier } from "@/lib/ship-ownership/types";
@@ -70,6 +70,8 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const [repairError, setRepairError] = useState<string | null>(null);
   const [foundAsk, setFoundAsk] = useState(false);
   const [founding, setFounding] = useState(false);
+  const [upAsk, setUpAsk] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const deliverPay = man ? jobPayout(man.job) : 0;
 
   useEffect(() => {
@@ -181,6 +183,32 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
     }
   }
 
+  async function onUpgrade() {
+    if (!outpost || outpost.tier >= 1 || upgrading) return;
+    if (credits != null && credits < T1_COST) {
+      setRepairError(`Need ₡${T1_COST.toLocaleString()} to expand`);
+      setUpAsk(false);
+      return;
+    }
+    setUpgrading(true);
+    setRepairError(null);
+    try {
+      const r = await buyOutpostT1();
+      setCredits(r.credits);
+      if (!useStarwake.getState().upgradePlayerLock()) throw new Error("Already expanded");
+      useStarwake.getState().pushNotice({
+        kicker: "Annex",
+        title: "Bay expanded",
+        body: `${T1_CAP} u. Full tape. Same-system sell.`,
+      });
+      setUpAsk(false);
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : "Upgrade failed");
+    } finally {
+      setUpgrading(false);
+    }
+  }
+
   if (!stn) return null;
 
   return (
@@ -190,7 +218,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
         <h2>{stn.name}</h2>
         <p>
           {planet?.name ?? sys.name} · {STATION_KIND_LABEL[stn.kind]}
-          {own ? ` · your lock · ${OUTPOST_CAP} u` : ""}
+          {own ? ` · your lock · ${outpost?.cap ?? OUTPOST_CAP} u` : ""}
         </p>
         <p>{STATION_KIND_BLURB[stn.kind]}</p>
       </header>
@@ -199,7 +227,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
         <span>T2 {Math.round(fuel2 ?? 0)}/{Math.round(cap2)}</span>
         <span>Hold {used}/{Math.round(hold)} u</span>
         {ware.length > 0 && <span>Pad {cargoQty(ware)} u · {lotLabel(ware)}</span>}
-        {own && ware.length === 0 && <span>Annex 0/{OUTPOST_CAP} u</span>}
+        {own && ware.length === 0 && <span>Annex 0/{outpost?.cap ?? OUTPOST_CAP} u</span>}
         {credits != null && <span>₡{Math.round(credits).toLocaleString()}</span>}
         <span>HP {HARDPOINT_TIER_NAMES[hardpointTier]}</span>
       </div>
@@ -239,6 +267,16 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
             disabled={founding || (credits != null && credits < OUTPOST_COST)}
           >
             Found lock ₡{OUTPOST_COST.toLocaleString()}
+          </button>
+        )}
+        {outpost && outpost.systemId === systemId && outpost.tier < 1 && (
+          <button
+            type="button"
+            className="engage ghost"
+            onClick={() => setUpAsk(true)}
+            disabled={upgrading || (credits != null && credits < T1_COST)}
+          >
+            Expand bay ₡{T1_COST.toLocaleString()}
           </button>
         )}
         {canLoad && (
@@ -309,6 +347,17 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
           busy={founding}
           onConfirm={() => void onFound()}
           onCancel={() => setFoundAsk(false)}
+        />
+      )}
+      {upAsk && (
+        <HelionConfirm
+          kicker="Annex"
+          title="Expand the bay"
+          body={`₡${T1_COST.toLocaleString()} for ${T1_CAP} u. Public pads still take 6%. Annex sells full tape. Same-system remote sell stays.`}
+          confirmLabel={upgrading ? "Expanding" : "Expand"}
+          busy={upgrading}
+          onConfirm={() => void onUpgrade()}
+          onCancel={() => setUpAsk(false)}
         />
       )}
     </div>
