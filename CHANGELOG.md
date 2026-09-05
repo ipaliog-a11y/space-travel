@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.28] - 2026-09-05
+
+### Changed
+- Throttle goes below 0 into reverse to kill speed. Around a dock, idle is a halt — not a coast past the pad.
+
 ## [v0.1.27] - 2026-09-05
 
 ### Changed

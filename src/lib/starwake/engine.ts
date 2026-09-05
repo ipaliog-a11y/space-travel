@@ -13,6 +13,7 @@ import { extractLots, inScoopBand, sourceFromCatalog, yieldsFor } from "./mining
 import { DOCK, HULL, layoutStation, makeBoxMesh, makeCone, makeCylinder, makeTorus, makeUnitSphere, stationLod } from "./station-mesh";
 import { layoutHull } from "./hull-kit";
 import { systemTraffic } from "./traffic";
+import { clampThrottle, dockClose, driveFromThrottle, idleHalt, THR_DEAD, THR_DOCK_CAP } from "./throttle";
 
 export type LocalTarget =
   | { kind: "star" }
@@ -358,7 +359,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			etaSec: hopEta(),
 			canJump: canFireJump(),
 			scanned: Boolean(atPlanetId && getStarwake().scanned[atPlanetId]),
-			coasting: st.entered && throttle <= .03,
+			coasting: st.entered && Math.abs(throttle) <= THR_DEAD,
 			well: boundName,
 			fuel: fuelLocal,
 			fuelCap: def.fuelCap,
@@ -398,7 +399,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		driveSubs.forEach((fn) => fn(snap));
 	}
 	function applyThrottle(t) {
-		throttle = overheated ? Math.min(clamp(t, 0, 1), OD_GATE) : clamp(t, 0, 1);
+		throttle = clampThrottle(t, overheated, OD_GATE, mode === "docking");
 		pushDrive();
 	}
 	let boostHeld = false;
@@ -1600,7 +1601,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		parkHold = false;
 		lookYaw = 0;
 		lookPitch = 0;
-		applyThrottle(Math.min(throttle, .26));
+		applyThrottle(Math.min(throttle, THR_DOCK_CAP));
 		pushDrive();
 	}
 	function requestSurvey() {
@@ -2324,22 +2325,18 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				if (boostActive) drive = def.overdriveSpeed;
 				else {
 					const t = overheated ? Math.min(throttle, OD_GATE) : throttle;
-					if (t <= OD_GATE) drive = t / OD_GATE * def.cruiseSpeed;
-					else {
-						const k = (t - OD_GATE) / .25;
-						drive = def.cruiseSpeed + k * (def.overdriveSpeed - def.cruiseSpeed);
-					}
+					drive = driveFromThrottle(t, def.cruiseSpeed, def.overdriveSpeed, OD_GATE);
 				}
 			}
 			if (dry) {
 				drive = 0;
 				boostActive = false;
 			}
-			if (mode === "docking" && throttle > .26) applyThrottle(.26);
+			if (mode === "docking" && throttle > THR_DOCK_CAP) applyThrottle(THR_DOCK_CAP);
 			if (mode === "berthed") drive = 0;
-			if (entered && !inJump && drive > .04) {
-				const load = drive / Math.max(.8, def.cruiseSpeed);
-				const burn = drive * dt * T1_PER_DIST * (load > 1 ? 1.25 : 1);
+			if (entered && !inJump && Math.abs(drive) > .04) {
+				const load = Math.abs(drive) / Math.max(.8, def.cruiseSpeed);
+				const burn = Math.abs(drive) * dt * T1_PER_DIST * (load > 1 ? 1.25 : 1);
 				fuelLocal = Math.max(0, fuelLocal - burn);
 				fuelFlush += dt;
 				if (fuelFlush > 1.6 || fuelLocal <= .05) {
@@ -2371,8 +2368,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 						let rvx = shipVel.x - stt.vel[0];
 						let rvy = shipVel.y - stt.vel[1];
 						let rvz = shipVel.z - stt.vel[2];
-						const close = throttle > .04 ? 1.4 + drive * 1.6 : 0;
-						const k = 1 - Math.exp(-3.4 * dt);
+						const close = dockClose(throttle, drive);
+						const halt = idleHalt(throttle, true, true, Math.hypot(rvx, rvy, rvz));
+						const k = 1 - Math.exp(-(halt ? 8.8 : 3.4) * dt);
 						rvx += (fwdv[0] * close - rvx) * k;
 						rvy += (fwdv[1] * close - rvy) * k;
 						rvz += (fwdv[2] * close - rvz) * k;
@@ -2410,7 +2408,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 					}
 				}
 			}
-			const thrusting = entered && !inJump && !inPort && throttle > .03;
+			const thrusting = entered && !inJump && !inPort && Math.abs(throttle) > THR_DEAD;
 			const fwd = thrustDir();
 			const sys = getSystem(st.systemId);
 			const mu = starMu(sys.starRadius);
@@ -2480,7 +2478,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 								rvy += (fwd[1] * drive - rvy) * k;
 								rvz += (fwd[2] * drive - rvz) * k;
 							} else {
-								const acc = drive * 2.2;
+								const acc = drive * (drive < 0 ? 3.8 : 2.2);
 								rvx += fwd[0] * acc * h;
 								rvy += fwd[1] * acc * h;
 								rvz += fwd[2] * acc * h;
@@ -2490,18 +2488,26 @@ export function createEngine(els: OverlayEls): EngineHandle {
 								rvz += (0 - rvz) * d * .28;
 							}
 						} else {
-							const damp = 1 - Math.exp(-0.35 * h);
-							rvx *= 1 - damp;
-							rvy *= 1 - damp;
-							rvz *= 1 - damp;
-							if (!parkHold) {
-								const rel = Math.hypot(rvx, rvy, rvz);
-								if (rel < 0.55) {
-									const circ = circularVelocity(rx, ry, rz, planetMu(p));
-									const kC = 1 - Math.exp(-0.55 * h);
-									rvx += (circ[0] - rvx) * kC;
-									rvy += (circ[1] - rvy) * kC;
-									rvz += (circ[2] - rvz) * kC;
+							const rel = Math.hypot(rvx, rvy, rvz);
+							const halt = idleHalt(throttle, false, Boolean(atStationId), rel);
+							if (halt) {
+								const k = 1 - Math.exp(-8.2 * h);
+								rvx *= 1 - k;
+								rvy *= 1 - k;
+								rvz *= 1 - k;
+							} else {
+								const damp = 1 - Math.exp(-0.35 * h);
+								rvx *= 1 - damp;
+								rvy *= 1 - damp;
+								rvz *= 1 - damp;
+								if (!parkHold) {
+									if (rel < 0.55) {
+										const circ = circularVelocity(rx, ry, rz, planetMu(p));
+										const kC = 1 - Math.exp(-0.55 * h);
+										rvx += (circ[0] - rvx) * kC;
+										rvy += (circ[1] - rvy) * kC;
+										rvz += (circ[2] - rvz) * kC;
+									}
 								}
 							}
 						}
@@ -2659,7 +2665,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				: (BASE_FOV + boostAmt * 5 + jumpAmt * 18 + cruiseAmt * 10) * Math.PI / 180 + punchT * punchT * .16;
 			fov += (targetFov - fov) * (1 - Math.exp(-6.5 * dt));
 			const roll = mode === "docking" || mode === "berthed" || inJump ? 0 : clamp(bankRoll, -0.35, 0.35);
-			updateRings(dt, throttle, !reduceMotion && (jumpAmt > .28 || cruiseAmt > .16), cruiseAmt > jumpAmt + 0.05);
+			updateRings(dt, Math.max(0, throttle), !reduceMotion && (jumpAmt > .28 || cruiseAmt > .16), cruiseAmt > jumpAmt + 0.05);
 			gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
 			gl.bufferSubData(gl.ARRAY_BUFFER, 0, starPos.subarray(0, count * 3));
 			gl.bindBuffer(gl.ARRAY_BUFFER, dustPosBuf);
@@ -2940,7 +2946,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			tunnel.classList.toggle("cruise", mode === "transit");
 			tunnel.classList.toggle("fsd", mode === "hyperspace" || mode === "charging");
 			canvas.dataset.warp = warpAmt > 0.05 ? (mode === "transit" ? "cruise" : "fsd") : "";
-			audio.update(throttle, boostAmt, Math.max(jumpAmt, cruiseAmt * 0.72));
+			audio.update(Math.max(0, throttle), boostAmt, Math.max(jumpAmt, cruiseAmt * 0.72));
 			if (now - lastUiPush > 80) {
 				lastUiPush = now;
 				if (getStarwake().mode !== mode) getStarwake().setMode(mode);

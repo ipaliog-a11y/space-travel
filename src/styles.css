@@ -433,6 +433,14 @@ button:disabled { cursor: default; }
   left:0;
   right:0
 }
+.throttle-rev-zone {
+  background:color-mix(in oklab, var(--color-helion-teal, #6fbfb6) 18%, transparent);
+  height:22%;
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0
+}
 .throttle-heat {
   background:#dc5a468c;
   height:0;
@@ -449,11 +457,24 @@ button:disabled { cursor: default; }
   left:0;
   right:0
 }
+.throttle.rev .throttle-fill,
+.throttle-fill.rev {
+  background:var(--color-helion-teal, #6fbfb6);
+  opacity:.5
+}
 .throttle-notch {
   background:#ececef73;
   height:1px;
   position:absolute;
   top:25%;
+  left:-3px;
+  right:-3px
+}
+.throttle-zero {
+  background:#d8d0c0a8;
+  height:1px;
+  position:absolute;
+  bottom:22%;
   left:-3px;
   right:-3px
 }

@@ -8,6 +8,7 @@ import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
 import { useFlightWear } from "@/lib/starwake/use-flight-wear";
+import { throttleToVisual, visualToThrottle } from "@/lib/starwake/throttle";
 import { calculateWearPenalty } from "@/lib/ship-ownership/types";
 import { Dossier } from "./Dossier";
 import { LogBook } from "./LogBook";
@@ -129,10 +130,12 @@ export function FlightChrome({
   const syncThr = useCallback((t: number, heat = 0) => {
     const el = thrRef.current;
     if (!el || !thrKnobRef.current || !fillRef.current) return;
+    const vis = throttleToVisual(t);
     const trackH = Math.max(40, el.clientHeight - 36);
-    const y = 28 + (1 - t) * trackH;
+    const y = 28 + (1 - vis) * trackH;
     thrKnobRef.current.style.top = `${y - 9}px`;
-    fillRef.current.style.height = `${Math.max(0, t * 100)}%`;
+    fillRef.current.style.height = `${Math.max(0, vis * 100)}%`;
+    fillRef.current.classList.toggle("rev", t < -0.02);
     if (heatRef.current) heatRef.current.style.height = `${Math.max(0, heat * 25)}%`;
   }, []);
 
@@ -213,7 +216,7 @@ export function FlightChrome({
     const thrFrom = (e: PointerEvent) => {
       const r = thr.getBoundingClientRect();
       const pad = 14;
-      const t = 1 - Math.max(0, Math.min(1, (e.clientY - r.top - pad) / Math.max(1, r.height - pad * 2)));
+      const t = visualToThrottle(1 - Math.max(0, Math.min(1, (e.clientY - r.top - pad) / Math.max(1, r.height - pad * 2))));
       engine?.setThrottle(t);
     };
 
@@ -344,7 +347,7 @@ export function FlightChrome({
   const t1 = drive.fuelCap > 0 ? drive.fuel / drive.fuelCap : 0;
   const t2 = drive.fuelCap2 > 0 ? drive.fuel2 / drive.fuelCap2 : 0;
   const lockAngle = tagName ? (hash01(tagName) * 0.7 + 0.15) : 0.22;
-  const headAngle = 0.62 + drive.throttle * 0.08;
+  const headAngle = 0.62 + Math.max(0, drive.throttle) * 0.08;
 
   return (
     <div className={`hud helion${mapOpen || opts ? " mapped" : ""}${logOpen ? " logged" : ""}`}>
@@ -435,16 +438,18 @@ export function FlightChrome({
 
       <div className="drive-dock">
         <div
-          className={`throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}`}
+          className={`throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}${drive.throttle < -0.02 ? " rev" : ""}`}
           ref={thrRef}
           data-ui
           aria-label="Throttle"
         >
           <div className="throttle-track">
             <div className="throttle-od-zone" />
+            <div className="throttle-rev-zone" />
             <div className="throttle-heat" ref={heatRef} />
             <div className="throttle-fill" ref={fillRef} />
             <div className="throttle-notch" />
+            <div className="throttle-zero" />
           </div>
           <div className="throttle-knob" ref={thrKnobRef} />
         </div>
@@ -480,7 +485,7 @@ export function FlightChrome({
           <div className="bars">
             <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
             <Bar label="Heat" value={drive.heat01} warn={drive.overheated} />
-            <Bar label="Thr" value={drive.throttle} />
+            <Bar label="Thr" value={Math.max(0, drive.throttle)} />
             <Bar label="Bst" value={drive.boostMax ? drive.boostCharges / drive.boostMax : 0} teal />
           </div>
         ) : (
@@ -621,7 +626,7 @@ export function FlightChrome({
           <div className="opt-keys" aria-label="Key bindings">
             <div>
               <kbd>A</kbd> <kbd>Z</kbd>
-              <span>throttle</span>
+              <span>throttle · below 0 reverse</span>
             </div>
             <div>
               <kbd>Q</kbd> <kbd>E</kbd>
