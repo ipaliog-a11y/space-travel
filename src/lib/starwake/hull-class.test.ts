@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { classOfHull, classPrompt, HULL_CLASSES, hullClass, lengthLine } from "./hull-class.ts";
+import { beautyOf, beautyPrompt, classOfHull, classPrompt, FRIGATE_BEAUTY, HULL_CLASSES, hullClass, lengthLine } from "./hull-class.ts";
 
 describe("hull classes", () => {
   it("saves five classes with recon shorter than cargo", () => {
@@ -20,5 +20,15 @@ describe("hull classes", () => {
     assert.equal(classOfHull("extractor").id, "MINING_BARGE");
     assert.equal(classOfHull("hauler").id, "HAULER");
     assert.match(classPrompt(classOfHull("courier")), /22–30 m/);
+  });
+
+  it("beauty shot names class, 3/4 view, and the visual law", () => {
+    const p = beautyPrompt(beautyOf("courier"));
+    assert.match(p, /WARP_CUTTER/);
+    assert.match(p, /Ashwake/);
+    assert.match(p, /3\/4 front-above/);
+    assert.match(p, /STARWAKE VISUAL LAW/);
+    assert.match(p, /no text/);
+    assert.match(beautyPrompt(FRIGATE_BEAUTY), /VOID_FRIGATE/);
   });
 });

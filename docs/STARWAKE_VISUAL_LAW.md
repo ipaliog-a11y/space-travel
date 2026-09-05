@@ -27,3 +27,21 @@ Source: [`src/lib/starwake/hull-class.ts`](../src/lib/starwake/hull-class.ts). S
 | Hauler | 50–90 m | cargo | Hauler |
 | Void Frigate | 80–120 m | combat | — (saved, not flyable) |
 
+## Beauty shot
+
+`beautyPrompt` in [`hull-class.ts`](../src/lib/starwake/hull-class.ts). Law first. Then:
+
+```
+STARWAKE ship hero shot.
+Class: {{ION_SCOUT | WARP_CUTTER | MINING_BARGE | HAULER | VOID_FRIGATE}}
+Name / variant: {{e.g. Cutter Mk-II "Ashwake"}}
+Silhouette: {{one sentence}}
+Unique feature: {{one feature}}
+Full ship in frame, 3/4 front-above view, slight bank.
+Dark studio void, faint star pinpricks only, no nebula wallpaper.
+Hard rim light + soft fill. Show panel gaps, thermal discoloration, antennae.
+Landing gear retracted. Thrusters idle cyan. Nav lights amber.
+Photoreal product visualization, sharp, 8k, no text, no watermark.
+STARWAKE VISUAL LAW applies.
+```
+

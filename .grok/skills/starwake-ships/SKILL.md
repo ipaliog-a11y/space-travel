@@ -64,16 +64,27 @@ One sentence after the law: role + the bits that make *this* hull, not a generic
 
 NPC traffic uses the same law, cheaper weathering, no unique livery text.
 
-## 3. Shot
+## 3. Beauty shot (default still)
 
-| Use | Add to the prompt | Ratio |
-|-----|-------------------|--------|
-| Hangar portrait / dossier | Three-quarter product shot, isolated on a dark studio void, grounded scale | `4:3` or `3:2` |
-| Thumb / gate card | Same law, tighter crop, hull fills ~70%, no cockpit close-up | `1:1` |
-| In-flight still | Same hull language, black starfield specks only — **no planet filling the frame** | `16:9` |
-| Sprite / sheet | Law + **`generate2dsprite`**: solid `#FF00FF` ground, no studio, no starfield | per sheet |
+Use `beautyPrompt(beautyOf(shipId))` from `hull-class.ts` — do not rewrite the camera. Fill only class / name / silhouette / unique feature.
 
-Warp and thrusters: **thin cyan/teal**, small. Never a full-frame bloom.
+```
+STARWAKE ship hero shot.
+Class: {{ION_SCOUT | WARP_CUTTER | MINING_BARGE | HAULER | VOID_FRIGATE}}
+Name / variant: {{e.g. Cutter Mk-II "Ashwake"}}
+Silhouette: {{one sentence: long spine + forward cockpit / fat belly barge / twin-boom fighter}}
+Unique feature: {{e.g. ventral mining drill, offset warp ring, boxy cargo rack}}
+Full ship in frame, 3/4 front-above view, slight bank.
+Dark studio void, faint star pinpricks only, no nebula wallpaper.
+Hard rim light + soft fill. Show panel gaps, thermal discoloration, antennae.
+Landing gear retracted. Thrusters idle cyan. Nav lights amber.
+Photoreal product visualization, sharp, 8k, no text, no watermark.
+STARWAKE VISUAL LAW applies.
+```
+
+Ratio `3:2` hangar / `16:9` hero. Warp and thrusters: **thin cyan/teal**, idle. Never a full-frame bloom.
+
+Thumbs crop the same still. Engine sprites still use **`generate2dsprite`** (`#FF00FF`), not this studio shot.
 
 ## 4. Refuse / retry
 

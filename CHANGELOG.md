@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.44] - 2026-09-05
+
+### Changed
+- Beauty-shot prompt: 3/4 hero, class + silhouette + unique feature, Visual Law first.
+
 ## [v0.1.43] - 2026-09-05
 
 ### Changed
