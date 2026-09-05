@@ -3468,3 +3468,309 @@ button.pad-jump em {
     width: 100%;
   }
 }
+
+/* Rank progress track — Helion plate, not a health bar. */
+.rank-track {
+  width: min(920px, 100%);
+  margin: 0 auto 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rank-track-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rank-track-head h2,
+.rank-track-head span {
+  margin: 0;
+  font-family: var(--font-helion);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-helion-dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.rank-track-head span {
+  font-family: var(--font-helion-mono);
+  letter-spacing: 0.06em;
+  color: var(--color-helion-ivory);
+}
+.rank-track-frame {
+  position: relative;
+}
+.rank-track-view {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 168px;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 16%, transparent);
+  background: color-mix(in oklab, var(--color-helion-ink) 70%, transparent);
+  touch-action: pan-x;
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-helion-ivory) 28%, transparent) transparent;
+}
+.rank-track-view:active {
+  cursor: grabbing;
+}
+.rank-track-view:focus-visible {
+  outline: 1px solid var(--color-helion-teal);
+  outline-offset: 0;
+}
+.rank-track-peek {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 3;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: color-mix(in oklab, var(--color-helion-plate) 88%, transparent);
+  color: var(--color-helion-teal);
+  font-family: var(--font-helion);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  min-height: 2rem;
+}
+.rank-track-rail {
+  position: relative;
+  height: 168px;
+  min-width: 100%;
+}
+.rank-track-bed,
+.rank-track-fill {
+  position: absolute;
+  left: 0;
+  top: 72px;
+  height: 2px;
+  pointer-events: none;
+}
+.rank-track-bed {
+  right: 0;
+  width: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-helion-ivory) 22%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+.rank-track-fill {
+  background: var(--color-helion-teal);
+  transform-origin: left center;
+  transition: width 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rank-track-marker {
+  position: absolute;
+  top: 64px;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  pointer-events: none;
+  z-index: 2;
+  transition: left 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rank-track-marker span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-helion-ivory);
+  background: var(--color-helion-ink);
+  transform: rotate(45deg);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--color-helion-teal) 55%, transparent);
+}
+.rank-node {
+  position: absolute;
+  top: 18px;
+  width: 108px;
+  margin-left: -54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-helion);
+}
+.rank-node-badge {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, currentColor 55%, transparent);
+  background: var(--color-helion-plate);
+  color: inherit;
+}
+.rank-node-badge svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.rank-node strong {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: inherit;
+  line-height: 1.1;
+}
+.rank-node-reward {
+  font-family: var(--font-helion-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-helion-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rank-node-reward svg {
+  width: 12px;
+  height: 12px;
+}
+.rank-node-check {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-helion-teal);
+  color: var(--color-helion-ink);
+  display: grid;
+  place-items: center;
+}
+.rank-node-check svg {
+  width: 10px;
+  height: 10px;
+}
+.rank-node.done {
+  color: var(--color-helion-ivory);
+}
+.rank-node.done .rank-node-badge {
+  border-color: var(--color-helion-teal);
+}
+.rank-node.here strong {
+  color: var(--color-helion-ivory);
+}
+.rank-node.here .rank-node-badge {
+  border-color: var(--color-helion-ivory);
+  box-shadow: 0 0 0 1px var(--color-helion-ivory);
+  animation: rank-here-pulse 1.8s ease-in-out infinite;
+}
+.rank-node.locked {
+  opacity: 0.42;
+  transform: scale(0.94);
+  filter: grayscale(0.35);
+}
+.rank-node.picked .rank-node-badge {
+  outline: 1px solid var(--color-helion-teal);
+  outline-offset: 2px;
+}
+.rank-node.flare .rank-node-badge {
+  animation: rank-flare 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rank-track-detail {
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 16%, transparent);
+  padding: 12px 14px;
+  background: color-mix(in oklab, var(--color-helion-plate) 70%, transparent);
+}
+.rank-track-detail-k {
+  margin: 0 0 4px;
+  font-family: var(--font-helion);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: var(--color-helion-teal);
+  display: flex;
+  gap: 10px;
+}
+.rank-track-detail-k em {
+  font-style: normal;
+  color: var(--color-helion-dim);
+}
+.rank-track-detail h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-helion);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-helion-ivory);
+}
+.rank-track-detail p {
+  margin: 0;
+  color: var(--color-helion-dim);
+  font-family: var(--font-helion);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.rank-track-detail-xp {
+  margin-top: 8px !important;
+  font-family: var(--font-helion-mono) !important;
+  letter-spacing: 0.04em;
+  color: var(--color-helion-ivory) !important;
+}
+.rank-track-sandbox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.rank-track-sandbox button,
+.rank-track-sandbox select,
+.rank-track-sandbox label {
+  font-family: var(--font-helion);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-helion-ivory);
+}
+.rank-track-sandbox button,
+.rank-track-sandbox select {
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: transparent;
+  min-height: 2.5rem;
+  padding: 0 12px;
+}
+.rank-track-sandbox label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-helion-dim);
+}
+.rank-track-sandbox input[type="range"] {
+  flex: 1 1 160px;
+  min-width: 120px;
+  accent-color: var(--color-helion-teal);
+}
+@keyframes rank-here-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--color-helion-ivory); }
+  50% { box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-helion-teal) 0%, transparent); }
+}
+@keyframes rank-flare {
+  0% { box-shadow: 0 0 0 0 var(--color-helion-teal); }
+  40% { box-shadow: 0 0 0 10px color-mix(in oklab, var(--color-helion-teal) 0%, transparent); }
+  100% { box-shadow: 0 0 0 1px var(--color-helion-ivory); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rank-track-fill,
+  .rank-track-marker {
+    transition: none;
+  }
+  .rank-node.here .rank-node-badge,
+  .rank-node.flare .rank-node-badge {
+    animation: none;
+  }
+}
+@media (width <= 720px) {
+  .rank-track-view { height: 176px; }
+  .rank-node { width: 96px; margin-left: -48px; }
+}

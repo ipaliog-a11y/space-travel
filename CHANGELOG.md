@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.25] - 2026-09-05
+
+### Added
+- **Rank line** on Pilot. Fifteen named tiers as a scrollable trophy road — past, current, next, locked. Preview XP until the live award loop is wired.
+
 ## [v0.1.24] - 2026-09-05
 
 ### Changed

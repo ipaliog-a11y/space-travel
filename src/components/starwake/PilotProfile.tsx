@@ -11,6 +11,7 @@ import { hangarSlotCapacity } from "@/lib/ship-ownership/types";
 import { firstEmptySlotId, firstOccupiedSlotId } from "@/lib/starwake/saves";
 import { useStarwake } from "@/lib/starwake/store";
 import { SaveSlots } from "./SaveSlots";
+import { RankTrack } from "./RankTrack";
 
 type Props = {
   onBack: () => void;
@@ -30,6 +31,7 @@ export function PilotProfile({ onBack, required, onSaved, onCreateNew, onDiary }
   const [callSign, setCallSign] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewXp, setPreviewXp] = useState<number | null>(null);
   const starters = getStarterIcons();
   const career = useStarwake((s) => s.career);
   const slots = useStarwake((s) => s.slots);
@@ -222,6 +224,14 @@ export function PilotProfile({ onBack, required, onSaved, onCreateNew, onDiary }
             )}
           </div>
         </form>
+      )}
+
+      {!required && !editing && career && (
+        <RankTrack
+          xp={previewXp ?? profile?.totalXp ?? 0}
+          sandbox
+          onXpChange={setPreviewXp}
+        />
       )}
 
       {!required && (
