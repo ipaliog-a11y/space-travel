@@ -12,6 +12,7 @@ import { Gate } from "./Gate";
 import { Hangar } from "./Hangar";
 import { MapPanel } from "./MapPanel";
 import { PilotProfile } from "./PilotProfile";
+import { PilotDiary } from "./PilotDiary";
 import { ShipMarket } from "./ShipMarket";
 import { StarterPick } from "./StarterPick";
 import { TapeWatch } from "./TapeWatch";
@@ -280,7 +281,12 @@ export function Play() {
         <PilotProfile
           onBack={() => useStarwake.getState().setMenuView("menu")}
           onCreateNew={createNewProfile}
+          onDiary={() => useStarwake.getState().setMenuView("diary")}
         />
+      )}
+
+      {!entered && !glError && canFly && menuView === "diary" && (
+        <PilotDiary onBack={() => useStarwake.getState().setMenuView("profile")} />
       )}
 
       {!entered && !glError && (canFly || needsMarket) && menuView === "market" && (

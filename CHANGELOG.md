@@ -2,6 +2,12 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.24] - 2026-09-05
+
+### Changed
+- Gate is hulls and acts only — blurb, key legend, slots, and haul count moved off the main menu.
+- Save slots live on Pilot. Diary is its own page from Pilot (your packets and crew cuts).
+
 ## [v0.1.23] - 2026-09-05
 
 ### Added

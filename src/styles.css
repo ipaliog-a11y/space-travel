@@ -2533,9 +2533,9 @@ button.pad-jump em {
   font-weight: 500;
   margin: 4px 0 12px;
 }
-.pilot-diary {
-  width: min(640px, 100%);
-  margin: 0 auto 22px;
+.job-board .save-slots {
+  width: 100%;
+  margin: 0;
 }
 .pilot-form {
   width: min(640px, 100%);

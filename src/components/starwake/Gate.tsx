@@ -1,8 +1,7 @@
 import { SHIP_SETS, SHIPS, fittedShip } from "@/lib/starwake/catalog";
-import { diaryEarnings, holdUsed } from "@/lib/starwake/jobs";
+import { holdUsed } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ShipId } from "@/lib/starwake/types";
-import { SaveSlots } from "./SaveSlots";
 
 type Props = {
   shipId: ShipId;
@@ -34,21 +33,12 @@ export function Gate({
   const loadout = useStarwake((s) => s.loadout);
   const manifests = useStarwake((s) => s.manifests);
   const cargoHolds = useStarwake((s) => s.cargo);
-  const completed = useStarwake((s) => s.completed);
-  const earned = diaryEarnings(useStarwake((s) => s.jobLog));
 
   return (
     <div className="gate menu helion-dock" data-ui>
       <header className="hangar-head">
         <div className="k">Gate</div>
         <h1>Starwake</h1>
-        <p className="lede">Two hangar sets. Line flies the routes. Yard fuels, shoves, and pulls. Home is Helios.</p>
-        <p className="keys-hint">
-          <kbd>A</kbd>/<kbd>Z</kbd> throttle
-          <kbd>Q</kbd>/<kbd>E</kbd> roll
-          <kbd>R</kbd> boosts
-          <kbd>Esc</kbd> menu
-        </p>
       </header>
 
       {SHIP_SETS.map((set) => {
@@ -90,8 +80,6 @@ export function Gate({
         );
       })}
 
-      <SaveSlots />
-
       <div className="gate-acts">
         <button type="button" className="engage" onClick={onHangar}>
           Hangar
@@ -118,12 +106,6 @@ export function Gate({
           </button>
         )}
       </div>
-      {completed > 0 && (
-        <p className="menu-runs">
-          {completed} run{completed === 1 ? "" : "s"} logged
-          {earned > 0 ? ` · ₡${earned.toLocaleString()} earned` : ""}
-        </p>
-      )}
     </div>
   );
 }

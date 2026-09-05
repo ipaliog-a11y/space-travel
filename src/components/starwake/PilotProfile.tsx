@@ -8,9 +8,9 @@ import {
   type PlayerProfile,
 } from "@/lib/player-profile/types";
 import { hangarSlotCapacity } from "@/lib/ship-ownership/types";
-import { diaryEarnings, formatHaul, formatStop } from "@/lib/starwake/jobs";
 import { firstEmptySlotId, firstOccupiedSlotId } from "@/lib/starwake/saves";
 import { useStarwake } from "@/lib/starwake/store";
+import { SaveSlots } from "./SaveSlots";
 
 type Props = {
   onBack: () => void;
@@ -18,9 +18,10 @@ type Props = {
   required?: boolean;
   onSaved?: () => void;
   onCreateNew?: () => void;
+  onDiary?: () => void;
 };
 
-export function PilotProfile({ onBack, required, onSaved, onCreateNew }: Props) {
+export function PilotProfile({ onBack, required, onSaved, onCreateNew, onDiary }: Props) {
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [editing, setEditing] = useState(Boolean(required));
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -30,11 +31,8 @@ export function PilotProfile({ onBack, required, onSaved, onCreateNew }: Props) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const starters = getStarterIcons();
-  const jobLog = useStarwake((s) => s.jobLog);
-  const completed = useStarwake((s) => s.completed);
   const career = useStarwake((s) => s.career);
   const slots = useStarwake((s) => s.slots);
-  const earned = diaryEarnings(jobLog);
   const slotFree = Boolean(firstEmptySlotId(slots));
   const creating = !career;
   const shownName = career?.displayName ?? profile?.displayName ?? "";
@@ -226,31 +224,13 @@ export function PilotProfile({ onBack, required, onSaved, onCreateNew }: Props) 
         </form>
       )}
 
-      {!required && career && (
-        <section className="job-board pilot-diary" aria-label="Job diary">
+      {!required && (
+        <section className="job-board" aria-label="Save slots">
           <div className="job-board-head">
-            <h2>Diary</h2>
-            <span>
-              {completed} haul{completed === 1 ? "" : "s"} · ₡{earned.toLocaleString()} earned
-            </span>
+            <h2>Slots</h2>
+            <span>Three careers. Copy into an empty one. Delete from this page.</span>
           </div>
-          {jobLog.length === 0 ? (
-            <p className="bay-caption">Deliver a hub contract and it lands here with the payout.</p>
-          ) : (
-            <div className="job-grid">
-              {jobLog.map((row) => (
-                <article key={`${row.id}-${row.at}`} className="job-card">
-                  <span className="job-kind">
-                    {row.kind} · {row.qty} u · ₡{row.pay.toLocaleString()}
-                  </span>
-                  <span className="job-title">{row.cargo}</span>
-                  <span className="job-route">
-                    {formatStop(row.from)} → {formatStop(row.to)} · {formatHaul(row)}
-                  </span>
-                </article>
-              ))}
-            </div>
-          )}
+          <SaveSlots />
         </section>
       )}
 
@@ -259,6 +239,11 @@ export function PilotProfile({ onBack, required, onSaved, onCreateNew }: Props) 
           <button type="button" className="engage ghost" onClick={onBack}>
             Menu
           </button>
+          {onDiary && (
+            <button type="button" className="engage ghost" onClick={onDiary}>
+              Diary
+            </button>
+          )}
           {!editing && career && (
             <button type="button" className="engage" onClick={() => setEditing(true)}>
               Edit
