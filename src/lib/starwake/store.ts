@@ -49,7 +49,7 @@ import { claimCrew, makeCrew, originFromSave } from "./fleet-run";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 18;
+const SAVE_VERSION = 19;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -197,7 +197,7 @@ export type StarwakeState = {
   beginNewCareer: () => SaveSlotId | null;
   seedCareerIfMissing: (career: SlotCareer) => void;
   deleteCareerSlot: (id: SaveSlotId) => SaveSlotId | null;
-  hireCrew: (hull: CrewHull, now?: number) => boolean;
+  hireCrew: (hull: CrewHull, shipKey: string, now?: number) => boolean;
   dismissCrew: (id: string) => void;
   dueCrews: (now?: number) => Crew[];
   claimCrewRun: (id: string, paid: number, now?: number) => boolean;
@@ -717,12 +717,15 @@ export const useStarwake = create<StarwakeState>()(
         });
         return nextId;
       },
-      hireCrew: (hull, now = Date.now()) => {
+      hireCrew: (hull, shipKey, now = Date.now()) => {
         const st = get();
         if (st.crew.length >= FLEET_CAP) return false;
+        const key = shipKey.trim();
+        if (!key) return false;
+        if (st.crew.some((c) => c.shipKey === key)) return false;
         const taken = st.crew.map((c) => c.name);
         const from = originFromSave(st.systemId, st.boardStationId);
-        const next = makeCrew(hull, now, from, taken);
+        const next = makeCrew(hull, now, from, taken, key);
         set({
           crew: [...st.crew, next],
           hasSave: true,
@@ -745,11 +748,14 @@ export const useStarwake = create<StarwakeState>()(
         const cur = st.crew.find((c) => c.id === id);
         if (!cur?.run || cur.run.claimed) return false;
         if (now < cur.run.endsAt) return false;
-        const nextCrew = claimCrew(cur, paid, now);
+        const nextCrew = {
+          ...claimCrew(cur, paid, now),
+          log: logDelivery(cur.log ?? [], cur.run.job, paid, cur.hull, now),
+          earned: (cur.earned ?? 0) + paid,
+          completed: (cur.completed ?? 0) + 1,
+        };
         set({
           crew: st.crew.map((c) => (c.id === id ? nextCrew : c)),
-          completed: st.completed + 1,
-          jobLog: logDelivery(st.jobLog, cur.run.job, paid, cur.hull, now),
           hasSave: true,
           lastSaveAt: now,
         });

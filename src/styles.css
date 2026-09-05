@@ -3774,3 +3774,46 @@ button.pad-jump em {
   .rank-track-view { height: 176px; }
   .rank-node { width: 96px; margin-left: -48px; }
 }
+
+.helion-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in oklab, var(--color-helion-ink) 72%, transparent);
+}
+.helion-confirm-card {
+  width: min(420px, 100%);
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: var(--color-helion-plate);
+  padding: 22px 20px 18px;
+}
+.helion-confirm-card .k {
+  font-family: var(--font-helion);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-helion-teal);
+  font-size: 0.68rem;
+  margin-bottom: 0.4rem;
+}
+.helion-confirm-card h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-helion);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--color-helion-ivory);
+}
+.helion-confirm-card .lede {
+  margin: 0 0 18px;
+  color: var(--color-helion-dim);
+  font-family: var(--font-helion);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.helion-confirm-card .gate-acts {
+  justify-content: flex-start;
+}

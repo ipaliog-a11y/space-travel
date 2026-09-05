@@ -7,7 +7,9 @@ import {
   FLEET_CAP,
   crewNetFromPayout,
   dueCrews,
+  occupiedShipKeys,
   sanitizeCrew,
+  spareShips,
   type Crew,
 } from "./fleet.ts";
 
@@ -17,6 +19,10 @@ function crew(partial: Partial<Crew> = {}): Crew {
     hull: "courier",
     name: "Kite",
     hiredAt: 1000,
+    shipKey: "ship-a",
+    log: [],
+    earned: 0,
+    completed: 0,
     run: {
       job: {
         id: "j1",
@@ -63,10 +69,45 @@ describe("fleet crews", () => {
 
   it("sanitize drops junk and caps at two", () => {
     const a = crew({ id: "a", name: "Kite" });
-    const b = crew({ id: "b", hull: "hauler", name: "Latch" });
+    const b = crew({ id: "b", hull: "hauler", name: "Latch", shipKey: "ship-b" });
     const out = sanitizeCrew([a, b, { ...a, id: "c" }, { hull: "scout" }, null]);
     assert.equal(out.length, 2);
     assert.equal(out[0].id, "a");
     assert.equal(out[1].hull, "hauler");
+    assert.equal(out[0].shipKey, "ship-a");
+    assert.equal(out[0].log.length, 0);
+  });
+
+  it("needs a spare hull besides the one you fly", () => {
+    const one = [{ id: "a", shipType: "courier" }];
+    assert.equal(spareShips(one, []).length, 0);
+
+    const two = [
+      { id: "a", shipType: "courier" },
+      { id: "b", shipType: "hauler" },
+    ];
+    const free = spareShips(two, []);
+    assert.equal(free.length, 2);
+
+    const assigned = spareShips(two, [crew({ shipKey: "b", hull: "hauler" })]);
+    assert.equal(assigned.length, 0);
+
+    const three = [...two, { id: "c", shipType: "scout" }];
+    const afterOne = spareShips(three, [crew({ shipKey: "b", hull: "hauler" })]);
+    assert.deepEqual(
+      afterOne.map((s) => s.id),
+      ["a"],
+    );
+  });
+
+  it("treats a crew with no shipKey as occupying a matching hull", () => {
+    const ships = [
+      { id: "a", shipType: "courier" },
+      { id: "b", shipType: "hauler" },
+      { id: "c", shipType: "scout" },
+    ];
+    const used = occupiedShipKeys([crew({ shipKey: "", hull: "courier" })], ships);
+    assert.equal(used.has("a"), true);
+    assert.equal(spareShips(ships, [crew({ shipKey: "", hull: "courier" })]).some((s) => s.id === "a"), false);
   });
 });

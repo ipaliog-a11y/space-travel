@@ -2,6 +2,12 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.26] - 2026-09-05
+
+### Added
+- Market buy and trade-in open a confirm plate before credits move.
+- Crew hire assigns a spare hangar hull. You keep one ship to fly. File and diary live on the crew in the Line Office.
+
 ## [v0.1.25] - 2026-09-05
 
 ### Added

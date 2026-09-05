@@ -62,7 +62,13 @@ export function startCrewRun(hull: CrewHull, from: JobStop, now: number, seed: n
   };
 }
 
-export function makeCrew(hull: CrewHull, now: number, from: JobStop, taken: string[]): Crew {
+export function makeCrew(
+  hull: CrewHull,
+  now: number,
+  from: JobStop,
+  taken: string[],
+  shipKey: string,
+): Crew {
   const rng = mulberry32(hashu(`crew|${hull}|${now}`) >>> 0);
   const name =
     LINE_NAMES.find((n) => !taken.includes(n)) ??
@@ -74,6 +80,10 @@ export function makeCrew(hull: CrewHull, now: number, from: JobStop, taken: stri
     name,
     hiredAt: now,
     run: startCrewRun(hull, from, now, hashu(id)),
+    shipKey,
+    log: [],
+    earned: 0,
+    completed: 0,
   };
 }
 
