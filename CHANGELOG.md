@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.50] - 2026-09-05
+
+### Changed
+- Ortho 2×2 sheets for all seven `hero-alt` hulls in `public/starwake/ortho/`.
+
 ## [v0.1.49] - 2026-09-05
 
 ### Changed
