@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.42] - 2026-09-05
+
+### Changed
+- Ship Visual Law skill: working plates, charcoal + teal, no luxury sci-fi.
+
 ## [v0.1.41] - 2026-09-05
 
 ### Changed

@@ -68,5 +68,6 @@ Drag to look. T1 is cruise / boost. T2 is FSD charge + the hop. Refuel costs ₡
 - [Hangar sets](docs/HULL_SET.md)
 - [Station models](docs/STATION_MODELS.md)
 - [Decisions](docs/DECISION_LOG.md)
+- [Ship visual law](docs/STARWAKE_VISUAL_LAW.md)
 
 Flight canvas: [`src/lib/starwake/engine.ts`](src/lib/starwake/engine.ts).
