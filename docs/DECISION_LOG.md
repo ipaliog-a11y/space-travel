@@ -525,6 +525,22 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #019: Player station is one annex lock
+
+**Date:** 2026-09-05  
+**Status:** Approved  
+**Context:** BUILD 12. Hub warehouses already exist. Player asked to own a station.
+
+**Decision:** Helion trader, not EVE citadel / X4 factory.
+
+- **Steal:** one lock you found in the system you’re docked in. Storage 120 u. Anchors a wild world if the system has one.
+- **Don’t:** interiors, combat, local prices, per-hub tape, industry chains. Price leverage is a later upgrade.
+- **Cost:** ₡36,000 — more than a crew bond, less than a second hull.
+
+**Quality bar:** `outpost.test.ts`. One annex per career. `padCap` only on the own hub.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -538,4 +554,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-05  
-**Total Decisions:** 18 approved, 2 pending
+**Total Decisions:** 19 approved, 2 pending

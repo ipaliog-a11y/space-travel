@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.38] - 2026-09-05
+
+### Changed
+- BUILD 12 storage: found an annex lock (₡36k, 120 u) in the system you are in.
+
 ## [v0.1.37] - 2026-09-05
 
 ### Changed

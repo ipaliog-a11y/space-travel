@@ -7,13 +7,9 @@ import { getPlanet, getStation, getSystem } from "@/lib/starwake/galaxy";
 import { STATION_KIND_BLURB, STATION_KIND_LABEL } from "@/lib/starwake/stations";
 import { useStarwake } from "@/lib/starwake/store";
 import type { CargoJob } from "@/lib/starwake/types";
-import {
-  buyFuel,
-  loadRepairStatus,
-  payJobDelivery,
-  repairCurrentHull,
-  type WearSnapshot,
-} from "@/lib/hangar/api";
+import { buyFuel, buyOutpost, loadRepairStatus, payJobDelivery, repairCurrentHull, type WearSnapshot } from "@/lib/hangar/api";
+import { foundOutpost, isOwnLock, OUTPOST_CAP, OUTPOST_COST } from "@/lib/starwake/outpost";
+import { HelionConfirm } from "./HelionConfirm";
 import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
 import type { HardpointTier } from "@/lib/ship-ownership/types";
 import { MarketWatch } from "./MarketWatch";
@@ -41,6 +37,8 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const man = useStarwake((s) => s.manifests[s.shipId]);
   const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
   const ware = useStarwake((s) => s.warehouses[hubKey(systemId, stationId)] ?? EMPTY_HOLD);
+  const outpost = useStarwake((s) => s.outpost);
+  const own = isOwnLock(stationId, outpost);
   const acceptJob = useStarwake((s) => s.acceptJob);
   const refreshHubBoard = useStarwake((s) => s.refreshHubBoard);
   const loadCargo = useStarwake((s) => s.loadCargo);
@@ -70,6 +68,8 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
   const [fueling, setFueling] = useState(false);
   const [paying, setPaying] = useState(false);
   const [repairError, setRepairError] = useState<string | null>(null);
+  const [foundAsk, setFoundAsk] = useState(false);
+  const [founding, setFounding] = useState(false);
   const deliverPay = man ? jobPayout(man.job) : 0;
 
   useEffect(() => {
@@ -153,15 +153,44 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
     }
   }
 
+  async function onFound() {
+    if (outpost || founding) return;
+    if (credits != null && credits < OUTPOST_COST) {
+      setRepairError(`Need ₡${OUTPOST_COST.toLocaleString()} to found a lock`);
+      setFoundAsk(false);
+      return;
+    }
+    setFounding(true);
+    setRepairError(null);
+    try {
+      const r = await buyOutpost();
+      setCredits(r.credits);
+      const ok = useStarwake.getState().foundPlayerLock();
+      if (!ok) throw new Error("No world to anchor");
+      const o = useStarwake.getState().outpost;
+      useStarwake.getState().pushNotice({
+        kicker: "Annex",
+        title: o?.name ?? "Your lock",
+        body: `Storage ${OUTPOST_CAP} u. Same tape. Dock the annex.`,
+      });
+      setFoundAsk(false);
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : "Found failed");
+    } finally {
+      setFounding(false);
+    }
+  }
+
   if (!stn) return null;
 
   return (
     <div className="station-bay helion-dock" data-ui>
       <header className="station-head">
-        <div className="k">Board</div>
+        <div className="k">{own ? "Annex" : "Board"}</div>
         <h2>{stn.name}</h2>
         <p>
           {planet?.name ?? sys.name} · {STATION_KIND_LABEL[stn.kind]}
+          {own ? ` · your lock · ${OUTPOST_CAP} u` : ""}
         </p>
         <p>{STATION_KIND_BLURB[stn.kind]}</p>
       </header>
@@ -170,6 +199,7 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
         <span>T2 {Math.round(fuel2 ?? 0)}/{Math.round(cap2)}</span>
         <span>Hold {used}/{Math.round(hold)} u</span>
         {ware.length > 0 && <span>Pad {cargoQty(ware)} u · {lotLabel(ware)}</span>}
+        {own && ware.length === 0 && <span>Annex 0/{OUTPOST_CAP} u</span>}
         {credits != null && <span>₡{Math.round(credits).toLocaleString()}</span>}
         <span>HP {HARDPOINT_TIER_NAMES[hardpointTier]}</span>
       </div>
@@ -201,6 +231,16 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
               ? "Repairing"
               : `Repair ₡${repairCost.toLocaleString()}`}
         </button>
+        {!outpost && (
+          <button
+            type="button"
+            className="engage ghost"
+            onClick={() => setFoundAsk(true)}
+            disabled={founding || (credits != null && credits < OUTPOST_COST)}
+          >
+            Found lock ₡{OUTPOST_COST.toLocaleString()}
+          </button>
+        )}
         {canLoad && (
           <button type="button" className="engage" onClick={() => loadCargo(systemId, stationId)}>
             Load
@@ -260,6 +300,17 @@ export function StationBay({ stationId, systemId, onUndock, onRefuel, onHullRepa
         onCredits={setCredits}
         onError={setRepairError}
       />
+      {foundAsk && (
+        <HelionConfirm
+          kicker="Annex"
+          title="Found a lock"
+          body={`₡${OUTPOST_COST.toLocaleString()} for a truss in this system. ${foundOutpost(sys, "Line")?.name ?? "Annex"} sits on a wild world if one is free. Storage ${OUTPOST_CAP} u. Same tape everywhere. Price leverage later.`}
+          confirmLabel={founding ? "Founding" : "Found"}
+          busy={founding}
+          onConfirm={() => void onFound()}
+          onCancel={() => setFoundAsk(false)}
+        />
+      )}
     </div>
   );
 }

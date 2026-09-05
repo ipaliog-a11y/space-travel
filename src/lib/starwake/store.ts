@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CargoJob, FlightMode, JobLogEntry, Loadout, Manifest, MapLayer, MenuView, ShipId, SlotId } from "./types";
 import { SHIPS, STOCK_LOADOUT, fittedShip, fullTanks, fullTanks2, liveShip, moduleById } from "./catalog";
-import { HOME_SYSTEM_ID } from "./galaxy";
+import { getSystem, HOME_SYSTEM_ID, setOutpostHook } from "./galaxy";
 import { hubBoard } from "./job-hub";
 import {
   addCargo,
@@ -47,10 +47,11 @@ import {
 import { dueCrews, dueRests, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
 import { claimCrew, launchCrew, makeCrew, originFromSave } from "./fleet-run";
 import { liveNotices, makeNotice, type Notice } from "./notices";
+import { foundOutpost, padCap, type Outpost } from "./outpost";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 20;
+const SAVE_VERSION = 21;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -77,6 +78,7 @@ function captureLive(s: {
   ownedModules: string[];
   boostCharges: number;
   crew: Crew[];
+  outpost: Outpost | null;
 }): SlotLive {
   return {
     hasSave: s.hasSave,
@@ -103,6 +105,7 @@ function captureLive(s: {
     ownedModules: s.ownedModules,
     boostCharges: s.boostCharges,
     crew: s.crew,
+    outpost: s.outpost,
   };
 }
 
@@ -151,6 +154,7 @@ export type StarwakeState = {
   career: SlotCareer | null;
   crew: Crew[];
   notices: Notice[];
+  outpost: Outpost | null;
   activeSlotId: SaveSlotId;
   slots: Record<SaveSlotId, SaveSlotSnapshot>;
   setEntered: (v: boolean) => void;
@@ -211,6 +215,7 @@ export type StarwakeState = {
   claimCrewRun: (id: string, paid: number, now?: number) => boolean;
   pushNotice: (n: { kicker: string; title: string; body: string }, ms?: number) => void;
   pruneNotices: (now?: number) => void;
+  foundPlayerLock: () => boolean;
 };
 
 export const useStarwake = create<StarwakeState>()(
@@ -264,6 +269,7 @@ export const useStarwake = create<StarwakeState>()(
       career: null,
       crew: [],
       notices: [],
+      outpost: null,
       activeSlotId: "1",
       slots: {
         "1": emptySlot("1"),
@@ -509,6 +515,8 @@ export const useStarwake = create<StarwakeState>()(
         const fromShip = pullCargo(st.cargo[st.shipId] ?? [], goodId, n);
         if (!fromShip) return false;
         const key = hubKey(systemId, stationId);
+        const cap = padCap(key, st.outpost);
+        if (cap != null && cargoQty(st.warehouses[key] ?? []) + n > cap) return false;
         const ware = addCargo(st.warehouses[key] ?? [], goodId, n, fromShip.paid);
         set({
           cargo: { ...st.cargo, [st.shipId]: fromShip.hold },
@@ -855,6 +863,19 @@ export const useStarwake = create<StarwakeState>()(
         if (next.length === get().notices.length) return;
         set({ notices: next });
       },
+      foundPlayerLock: () => {
+        const st = get();
+        if (st.outpost) return false;
+        const sys = getSystem(st.systemId);
+        const next = foundOutpost(sys, st.career?.callSign ?? "Line");
+        if (!next) return false;
+        set({
+          outpost: next,
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return true;
+      },
     }),
     {
       name: "starwake-v2",
@@ -887,6 +908,7 @@ export const useStarwake = create<StarwakeState>()(
             jobLog: sanitizeJobLog(slot.jobLog),
             retiredJobs: retired,
             crew: sanitizeCrew(slot.crew),
+            outpost: slot.outpost ?? null,
           };
         }
         const activeSlotId = migrated.activeSlotId;
@@ -925,6 +947,8 @@ if (useStarwake.persist.hasHydrated()) {
 export function getStarwake() {
   return useStarwake.getState();
 }
+
+setOutpostHook(() => useStarwake.getState().outpost);
 
 export function currentShip() {
   const st = getStarwake();

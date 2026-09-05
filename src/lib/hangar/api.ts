@@ -309,6 +309,17 @@ export const payRansom = createServerFn({ method: "POST" })
     return { credits: next.credits, paid };
   });
 
+export const buyOutpost = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<{ credits: number; paid: number }> => {
+    const { OUTPOST_COST } = await import("../starwake/outpost.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const profile = await requireCompleteProfile(context.userId);
+    if (profile.credits < OUTPOST_COST) throw new Error(`Need ₡${OUTPOST_COST.toLocaleString()}`);
+    const next = await modifyCredits(context.userId, -OUTPOST_COST);
+    return { credits: next.credits, paid: OUTPOST_COST };
+  });
+
 export const hireCrewBond = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { hull: "courier" | "hauler" | "extractor"; shipKey: string }) => data)

@@ -2,6 +2,7 @@ import { hashu, mulberry32 } from "./math";
 import { cometMeanN, GAME_DAY_SEC, keplerPosition, periodDays, planetMu, starMu } from "./orbit";
 import type { Belt, Comet, Moon, MoonKind, Nebula, NebulaKind, Planet, PlanetKind, StarSystem, Station, WildProspect } from "./types";
 import { pickStationKind, stationLook, stationSuffix } from "./station-mesh";
+import { withOutpost, type Outpost } from "./outpost";
 
 const SYLLABLES = [
   "hel", "ion", "vega", "nyx", "or", "ion", "ash", "rhea", "tau", "ix",
@@ -307,7 +308,7 @@ const PROSPECT_NOTE: Record<PlanetKind, { research: string; mining: string }> = 
   },
   gas: {
     research: "Deep-band chemistry. No surface to claim.",
-    mining: "No crust. Atmosphere only.",
+    mining: "Hydrogen and helium-3 in the deep bands.",
   },
   ringed: {
     research: "Ring dusk on the limb. Ice-rock grain for a lab.",
@@ -315,7 +316,7 @@ const PROSPECT_NOTE: Record<PlanetKind, { research: string; mining: string }> = 
   },
   icegiant: {
     research: "Methane bands. Cold envelope chemistry.",
-    mining: "No crust. Trace ices in the high haze.",
+    mining: "Methane and volatiles in the high haze.",
   },
 };
 
@@ -343,9 +344,10 @@ export function makeProspect(kind: PlanetKind, rng: () => number): WildProspect 
     mining = rng() > 0.62 ? 1 : 0;
   } else if (kind === "gas") {
     research = rollGrade(rng, 2, 3);
+    mining = rollGrade(rng, 1, 2);
   } else if (kind === "icegiant") {
     research = rollGrade(rng, 2, 3);
-    mining = rng() > 0.7 ? 1 : 0;
+    mining = rollGrade(rng, 1, 2);
   } else {
     research = rollGrade(rng, 1, 2);
     mining = rollGrade(rng, 2, 3);
@@ -731,6 +733,12 @@ export function buildGalaxy(seed = GALAXY_SEED): StarSystem[] {
 
 export const GALAXY = buildGalaxy();
 
+let outpostHook: () => Outpost | null = () => null;
+
+export function setOutpostHook(fn: () => Outpost | null) {
+  outpostHook = fn;
+}
+
 export function loggedWorlds(surveys: Record<string, true>) {
   const out: { systemId: string; system: string; planet: Planet }[] = [];
   for (const sys of GALAXY) {
@@ -931,7 +939,8 @@ export function planetLog(
 }
 
 export function getSystem(id: string) {
-  return GALAXY.find((s) => s.id === id) ?? GALAXY[0];
+  const sys = GALAXY.find((s) => s.id === id) ?? GALAXY[0];
+  return withOutpost(sys, outpostHook());
 }
 
 export function getPlanet(systemId: string, planetId: string) {
