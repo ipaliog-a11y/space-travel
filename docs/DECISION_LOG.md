@@ -301,7 +301,7 @@ Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The li
 ## Decision #007: Economy, Mining, Fleet, Galaxy (28 Aug chat)
 
 **Date:** 2026-08-28  
-**Status:** ✅ Implemented (merchant + watch + Extractor mining in play; cosmetic traffic in play; fleet contracts / risk / station later)  
+**Status:** ✅ Implemented (merchant + watch + Extractor mining in play; cosmetic traffic in play; fleet contracts in play; risk / station later)  
 **Session:** [session-2026-08-28-progress-review](sessions/session-2026-08-28-progress-review.md)
 
 ### Context

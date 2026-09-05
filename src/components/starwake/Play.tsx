@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createEngine, type EngineHandle } from "@/lib/starwake/engine";
 import { HOME_SYSTEM_ID } from "@/lib/starwake/galaxy";
 import { useStarwake } from "@/lib/starwake/store";
-import { claimStarterShip, loadHangar } from "@/lib/hangar/api";
+import { claimStarterShip, loadHangar, payCrewRun } from "@/lib/hangar/api";
 import { getMyProfile } from "@/lib/player-profile/api";
 import { isProfileComplete } from "@/lib/player-profile/types";
 import { STARTER_HULLS } from "@/lib/starwake/catalog";
@@ -15,6 +15,7 @@ import { PilotProfile } from "./PilotProfile";
 import { ShipMarket } from "./ShipMarket";
 import { StarterPick } from "./StarterPick";
 import { TapeWatch } from "./TapeWatch";
+import { CrewOffice } from "./CrewOffice";
 import { isJumpMode, type ShipId } from "@/lib/starwake/types";
 
 export function Play() {
@@ -101,6 +102,30 @@ export function Play() {
   const mode = useStarwake((s) => s.mode);
   const charge01 = useStarwake((s) => s.charge01);
   const hasSave = useStarwake((s) => s.hasSave);
+
+  useEffect(() => {
+    let busy = false;
+    const id = window.setInterval(() => {
+      if (busy) return;
+      const due = useStarwake.getState().dueCrews(Date.now());
+      if (!due.length) return;
+      busy = true;
+      void (async () => {
+        try {
+          for (const row of due) {
+            if (!row.run) continue;
+            const r = await payCrewRun({ data: { hull: row.hull, job: row.run.job } });
+            useStarwake.getState().claimCrewRun(row.id, r.paid);
+          }
+        } catch {
+          /* leave unclaimed; office Collect still works */
+        } finally {
+          busy = false;
+        }
+      })();
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -231,6 +256,7 @@ export function Play() {
           onProfile={() => useStarwake.getState().setMenuView("profile")}
           onMarket={() => useStarwake.getState().setMenuView("market")}
           onWatch={() => useStarwake.getState().setMenuView("watch")}
+          onCrew={() => useStarwake.getState().setMenuView("crew")}
           onEngage={engage}
           onContinue={cont}
         />
@@ -245,6 +271,7 @@ export function Play() {
           onProfile={() => useStarwake.getState().setMenuView("profile")}
           onMarket={() => useStarwake.getState().setMenuView("market")}
           onWatch={() => useStarwake.getState().setMenuView("watch")}
+          onCrew={() => useStarwake.getState().setMenuView("crew")}
           onUndock={engage}
         />
       )}
@@ -268,6 +295,10 @@ export function Play() {
 
       {!entered && !glError && canFly && menuView === "watch" && (
         <TapeWatch onBack={() => useStarwake.getState().setMenuView("menu")} />
+      )}
+
+      {!entered && !glError && canFly && menuView === "crew" && (
+        <CrewOffice onBack={() => useStarwake.getState().setMenuView("menu")} />
       )}
 
       {entered && canFly && (

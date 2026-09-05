@@ -44,10 +44,12 @@ import {
   type SlotCareer,
   type SlotLive,
 } from "./saves";
+import { dueCrews, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
+import { claimCrew, makeCrew, originFromSave } from "./fleet-run";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 17;
+const SAVE_VERSION = 18;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -73,6 +75,7 @@ function captureLive(s: {
   jobSeed: number;
   ownedModules: string[];
   boostCharges: number;
+  crew: Crew[];
 }): SlotLive {
   return {
     hasSave: s.hasSave,
@@ -98,6 +101,7 @@ function captureLive(s: {
     jobSeed: s.jobSeed,
     ownedModules: s.ownedModules,
     boostCharges: s.boostCharges,
+    crew: s.crew,
   };
 }
 
@@ -144,6 +148,7 @@ export type StarwakeState = {
   hasSave: boolean;
   lastSaveAt: number;
   career: SlotCareer | null;
+  crew: Crew[];
   activeSlotId: SaveSlotId;
   slots: Record<SaveSlotId, SaveSlotSnapshot>;
   setEntered: (v: boolean) => void;
@@ -192,6 +197,10 @@ export type StarwakeState = {
   beginNewCareer: () => SaveSlotId | null;
   seedCareerIfMissing: (career: SlotCareer) => void;
   deleteCareerSlot: (id: SaveSlotId) => SaveSlotId | null;
+  hireCrew: (hull: CrewHull, now?: number) => boolean;
+  dismissCrew: (id: string) => void;
+  dueCrews: (now?: number) => Crew[];
+  claimCrewRun: (id: string, paid: number, now?: number) => boolean;
 };
 
 export const useStarwake = create<StarwakeState>()(
@@ -243,6 +252,7 @@ export const useStarwake = create<StarwakeState>()(
       hasSave: false,
       lastSaveAt: 0,
       career: null,
+      crew: [],
       activeSlotId: "1",
       slots: {
         "1": emptySlot("1"),
@@ -707,6 +717,44 @@ export const useStarwake = create<StarwakeState>()(
         });
         return nextId;
       },
+      hireCrew: (hull, now = Date.now()) => {
+        const st = get();
+        if (st.crew.length >= FLEET_CAP) return false;
+        const taken = st.crew.map((c) => c.name);
+        const from = originFromSave(st.systemId, st.boardStationId);
+        const next = makeCrew(hull, now, from, taken);
+        set({
+          crew: [...st.crew, next],
+          hasSave: true,
+          lastSaveAt: now,
+        });
+        return true;
+      },
+      dismissCrew: (id) => {
+        const st = get();
+        if (!st.crew.some((c) => c.id === id)) return;
+        set({
+          crew: st.crew.filter((c) => c.id !== id),
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+      },
+      dueCrews: (now = Date.now()) => dueCrews(get().crew, now),
+      claimCrewRun: (id, paid, now = Date.now()) => {
+        const st = get();
+        const cur = st.crew.find((c) => c.id === id);
+        if (!cur?.run || cur.run.claimed) return false;
+        if (now < cur.run.endsAt) return false;
+        const nextCrew = claimCrew(cur, paid, now);
+        set({
+          crew: st.crew.map((c) => (c.id === id ? nextCrew : c)),
+          completed: st.completed + 1,
+          jobLog: logDelivery(st.jobLog, cur.run.job, paid, cur.hull, now),
+          hasSave: true,
+          lastSaveAt: now,
+        });
+        return true;
+      },
     }),
     {
       name: "starwake-v2",
@@ -738,6 +786,7 @@ export const useStarwake = create<StarwakeState>()(
             manifests: sanitizeManifests(slot.manifests),
             jobLog: sanitizeJobLog(slot.jobLog),
             retiredJobs: retired,
+            crew: sanitizeCrew(slot.crew),
           };
         }
         const activeSlotId = migrated.activeSlotId;

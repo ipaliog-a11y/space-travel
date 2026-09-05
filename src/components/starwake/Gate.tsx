@@ -11,6 +11,7 @@ type Props = {
   onProfile: () => void;
   onMarket: () => void;
   onWatch: () => void;
+  onCrew: () => void;
   onEngage: () => void;
   onContinue?: () => void;
   hasSave?: boolean;
@@ -24,6 +25,7 @@ export function Gate({
   onProfile,
   onMarket,
   onWatch,
+  onCrew,
   onEngage,
   onContinue,
   hasSave,
@@ -99,6 +101,9 @@ export function Gate({
         </button>
         <button type="button" className="engage ghost" onClick={onWatch}>
           Watch
+        </button>
+        <button type="button" className="engage ghost" onClick={onCrew}>
+          Crew
         </button>
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot

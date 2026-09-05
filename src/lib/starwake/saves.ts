@@ -12,6 +12,7 @@ import {
 import { sanitizeRetired } from "./job-log.ts";
 import { emptyHolds, sanitizeCargo, type CargoHold } from "./market.ts";
 import type { CargoJob, JobLogEntry, Loadout, Manifest, ShipId } from "./types.ts";
+import { sanitizeCrew, type Crew } from "./fleet.ts";
 
 export const SAVE_SLOT_IDS = ["1", "2", "3"] as const;
 export type SaveSlotId = (typeof SAVE_SLOT_IDS)[number];
@@ -53,6 +54,7 @@ export type SaveSlotSnapshot = {
   jobSeed: number;
   ownedModules: string[];
   boostCharges: number;
+  crew: Crew[];
 };
 
 export type SlotLive = Omit<SaveSlotSnapshot, "name">;
@@ -158,6 +160,7 @@ export function emptySlot(id: SaveSlotId, name = SAVE_SLOT_NAMES[id]): SaveSlotS
     jobSeed: 0xc0de,
     ownedModules: [],
     boostCharges: SHIPS.courier.boostCapacity,
+    crew: [],
   };
 }
 
@@ -208,6 +211,7 @@ export function snapshotFromUnknown(raw: unknown, fallback: SaveSlotSnapshot): S
       ? p.ownedModules.filter((id): id is string => typeof id === "string")
       : [],
     boostCharges: typeof p.boostCharges === "number" ? p.boostCharges : SHIPS[shipId].boostCapacity,
+    crew: sanitizeCrew(p.crew),
   };
 }
 

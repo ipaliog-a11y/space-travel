@@ -283,6 +283,60 @@ export const payJobDelivery = createServerFn({ method: "POST" })
     return { credits: profile.credits, paid };
   });
 
+export const hireCrewBond = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { hull: "courier" | "hauler" }) => data)
+  .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
+    const { CREW_BOND, isCrewHull } = await import("../starwake/fleet.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const { getPlayerShips } = await import("../ship-ownership/server.ts");
+    if (!isCrewHull(data.hull)) throw new Error("Courier or Hauler crews only");
+    const paid = CREW_BOND[data.hull];
+    await requireCompleteProfile(context.userId);
+    const ships = await getPlayerShips(context.userId);
+    if (ships.length === 0) throw new Error("Need a hull in the bay");
+    const profile = await modifyCredits(context.userId, -paid);
+    return { credits: profile.credits, paid };
+  });
+
+export const payCrewRun = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: {
+    hull: "courier" | "hauler";
+    job: {
+      kind: string;
+      qty: number;
+      from: { systemId: string; stationId: string };
+      to: { systemId: string; stationId: string };
+    };
+  }) => data)
+  .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
+    const { crewNetFromPayout, isCrewHull } = await import("../starwake/fleet.ts");
+    const { jobPayout } = await import("../starwake/jobs.ts");
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const { getPlayerShips } = await import("../ship-ownership/server.ts");
+    if (!isCrewHull(data.hull)) throw new Error("Courier or Hauler crews only");
+    const kinds = ["courier", "hauler", "tender", "tug"] as const;
+    const kind = kinds.includes(data.job.kind as (typeof kinds)[number])
+      ? (data.job.kind as (typeof kinds)[number])
+      : "courier";
+    const playerPay = jobPayout({
+      id: "crew",
+      kind,
+      title: "",
+      cargo: "",
+      qty: data.job.qty,
+      from: data.job.from,
+      to: data.job.to,
+    });
+    const paid = crewNetFromPayout(playerPay, data.hull);
+    await requireCompleteProfile(context.userId);
+    const ships = await getPlayerShips(context.userId);
+    if (ships.length === 0) throw new Error("Need a hull in the bay");
+    const profile = await modifyCredits(context.userId, paid);
+    return { credits: profile.credits, paid };
+  });
+
 export const tradeCargo = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: {

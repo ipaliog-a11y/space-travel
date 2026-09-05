@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.23] - 2026-09-05
+
+### Added
+- **Crew office** (BUILD 10). Hire up to two Courier / Hauler crews. They fly contracts only, loop while you fly, and pay a cut after upkeep. Bond is spent. Cosmetic traffic still has no pay.
+
 ## [v0.1.22] - 2026-09-03
 
 ### Changed

@@ -37,6 +37,7 @@ type Props = {
   onProfile: () => void;
   onMarket: () => void;
   onWatch: () => void;
+  onCrew: () => void;
   onUndock: () => void;
   ownedHulls: ShipId[] | null;
 };
@@ -55,7 +56,7 @@ const STATS: { key: StatKey; label: string; unit: string; max: number; invert?: 
   { key: "mass", label: "Mass", unit: "", max: 2.2 },
 ];
 
-export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, onUndock, ownedHulls }: Props) {
+export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, onCrew, onUndock, ownedHulls }: Props) {
   const loadout = useStarwake((s) => s.loadout);
   const setModule = useStarwake((s) => s.setModule);
   const ownedModules = useStarwake((s) => s.ownedModules);
@@ -535,6 +536,9 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
         </button>
         <button type="button" className="engage ghost" onClick={onWatch}>
           Watch
+        </button>
+        <button type="button" className="engage ghost" onClick={onCrew}>
+          Crew
         </button>
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot
