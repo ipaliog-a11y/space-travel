@@ -88,6 +88,11 @@ describe("job payout", () => {
     const repair = repairCreditCost(wear);
     assert.ok(repair < paid, `repair ₡${repair} should be under payout ₡${paid}`);
   });
+
+  it("pays extractor pulls by haul AU, not pad-to-pad", () => {
+    const paid = jobPayoutFor(job({ kind: "extractor", qty: 2, haulAu: 1.2 }), { au: 1.2, ly: 0 });
+    assert.equal(paid, Math.round(2 * 1.2 * 72));
+  });
 });
 
 describe("hangar fit costs", () => {

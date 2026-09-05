@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.32] - 2026-09-05
+
+### Changed
+- Extractor crews fly pulls, not packets. Bond a spare Extractor in the Line Office. Green stays local; better grades go farther.
+
 ## [v0.1.31] - 2026-09-05
 
 ### Changed

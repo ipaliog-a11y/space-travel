@@ -1,7 +1,9 @@
 import { hashu, mulberry32 } from "./math.ts";
-import { getSystem, HOME_SYSTEM_ID } from "./galaxy.ts";
+import { distLy, GALAXY, getSystem, HOME_SYSTEM_ID, AU_UNITS } from "./galaxy.ts";
 import { jobPayout, jobSpan, makeBoard } from "./jobs.ts";
 import { crewGrade, crewRestSec, resolveCrewPirate } from "./crew-grade.ts";
+import { EXTRACT_SEC, yieldsFor, type YieldSource } from "./mining.ts";
+import { goodById } from "./market.ts";
 import {
   CREW_CUT,
   crewNetFromPayout,
@@ -9,7 +11,7 @@ import {
   type CrewHull,
   type CrewRun,
 } from "./fleet.ts";
-import type { CargoJob, JobStop } from "./types.ts";
+import type { CargoJob, JobStop, Planet } from "./types.ts";
 
 const LINE_NAMES = ["Kite", "Latch", "Quill", "Bramble", "Nock", "Sill"];
 
@@ -23,8 +25,9 @@ export function crewNet(job: CargoJob, hull: CrewHull) {
 
 export function crewRunSec(job: CargoJob) {
   const span = jobSpan(job);
-  if (span.ly > 0) return Math.round(140 + span.ly * 8);
-  return Math.round(80 + span.au * 18);
+  const hop = span.ly > 0 ? Math.round(140 + span.ly * 8) : Math.round(80 + span.au * 18);
+  if (job.kind !== "extractor") return hop;
+  return hop + Math.round(EXTRACT_SEC.extractor * Math.max(2, job.qty));
 }
 
 export function originFromSave(systemId: string, stationId?: string | null): JobStop {
@@ -55,7 +58,88 @@ export function jobFitsCrewXp(job: CargoJob, xp: number): boolean {
   return span.au <= g.maxAu;
 }
 
+type PullSite = { id: string; name: string; au: number; ly: number; mining: number; good: string; pad: JobStop };
+
+function siteFromPlanet(p: Planet, pad: JobStop, ly: number): PullSite | null {
+  if (p.stationId && p.interest !== "wild") return null;
+  const mining = p.prospect?.mining ?? (p.interest === "wild" ? 1 : 0);
+  if (mining <= 0) return null;
+  const src: YieldSource = { id: p.id, role: "planet", kind: p.kind, mining };
+  const good = yieldsFor(src).goods[0];
+  return {
+    id: p.id,
+    name: p.name,
+    au: Math.max(0.25, p.au || 0.4),
+    ly,
+    mining,
+    good: goodById(good).name,
+    pad,
+  };
+}
+
+function pullSites(from: JobStop, maxLy: number): PullSite[] {
+  const here = getSystem(from.systemId);
+  const out: PullSite[] = [];
+  const systems = [here, ...GALAXY.filter((s) => s.id !== here.id && s.stations.length > 0 && distLy(here, s) <= maxLy + 1e-4)];
+  for (const sys of systems) {
+    const ly = sys.id === here.id ? 0 : distLy(here, sys);
+    const pad: JobStop = {
+      systemId: sys.id,
+      stationId: (sys.stations[0]?.id ?? from.stationId),
+    };
+    for (const p of sys.planets) {
+      const site = siteFromPlanet(p, pad, ly);
+      if (site) out.push(site);
+    }
+    if (sys.belt?.prospect?.mining) {
+      const src: YieldSource = { id: sys.belt.id, role: "belt", icy: sys.belt.icy, mining: sys.belt.prospect.mining };
+      out.push({
+        id: sys.belt.id,
+        name: sys.belt.name,
+        au: Math.max(0.8, ((sys.belt.inner + sys.belt.outer) / 2) / AU_UNITS),
+        ly,
+        mining: sys.belt.prospect.mining,
+        good: goodById(yieldsFor(src).goods[0]).name,
+        pad,
+      });
+    }
+  }
+  return out;
+}
+
+export function pickCrewPull(from: JobStop, seed: number, xp = 0): CargoJob {
+  const g = crewGrade(xp);
+  const rng = mulberry32(hashu(`pull|${from.systemId}|${seed}`) >>> 0);
+  const sites = pullSites(from, g.maxLy).filter((s) => {
+    if (s.ly > 0) return s.ly <= g.maxLy;
+    return s.au * 2 <= g.maxAu;
+  });
+  const pool = sites.length ? sites : pullSites(from, g.maxLy).sort((a, b) => a.au - b.au).slice(0, 1);
+  const site = pool[Math.floor(rng() * pool.length)] ?? {
+    id: "well",
+    name: "local well",
+    au: 0.4,
+    ly: 0,
+    mining: 1,
+    good: "ore",
+    pad: from,
+  };
+  const qty = Math.max(1, Math.round(site.mining * 2 * g.qtyMul));
+  const haulAu = site.ly > 0 ? 0 : Math.max(0.4, site.au * 2);
+  return {
+    id: `crew-pull-${site.id}-${(seed >>> 0).toString(36)}`,
+    kind: "extractor",
+    title: `Pull · ${site.name}`,
+    cargo: site.good,
+    qty,
+    from,
+    to: site.pad,
+    haulAu: site.ly > 0 ? undefined : haulAu,
+  };
+}
+
 export function pickCrewJob(hull: CrewHull, from: JobStop, seed: number, xp = 0): CargoJob {
+  if (hull === "extractor") return pickCrewPull(from, seed, xp);
   const g = crewGrade(xp);
   const board = makeBoard(from.systemId, seed >>> 0, from.stationId);
   const match = board.find((j) => j.kind === hull && jobFitsCrewXp(j, xp));

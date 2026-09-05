@@ -255,7 +255,8 @@ export function jobDistanceAu(job: Pick<CargoJob, "from" | "to">): number {
   return Math.max(a.id === b.id ? 0.25 : 0.4, gap);
 }
 
-export function jobSpan(job: Pick<CargoJob, "from" | "to">): JobSpan {
+export function jobSpan(job: Pick<CargoJob, "from" | "to"> & { haulAu?: number }): JobSpan {
+  if (job.haulAu && job.haulAu > 0) return { au: job.haulAu, ly: 0 };
   return { au: jobDistanceAu(job), ly: jobDistanceLy(job) };
 }
 
@@ -264,8 +265,8 @@ export function jobPayout(job: CargoJob): number {
   return jobPayoutFor(job, jobSpan(job));
 }
 
-export function formatHaul(job: Pick<CargoJob, "from" | "to">): string {
-  const span = jobSpan(job as CargoJob);
+export function formatHaul(job: Pick<CargoJob, "from" | "to"> & { haulAu?: number }): string {
+  const span = jobSpan(job);
   if (span.ly > 0) return `${span.ly < 10 ? span.ly.toFixed(1) : span.ly.toFixed(0)} ly`;
   return `${span.au.toFixed(2)} AU`;
 }

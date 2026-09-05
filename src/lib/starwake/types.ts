@@ -69,7 +69,7 @@ export type Loadout = Record<ShipId, ShipLoadout>;
 
 export type MenuView = "menu" | "hangar" | "profile" | "market" | "watch" | "crew" | "diary" | "starter";
 
-export type JobKind = "courier" | "hauler" | "tender" | "tug";
+export type JobKind = "courier" | "hauler" | "tender" | "tug" | "extractor";
 
 export type JobStop = { systemId: string; stationId: string };
 
@@ -81,6 +81,8 @@ export type CargoJob = {
   qty: number;
   from: JobStop;
   to: JobStop;
+  /** Extract pulls: pad → body → pad, in AU. */
+  haulAu?: number;
 };
 
 export type Manifest = { job: CargoJob; loaded: boolean };

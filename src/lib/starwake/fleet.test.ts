@@ -8,6 +8,7 @@ import {
   crewNetFromPayout,
   dueCrews,
   dueRests,
+  isCrewHull,
   occupiedShipKeys,
   sanitizeCrew,
   spareShips,
@@ -120,5 +121,15 @@ describe("fleet crews", () => {
     const used = occupiedShipKeys([crew({ shipKey: "", hull: "courier" })], ships);
     assert.equal(used.has("a"), true);
     assert.equal(spareShips(ships, [crew({ shipKey: "", hull: "courier" })]).some((s) => s.id === "a"), false);
+  });
+
+  it("lets an Extractor crew take pulls, not packets", () => {
+    assert.equal(isCrewHull("extractor"), true);
+    assert.ok(CREW_BOND.extractor > 0);
+    const ships = [
+      { id: "a", shipType: "courier" },
+      { id: "e", shipType: "extractor" },
+    ];
+    assert.ok(spareShips(ships, []).some((s) => s.shipType === "extractor"));
   });
 });

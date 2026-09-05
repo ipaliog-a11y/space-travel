@@ -6,6 +6,7 @@ export const PAY_PER_UNIT_AU: Record<JobKind, number> = {
   hauler: 38,
   tender: 55,
   tug: 70,
+  extractor: 72,
 };
 
 /** One jump-ly pays like this many AU of local haul. */

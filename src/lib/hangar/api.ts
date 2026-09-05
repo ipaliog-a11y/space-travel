@@ -285,12 +285,12 @@ export const payJobDelivery = createServerFn({ method: "POST" })
 
 export const hireCrewBond = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((data: { hull: "courier" | "hauler"; shipKey: string }) => data)
+  .validator((data: { hull: "courier" | "hauler" | "extractor"; shipKey: string }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
     const { CREW_BOND, isCrewHull } = await import("../starwake/fleet.ts");
     const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
     const { getHangarShips } = await import("./server.ts");
-    if (!isCrewHull(data.hull)) throw new Error("Courier or Hauler crews only");
+    if (!isCrewHull(data.hull)) throw new Error("Courier, Hauler, or Extractor crews only");
     const key = typeof data.shipKey === "string" ? data.shipKey.trim() : "";
     if (!key) throw new Error("Assign a spare hull");
     const paid = CREW_BOND[data.hull];
@@ -306,12 +306,13 @@ export const hireCrewBond = createServerFn({ method: "POST" })
 export const payCrewRun = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: {
-    hull: "courier" | "hauler";
+    hull: "courier" | "hauler" | "extractor";
     job: {
       kind: string;
       qty: number;
       from: { systemId: string; stationId: string };
       to: { systemId: string; stationId: string };
+      haulAu?: number;
     };
   }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
@@ -319,8 +320,8 @@ export const payCrewRun = createServerFn({ method: "POST" })
     const { jobPayout } = await import("../starwake/jobs.ts");
     const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
     const { getPlayerShips } = await import("../ship-ownership/server.ts");
-    if (!isCrewHull(data.hull)) throw new Error("Courier or Hauler crews only");
-    const kinds = ["courier", "hauler", "tender", "tug"] as const;
+    if (!isCrewHull(data.hull)) throw new Error("Courier, Hauler, or Extractor crews only");
+    const kinds = ["courier", "hauler", "tender", "tug", "extractor"] as const;
     const kind = kinds.includes(data.job.kind as (typeof kinds)[number])
       ? (data.job.kind as (typeof kinds)[number])
       : "courier";
@@ -332,6 +333,7 @@ export const payCrewRun = createServerFn({ method: "POST" })
       qty: data.job.qty,
       from: data.job.from,
       to: data.job.to,
+      haulAu: data.job.haulAu,
     });
     const paid = crewNetFromPayout(playerPay, data.hull);
     await requireCompleteProfile(context.userId);

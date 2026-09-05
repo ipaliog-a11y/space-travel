@@ -2,16 +2,18 @@ import type { CargoJob, JobLogEntry, JobStop, ShipId } from "./types.ts";
 
 export const FLEET_CAP = 2;
 export const CREW_CUT = 0.42;
-export type CrewHull = "courier" | "hauler";
+export type CrewHull = "courier" | "hauler" | "extractor";
 
 export const CREW_BOND: Record<CrewHull, number> = {
   courier: 6000,
   hauler: 9000,
+  extractor: 8000,
 };
 
 export const CREW_UPKEEP: Record<CrewHull, number> = {
   courier: 110,
   hauler: 190,
+  extractor: 95,
 };
 
 export type CrewRun = {
@@ -42,7 +44,7 @@ export type Crew = {
 export type AssignableHull = { id: string; shipType: string };
 
 export function isCrewHull(v: unknown): v is CrewHull {
-  return v === "courier" || v === "hauler";
+  return v === "courier" || v === "hauler" || v === "extractor";
 }
 
 export function crewNetFromPayout(playerPay: number, hull: CrewHull) {
@@ -73,7 +75,7 @@ export function occupiedShipKeys(crew: Crew[], ships: AssignableHull[]): Set<str
 }
 
 /**
- * Hulls a new crew can take. Courier/Hauler only. Always leave the player one hull.
+ * Hulls a new crew can take. Courier / Hauler / Extractor. Always leave the player one hull.
  */
 export function spareShips(ships: AssignableHull[], crew: Crew[]): AssignableHull[] {
   if (ships.length - crew.length <= 1) return [];
@@ -102,15 +104,18 @@ function asJob(raw: unknown): CargoJob | null {
   const from = asStop(j.from);
   const to = asStop(j.to);
   if (!from || !to || typeof j.id !== "string" || !j.id) return null;
-  const kind = j.kind === "hauler" ? "hauler" : "courier";
+  const kind: CargoJob["kind"] =
+    j.kind === "hauler" || j.kind === "extractor" || j.kind === "tender" || j.kind === "tug" ? j.kind : "courier";
+  const haulAu = Number(j.haulAu);
   return {
     id: j.id,
     kind,
-    title: typeof j.title === "string" ? j.title : "Line packet",
+    title: typeof j.title === "string" ? j.title : kind === "extractor" ? "Pull" : "Line packet",
     cargo: typeof j.cargo === "string" ? j.cargo : "cargo",
     qty: Math.max(1, Math.round(Number(j.qty) || 1)),
     from,
     to,
+    ...(Number.isFinite(haulAu) && haulAu > 0 ? { haulAu } : {}),
   };
 }
 
@@ -123,10 +128,10 @@ function asLog(raw: unknown, hull: CrewHull): JobLogEntry[] {
     const from = asStop(r.from);
     const to = asStop(r.to);
     if (!from || !to || typeof r.id !== "string") continue;
-    const shipId = (r.shipId === "hauler" ? "hauler" : hull) as ShipId;
+    const shipId = (isCrewHull(r.shipId) ? r.shipId : hull) as ShipId;
     out.push({
       id: r.id,
-      kind: r.kind === "hauler" ? "hauler" : "courier",
+      kind: r.kind === "hauler" || r.kind === "extractor" || r.kind === "tender" || r.kind === "tug" ? r.kind : "courier",
       cargo: typeof r.cargo === "string" ? r.cargo : "cargo",
       qty: Math.max(1, Math.round(Number(r.qty) || 1)),
       from,

@@ -232,7 +232,7 @@ export function CrewOffice({ onBack }: Props) {
             <p className="survey-empty">Reading the bay…</p>
           ) : spares.length === 0 ? (
             <p className="survey-empty">
-              No spare Courier or Hauler. Buy another hull in Market, then come back to bond a crew to it.
+              No spare Courier, Hauler, or Extractor. Buy another hull in Market, then come back to bond a crew to it.
             </p>
           ) : (
             <div className="ship-rail" role="listbox" aria-label="Spare hull">
@@ -282,7 +282,7 @@ export function CrewOffice({ onBack }: Props) {
         <HelionConfirm
           kicker="Line office"
           title={`Bond ${SHIPS[spareHull].name}`}
-          body={`Assign this spare ${SHIPS[spareHull].name} to a green crew for ₡${CREW_BOND[spareHull].toLocaleString()}. They start on local film, rest the hop, and cannot hold a pirate. No refund on dismiss.`}
+          body={`Assign this spare ${SHIPS[spareHull].name} to a green crew for ₡${CREW_BOND[spareHull].toLocaleString()}. ${spareHull === "extractor" ? "They fly local pulls, rest the hop, and cannot hold a pirate." : "They start on local film, rest the hop, and cannot hold a pirate."} No refund on dismiss.`}
           confirmLabel="Bond"
           busy={Boolean(busy)}
           onConfirm={() => void onHire()}
