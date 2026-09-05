@@ -202,3 +202,26 @@ export async function updateLastLogin(playerId: string): Promise<void> {
     WHERE id = ${playerId}
   `;
 }
+
+export async function debugSetPilot(
+  playerId: string,
+  xp: number,
+  credits: number,
+): Promise<PlayerProfile> {
+  const { rankFromXp } = await import("./ranks.ts");
+  const { clampDebugPilot } = await import("./types.ts");
+  const next = clampDebugPilot(xp, credits);
+  const rank = rankFromXp(next.xp).tier;
+  await ensurePlayerRow(playerId);
+  const sql = await getSql();
+  const result = await sql<PlayerRow>`
+    UPDATE players
+    SET total_xp = ${next.xp}, current_rank = ${rank}, credits = ${next.credits}
+    WHERE id = ${playerId}
+    RETURNING
+      id, display_name, call_sign, icon_id, profile_created_at, last_login_at,
+      total_xp, current_rank, credits, hangar_bonus_slots, starter_claimed
+  `;
+  if (result.length === 0) throw new Error("Player not found");
+  return mapPlayer(result[0]);
+}

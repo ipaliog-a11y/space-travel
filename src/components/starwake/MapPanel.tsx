@@ -16,6 +16,7 @@ import {
 import type { LocalTarget } from "@/lib/starwake/engine";
 import { useStarwake } from "@/lib/starwake/store";
 import type { MapLayer, ShipId } from "@/lib/starwake/types";
+import { cycleMapLayer } from "@/lib/starwake/charts";
 import { Dossier } from "./Dossier";
 import { GalaxyChart, SystemDiagram } from "./MapCharts";
 
@@ -82,6 +83,12 @@ export function MapPanel({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+        onLayer(cycleMapLayer(layer));
+        return;
+      }
       if (e.code !== "Escape") return;
       if (!fileId) return;
       e.preventDefault();
@@ -90,7 +97,7 @@ export function MapPanel({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [fileId]);
+  }, [fileId, layer, onLayer]);
 
   function pickBody(target: LocalTarget) {
     const id = target.kind === "star" ? "star" : target.kind === "belt" ? (here.belt?.id ?? "belt") : target.id;

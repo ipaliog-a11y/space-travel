@@ -24,3 +24,11 @@ export const saveMyProfile = createServerFn({ method: "POST" })
       iconId: data.iconId,
     });
   });
+
+export const debugSetMyPilot = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { xp: number; credits: number }) => data)
+  .handler(async ({ context, data }): Promise<PlayerProfile> => {
+    const { debugSetPilot } = await import("./server.ts");
+    return debugSetPilot(context.userId, data.xp, data.credits);
+  });

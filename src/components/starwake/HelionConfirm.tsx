@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 
 type Props = {
   kicker?: string;
@@ -9,6 +9,7 @@ type Props = {
   confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  children?: ReactNode;
 };
 
 export function HelionConfirm({
@@ -20,6 +21,7 @@ export function HelionConfirm({
   confirmDisabled,
   onConfirm,
   onCancel,
+  children,
 }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -38,6 +40,7 @@ export function HelionConfirm({
         <div className="k">{kicker}</div>
         <h2 id="helion-confirm-title">{title}</h2>
         <p className="lede">{body}</p>
+        {children}
         <div className="gate-acts">
           <button type="button" className="engage" disabled={busy || confirmDisabled} onClick={onConfirm}>
             {busy ? "Working…" : confirmLabel}

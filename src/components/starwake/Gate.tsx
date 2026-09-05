@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { SHIP_SETS, SHIPS, fittedShip } from "@/lib/starwake/catalog";
 import { holdUsed } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ShipId } from "@/lib/starwake/types";
+import { DebugBench } from "./DebugBench";
 
 type Props = {
   shipId: ShipId;
@@ -33,6 +35,7 @@ export function Gate({
   const loadout = useStarwake((s) => s.loadout);
   const manifests = useStarwake((s) => s.manifests);
   const cargoHolds = useStarwake((s) => s.cargo);
+  const [bench, setBench] = useState(false);
 
   return (
     <div className="gate menu helion-dock" data-ui>
@@ -96,6 +99,9 @@ export function Gate({
         <button type="button" className="engage ghost" onClick={onProfile}>
           Pilot
         </button>
+        <button type="button" className="engage ghost" onClick={() => setBench(true)}>
+          Bench
+        </button>
         {hasSave && onContinue ? (
           <button type="button" className="engage ghost" onClick={onContinue}>
             Continue
@@ -106,6 +112,7 @@ export function Gate({
           </button>
         )}
       </div>
+      {bench && <DebugBench onClose={() => setBench(false)} />}
     </div>
   );
 }

@@ -657,8 +657,12 @@ export function FlightChrome({
               <span>boost</span>
             </div>
             <div>
-              <kbd>N</kbd>
+              <kbd>C</kbd>
               <span>charts</span>
+            </div>
+            <div>
+              <kbd>Tab</kbd>
+              <span>system / galaxy</span>
             </div>
             <div>
               <kbd>X</kbd> <kbd>J</kbd>

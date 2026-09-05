@@ -2,6 +2,12 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.31] - 2026-09-05
+
+### Changed
+- C opens and closes Charts (N still works). Tab flips System / Galaxy while Charts is up.
+- Gate Bench sets XP and credits on the account. Rank follows XP.
+
 ## [v0.1.30] - 2026-09-05
 
 ### Changed

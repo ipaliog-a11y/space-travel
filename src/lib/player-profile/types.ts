@@ -107,3 +107,13 @@ export function coercePilotIconId(id: string | null | undefined): PilotIconId {
 export function isIconUnlocked(iconId: PilotIconId, _currentRank: number): boolean {
   return isPilotIconId(iconId);
 }
+
+/** Gate bench. Rank 15 is 180k XP. */
+export function clampDebugPilot(xp: unknown, credits: unknown): { xp: number; credits: number } {
+  const n = (v: unknown, lo: number, hi: number) => {
+    const x = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(x)) return lo;
+    return Math.max(lo, Math.min(hi, Math.round(x)));
+  };
+  return { xp: n(xp, 0, 200_000), credits: n(credits, 0, 10_000_000) };
+}

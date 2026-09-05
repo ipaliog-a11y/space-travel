@@ -776,6 +776,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			"KeyX",
 			"KeyD",
 			"KeyJ",
+			"KeyC",
+			"KeyN",
+			"Tab",
 			"Escape"
 		].includes(e.code)) e.preventDefault();
 		if (e.repeat) return;
@@ -787,7 +790,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		}
 		if (e.code === "KeyM") getStarwake().toggleMute();
 		if (e.code === "KeyI") getStarwake().toggleInvert();
-		if (e.code === "KeyN") getStarwake().setMapOpen(!getStarwake().mapOpen);
+		if ((e.code === "KeyN" || e.code === "KeyC") && getStarwake().entered) getStarwake().setMapOpen(!getStarwake().mapOpen);
 		if (e.code === "KeyR" && getStarwake().entered) {
 			getStarwake().refillBoosts();
 			pushDrive();

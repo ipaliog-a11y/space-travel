@@ -3858,3 +3858,24 @@ button.pad-jump em {
 .helion-confirm-card .gate-acts {
   justify-content: flex-start;
 }
+.bench-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 10px;
+  font-family: var(--font-helion);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--color-helion-dim);
+}
+.bench-row input {
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+  background: color-mix(in oklab, var(--color-helion-ink) 55%, transparent);
+  color: var(--color-helion-ivory);
+  font-family: var(--font-helion-mono, ui-monospace, monospace);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+}
