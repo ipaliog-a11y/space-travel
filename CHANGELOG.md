@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.43] - 2026-09-05
+
+### Changed
+- Hull classes: Ion Scout 12–18 m through Void Frigate 80–120 m (combat saved, not flyable).
+
 ## [v0.1.42] - 2026-09-05
 
 ### Changed

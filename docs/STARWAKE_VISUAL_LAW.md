@@ -14,3 +14,16 @@ Studio presentation: clean product shot, physically plausible scale.
 ```
 
 Then name the hull and the shot (hangar product / thumb / in-flight / sprite). Do not paraphrase the block.
+
+## Classes
+
+Source: [`src/lib/starwake/hull-class.ts`](../src/lib/starwake/hull-class.ts). State the length in the prompt.
+
+| Class | Length | Role | Live hulls |
+| ----- | ------ | ---- | ---------- |
+| Ion Scout | 12–18 m | fast recon | Scout |
+| Warp Cutter | 22–30 m | player starter | Courier, Clipper, Tug |
+| Mining Barge | 40–70 m | industrial | Extractor, Tender |
+| Hauler | 50–90 m | cargo | Hauler |
+| Void Frigate | 80–120 m | combat | — (saved, not flyable) |
+

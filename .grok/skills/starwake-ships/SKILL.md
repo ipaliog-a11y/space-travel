@@ -34,6 +34,18 @@ No chrome, no anime wings, no text logos, no people, no planets filling the fram
 Studio presentation: clean product shot, physically plausible scale.
 ```
 
+Then one class line from `src/lib/starwake/hull-class.ts` (`classPrompt`):
+
+| Class | Length | Role | Live hulls |
+|-------|--------|------|------------|
+| Ion Scout | 12–18 m | fast recon | Scout |
+| Warp Cutter | 22–30 m | player starter | Courier, Clipper, Tug |
+| Mining Barge | 40–70 m | industrial | Extractor, Tender |
+| Hauler | 50–90 m | cargo | Hauler |
+| Void Frigate | 80–120 m | combat | none — not flyable |
+
+A Courier is a **22–30 m cutter**, not a cruiser. A Hauler is **50–90 m**. Never fill the frame with a planet to fake scale.
+
 Edits (`imagine_image_to_image`) keep the same block, then the one change.
 
 ## 2. Then name the hull
