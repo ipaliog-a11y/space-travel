@@ -1,5 +1,6 @@
-import { GALAXY } from "./galaxy.ts";
+import { distLy, GALAXY, getSystem } from "./galaxy.ts";
 import { cargoOf, hubKey, hubListings, type CargoHold, type GoodId } from "./market.ts";
+import { nearestListed, type ListedHop } from "./market-analysis.ts";
 
 export type MarketHub = {
   systemId: string;
@@ -27,6 +28,11 @@ export function marketHubs(): MarketHub[] {
 
 export function hubsForGood(goodId: GoodId): MarketHub[] {
   return marketHubs().filter((h) => hubListings(h.key).includes(goodId));
+}
+
+export function hopsForGood(goodId: GoodId, fromSystemId: string): ListedHop[] {
+  const from = getSystem(fromSystemId);
+  return nearestListed(hubsForGood(goodId), from.id, (a, b) => distLy(getSystem(a), getSystem(b)));
 }
 
 export function padOfKey(key: string): MarketHub | null {

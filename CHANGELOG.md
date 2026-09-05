@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.34] - 2026-09-05
+
+### Changed
+- Watch Analysis plate: movers, wait-or-dump, listed locks. No sell. Same tape everywhere.
+
 ## [v0.1.33] - 2026-09-05
 
 ### Changed

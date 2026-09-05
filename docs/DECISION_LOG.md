@@ -494,6 +494,21 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #017: Analysis plate is movers + wait-or-dump
+
+**Date:** 2026-09-05  
+**Status:** Approved  
+**Context:** Watch Warehouse is a ledger. Players asked for advanced market analysis. ₡ is galaxy-wide, so Elite INARA routes and EVE regional spreads do not apply.
+
+**Decision:** Third Watch tab **Analysis**. Steal EVE movers and X4 “where it lists.” Dump hints name a lock that lists the good and the hop in ly. No sell from this plate. No second price per hub.
+
+**Quality bar**
+- `tapeMovers` / `waitOrDump` / `nearestListed` in `market-analysis.ts`
+- Hints always include a station name on dump if any lock lists it
+- Paper ₡ uses `markHold`
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -504,15 +519,7 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 **When:** Week 2 implementation  
 **Question:** Premium rates and coverage levels?
 
-### Advanced Market Analysis
-**When:** After Warehouse has a session of play  
-**Question:** Watch gets an Analysis plate — movers, wait-or-dump, listed locks — without breaking the one-tape rule.
-
-Starwake ₡ is galaxy-wide. Elite/INARA routes and EVE regional spreads do not apply. Steal: EVE screener (gainers/losers), X4 “where it lists”, warehouse mark vs tape. Don’t: fake pad-to-pad spreads, order books, Cr/t/h autopilot.
-
-Bar: Analysis never sells. Every hint names a lock that lists the good. Paper ₡ uses `markHold`. No second price per hub.
-
 ---
 
 **Last Updated:** 2026-09-05  
-**Total Decisions:** 16 approved, 3 pending
+**Total Decisions:** 17 approved, 2 pending

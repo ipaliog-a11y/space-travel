@@ -21,6 +21,7 @@ import {
   type GoodKind,
 } from "@/lib/starwake/market";
 import { useStarwake } from "@/lib/starwake/store";
+import { WatchAnalysis } from "./WatchAnalysis";
 
 type Props = {
   onBack: () => void;
@@ -34,10 +35,11 @@ const KIND_BLURB: Record<GoodKind, string> = {
 };
 
 export function TapeWatch({ onBack }: Props) {
-  const [page, setPage] = useState<"tape" | "house">("tape");
+  const [page, setPage] = useState<"tape" | "house" | "scan">("tape");
   const [tick, setTick] = useState(() => Math.floor(Date.now() / MARKET_TICK_MS));
   const [focus, setFocus] = useState<GoodId>("ore");
   const shipId = useStarwake((s) => s.shipId);
+  const systemId = useStarwake((s) => s.systemId);
   const cargo = useStarwake((s) => s.cargo[s.shipId] ?? EMPTY_HOLD);
   const warehouses = useStarwake((s) => s.warehouses);
   const pads = listedPads(warehouses);
@@ -122,7 +124,7 @@ export function TapeWatch({ onBack }: Props) {
     <div className="gate hangar tape-page helion-dock" data-ui>
       <header className="hangar-head">
         <div className="k">Watch</div>
-        <h1>{page === "house" ? "Warehouse" : "Tape"}</h1>
+        <h1>{page === "house" ? "Warehouse" : page === "scan" ? "Analysis" : "Tape"}</h1>
         <div className="map-tabs" role="tablist" aria-label="Watch page">
           <button type="button" className={page === "tape" ? "on" : ""} onClick={() => setPage("tape")}>
             Tape
@@ -130,16 +132,30 @@ export function TapeWatch({ onBack }: Props) {
           <button type="button" className={page === "house" ? "on" : ""} onClick={() => setPage("house")}>
             Warehouse
           </button>
+          <button type="button" className={page === "scan" ? "on" : ""} onClick={() => setPage("scan")}>
+            Analysis
+          </button>
         </div>
         <p className="lede">
           {page === "house"
             ? "Lots on your pads. Paper ₡ only. Sell when you are docked at that lock."
-            : "Forty goods, one galaxy tape. Click a lot or a row to focus it."}
+            : page === "scan"
+              ? "Movers and wait-or-dump. Same tape everywhere. No sell from here."
+              : "Forty goods, one galaxy tape. Click a lot or a row to focus it."}
         </p>
       </header>
 
       {page === "house" ? (
         <WarehouseLedger pads={pads} tick={tick} />
+      ) : page === "scan" ? (
+        <WatchAnalysis
+          tick={tick}
+          systemId={systemId}
+          cargo={cargo}
+          pads={pads}
+          rows={rows.map((r) => ({ goodId: r.good.id, name: r.good.name, unit: r.unit, delta: r.delta }))}
+          onFocus={setFocus}
+        />
       ) : (
       <>
 
