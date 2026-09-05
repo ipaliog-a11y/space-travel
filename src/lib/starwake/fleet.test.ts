@@ -7,6 +7,7 @@ import {
   FLEET_CAP,
   crewNetFromPayout,
   dueCrews,
+  dueRests,
   occupiedShipKeys,
   sanitizeCrew,
   spareShips,
@@ -23,19 +24,23 @@ function crew(partial: Partial<Crew> = {}): Crew {
     log: [],
     earned: 0,
     completed: 0,
+    xp: 0,
     run: {
       job: {
         id: "j1",
         kind: "courier",
         title: "test",
         cargo: "scan plates",
-        qty: 4,
+        qty: 2,
         from: { systemId: "helion", stationId: "a" },
         to: { systemId: "helion", stationId: "b" },
       },
       startedAt: 1000,
       endsAt: 91_000,
       claimed: false,
+      phase: "flight",
+      flightSec: 90,
+      dest: { systemId: "helion", stationId: "b" },
     },
     ...partial,
   };
@@ -60,14 +65,20 @@ describe("fleet crews", () => {
     assert.ok(crewNetFromPayout(900, "hauler") < crewNetFromPayout(900, "courier"));
   });
 
-  it("marks a run due only after eta", () => {
+  it("marks a flight due only after eta, and rest separately", () => {
     const c = crew();
     assert.equal(dueCrews([c], 1000).length, 0);
     assert.equal(dueCrews([c], 91_000).length, 1);
     assert.equal(dueCrews([{ ...c, run: { ...c.run!, claimed: true } }], 91_000).length, 0);
+    const pad = crew({
+      run: { ...c.run!, phase: "rest", claimed: true, job: null, endsAt: 50_000 },
+    });
+    assert.equal(dueCrews([pad], 50_000).length, 0);
+    assert.equal(dueRests([pad], 49_000).length, 0);
+    assert.equal(dueRests([pad], 50_000).length, 1);
   });
 
-  it("sanitize drops junk and caps at two", () => {
+  it("sanitize drops junk, caps at two, and fills xp from hauls", () => {
     const a = crew({ id: "a", name: "Kite" });
     const b = crew({ id: "b", hull: "hauler", name: "Latch", shipKey: "ship-b" });
     const out = sanitizeCrew([a, b, { ...a, id: "c" }, { hull: "scout" }, null]);
@@ -75,7 +86,7 @@ describe("fleet crews", () => {
     assert.equal(out[0].id, "a");
     assert.equal(out[1].hull, "hauler");
     assert.equal(out[0].shipKey, "ship-a");
-    assert.equal(out[0].log.length, 0);
+    assert.equal(out[0].xp, 0);
   });
 
   it("needs a spare hull besides the one you fly", () => {

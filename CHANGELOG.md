@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.27] - 2026-09-05
+
+### Changed
+- Crews grow by hauls, not a skill tree. Green: local film, pad rest equal to the hop, unarmed. XP opens jumps, shortens rest, and lets them keep a pirate stop.
+
 ## [v0.1.26] - 2026-09-05
 
 ### Added

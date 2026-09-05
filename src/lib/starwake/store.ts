@@ -44,12 +44,12 @@ import {
   type SlotCareer,
   type SlotLive,
 } from "./saves";
-import { dueCrews, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
-import { claimCrew, makeCrew, originFromSave } from "./fleet-run";
+import { dueCrews, dueRests, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
+import { claimCrew, launchCrew, makeCrew, originFromSave } from "./fleet-run";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 19;
+const SAVE_VERSION = 20;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -200,6 +200,7 @@ export type StarwakeState = {
   hireCrew: (hull: CrewHull, shipKey: string, now?: number) => boolean;
   dismissCrew: (id: string) => void;
   dueCrews: (now?: number) => Crew[];
+  launchDueCrews: (now?: number) => void;
   claimCrewRun: (id: string, paid: number, now?: number) => boolean;
 };
 
@@ -743,14 +744,25 @@ export const useStarwake = create<StarwakeState>()(
         });
       },
       dueCrews: (now = Date.now()) => dueCrews(get().crew, now),
+      launchDueCrews: (now = Date.now()) => {
+        const st = get();
+        const due = dueRests(st.crew, now);
+        if (!due.length) return;
+        set({
+          crew: st.crew.map((c) => (due.some((d) => d.id === c.id) ? launchCrew(c, now) : c)),
+          hasSave: true,
+          lastSaveAt: now,
+        });
+      },
       claimCrewRun: (id, paid, now = Date.now()) => {
         const st = get();
         const cur = st.crew.find((c) => c.id === id);
-        if (!cur?.run || cur.run.claimed) return false;
+        if (!cur?.run || cur.run.phase !== "flight" || cur.run.claimed) return false;
         if (now < cur.run.endsAt) return false;
+        const job = cur.run.job;
         const nextCrew = {
           ...claimCrew(cur, paid, now),
-          log: logDelivery(cur.log ?? [], cur.run.job, paid, cur.hull, now),
+          log: job ? logDelivery(cur.log ?? [], job, paid, cur.hull, now) : cur.log,
           earned: (cur.earned ?? 0) + paid,
           completed: (cur.completed ?? 0) + 1,
         };

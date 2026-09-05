@@ -15,10 +15,14 @@ export const CREW_UPKEEP: Record<CrewHull, number> = {
 };
 
 export type CrewRun = {
-  job: CargoJob;
+  job: CargoJob | null;
   startedAt: number;
   endsAt: number;
   claimed: boolean;
+  phase: "flight" | "rest";
+  flightSec: number;
+  /** Pad they launch from after rest. */
+  dest: JobStop | null;
 };
 
 export type Crew = {
@@ -32,6 +36,7 @@ export type Crew = {
   log: JobLogEntry[];
   earned: number;
   completed: number;
+  xp: number;
 };
 
 export type AssignableHull = { id: string; shipType: string };
@@ -46,7 +51,11 @@ export function crewNetFromPayout(playerPay: number, hull: CrewHull) {
 }
 
 export function dueCrews(crew: Crew[], now: number) {
-  return crew.filter((c) => c.run && !c.run.claimed && now >= c.run.endsAt);
+  return crew.filter((c) => c.run && c.run.phase === "flight" && !c.run.claimed && now >= c.run.endsAt);
+}
+
+export function dueRests(crew: Crew[], now: number) {
+  return crew.filter((c) => c.run && c.run.phase === "rest" && now >= c.run.endsAt);
 }
 
 /** Hangar ids a crew already occupies. Empty shipKey claims one matching hull type. */
@@ -150,13 +159,19 @@ export function sanitizeCrew(raw: unknown): Crew[] {
     if (shipKey) shipsTaken.add(shipKey);
     let run: CrewRun | null = null;
     if (c.run && typeof c.run === "object") {
+      const phase = c.run.phase === "rest" ? "rest" : "flight";
       const job = asJob(c.run.job);
-      if (job) {
+      if (job || phase === "rest") {
+        const startedAt = typeof c.run.startedAt === "number" ? c.run.startedAt : hiredAt;
+        const endsAt = typeof c.run.endsAt === "number" ? c.run.endsAt : hiredAt + 90_000;
         run = {
           job,
-          startedAt: typeof c.run.startedAt === "number" ? c.run.startedAt : hiredAt,
-          endsAt: typeof c.run.endsAt === "number" ? c.run.endsAt : hiredAt + 90_000,
-          claimed: Boolean(c.run.claimed),
+          startedAt,
+          endsAt,
+          claimed: phase === "rest" ? true : Boolean(c.run.claimed),
+          phase,
+          flightSec: Math.max(0, Number(c.run.flightSec) || Math.max(0, (endsAt - startedAt) / 1000)),
+          dest: asStop(c.run.dest) ?? job?.to ?? null,
         };
       }
     }
@@ -170,6 +185,7 @@ export function sanitizeCrew(raw: unknown): Crew[] {
       log: asLog(c.log, c.hull),
       earned: Math.max(0, Math.round(Number(c.earned) || 0)),
       completed: Math.max(0, Math.round(Number(c.completed) || 0)),
+      xp: Math.max(0, Math.round(Number(c.xp) || Number(c.completed) || 0)),
     });
     if (out.length >= FLEET_CAP) break;
   }

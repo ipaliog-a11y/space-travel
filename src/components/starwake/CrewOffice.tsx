@@ -4,7 +4,6 @@ import type { HangarShip } from "@/lib/hangar/types";
 import { PilotGlyph } from "@/lib/player-profile/glyphs";
 import {
   CREW_BOND,
-  CREW_UPKEEP,
   FLEET_CAP,
   crewGlyphId,
   isCrewHull,
@@ -12,6 +11,8 @@ import {
   type Crew,
   type CrewHull,
 } from "@/lib/starwake/fleet";
+import { crewArms, crewGrade, crewXpInto } from "@/lib/starwake/crew-grade";
+import { rollCrewPirate } from "@/lib/starwake/fleet-run";
 import { diaryEarnings, formatHaul, formatStop } from "@/lib/starwake/jobs";
 import { SHIPS } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
@@ -117,10 +118,16 @@ export function CrewOffice({ onBack }: Props) {
 
   async function onCollect(id: string) {
     const row = crew.find((c) => c.id === id);
-    if (!row?.run || busy) return;
+    if (!row?.run?.job || row.run.phase !== "flight" || busy) return;
     setErr(null);
     setBusy(id);
     try {
+      const pirate = rollCrewPirate(row, Date.now());
+      if (pirate.lost) {
+        useStarwake.getState().claimCrewRun(id, 0);
+        setErr(`${row.name} lost the packet.`);
+        return;
+      }
       const r = await payCrewRun({ data: { hull: row.hull, job: row.run.job } });
       setCredits(r.credits);
       useStarwake.getState().claimCrewRun(id, r.paid);
@@ -154,8 +161,8 @@ export function CrewOffice({ onBack }: Props) {
         <div className="k">Crew</div>
         <h1>Line office</h1>
         <p className="lede">
-          A crew flies a spare hull, not the one you sit in. Bond, then they loop contracts. Open a name for their
-          file and diary.
+          A crew flies a spare hull. Green hands take local film, sit the hop on the pad, and cannot hold a pirate.
+        Hauls teach them. Open a name for their file.
         </p>
         {credits != null && <p className="bay-caption">Wallet ₡{credits.toLocaleString()}</p>}
       </header>
@@ -172,17 +179,21 @@ export function CrewOffice({ onBack }: Props) {
         ) : (
           <div className="job-grid">
             {crew.map((c) => {
-              const due = c.run && !c.run.claimed && now >= c.run.endsAt;
+              const due = c.run && c.run.phase === "flight" && !c.run.claimed && now >= c.run.endsAt;
+              const rest = c.run?.phase === "rest";
+              const grade = crewGrade(c.xp ?? 0);
               return (
                 <article key={c.id} className="job-card watch-card">
                   <span className="job-kind">
                     {SHIPS[c.hull].name}
                     <em>
-                      {c.completed} haul{c.completed === 1 ? "" : "s"} · ₡{c.earned.toLocaleString()}
+                      {grade.name} · {crewArms(c.xp ?? 0)}
                     </em>
                   </span>
                   <span className="job-title">{c.name}</span>
-                  {c.run ? (
+                  {rest ? (
+                    <p>Pad rest · {etaLabel(c.run!.endsAt, now)}</p>
+                  ) : c.run?.job ? (
                     <p>
                       {c.run.job.cargo} · {c.run.job.qty}u · {formatStop(c.run.job.from)} → {formatStop(c.run.job.to)}
                     </p>
@@ -271,7 +282,7 @@ export function CrewOffice({ onBack }: Props) {
         <HelionConfirm
           kicker="Line office"
           title={`Bond ${SHIPS[spareHull].name}`}
-          body={`Assign this spare ${SHIPS[spareHull].name} to a crew for ₡${CREW_BOND[spareHull].toLocaleString()}. No refund on dismiss. Upkeep ₡${CREW_UPKEEP[spareHull]} a run.`}
+          body={`Assign this spare ${SHIPS[spareHull].name} to a green crew for ₡${CREW_BOND[spareHull].toLocaleString()}. They start on local film, rest the hop, and cannot hold a pirate. No refund on dismiss.`}
           confirmLabel="Bond"
           busy={Boolean(busy)}
           onConfirm={() => void onHire()}
@@ -299,8 +310,11 @@ function CrewDossier({
   onCollect: () => void;
   onDismiss: () => void;
 }) {
-  const due = crew.run && !crew.run.claimed && now >= crew.run.endsAt;
+  const due = crew.run && crew.run.phase === "flight" && !crew.run.claimed && now >= crew.run.endsAt;
+  const rest = crew.run?.phase === "rest";
   const earned = crew.earned || diaryEarnings(crew.log);
+  const into = crewXpInto(crew.xp ?? 0);
+  const job = crew.run?.job;
 
   return (
     <div className="gate hangar tape-page helion-dock" data-ui>
@@ -320,9 +334,9 @@ function CrewDossier({
         </div>
         <div>
           <p className="hull-dossier-kicker">
-            {SHIPS[crew.hull].role}
+            {into.grade.name}
             <span className="dot">·</span>
-            {crew.name.toUpperCase()}
+            {crewArms(crew.xp ?? 0)}
           </p>
           <h2 className="pilot-name">{crew.name}</h2>
           <ul className="hull-chips">
@@ -331,35 +345,45 @@ function CrewDossier({
               <strong>₡{Math.round(earned).toLocaleString()}</strong>
             </li>
             <li>
-              <em>Hauls</em>
-              <strong>{crew.completed}</strong>
+              <em>XP</em>
+              <strong>
+                {into.next ? `${into.have}/${into.need}` : "cap"}
+              </strong>
             </li>
             <li>
-              <em>Hull</em>
-              <strong>{ship ? SHIPS[crew.hull].name : "Unassigned"}</strong>
+              <em>Pad</em>
+              <strong>{Math.round(into.grade.restMul * 100)}%</strong>
             </li>
           </ul>
         </div>
       </div>
 
+      <p className="bay-caption">{into.grade.note}</p>
+
       {crew.run && (
         <section className="job-board">
           <div className="job-board-head">
             <h2>Now</h2>
-            <span>{due ? "Docked" : etaLabel(crew.run.endsAt, now)}</span>
+            <span>{due ? "Docked" : rest ? "Pad" : etaLabel(crew.run.endsAt, now)}</span>
           </div>
-          <article className="job-card">
-            <span className="job-kind">
-              {crew.run.job.kind}
-              <em>
-                {crew.run.job.qty} u · {formatHaul(crew.run.job)}
-              </em>
-            </span>
-            <span className="job-title">{crew.run.job.cargo}</span>
-            <span className="job-route">
-              {formatStop(crew.run.job.from)} → {formatStop(crew.run.job.to)}
-            </span>
-          </article>
+          {rest ? (
+            <p className="survey-empty">Rest equals the last hop until they learn the pad. {etaLabel(crew.run.endsAt, now)} left.</p>
+          ) : job ? (
+            <article className="job-card">
+              <span className="job-kind">
+                {job.kind}
+                <em>
+                  {job.qty} u · {formatHaul(job)}
+                </em>
+              </span>
+              <span className="job-title">{job.cargo}</span>
+              <span className="job-route">
+                {formatStop(job.from)} → {formatStop(job.to)}
+              </span>
+            </article>
+          ) : (
+            <p className="survey-empty">Idle.</p>
+          )}
         </section>
       )}
 
@@ -378,7 +402,7 @@ function CrewDossier({
             {crew.log.map((row) => (
               <article key={`${row.id}-${row.at}`} className="job-card">
                 <span className="job-kind">
-                  {row.qty} u · ₡{row.pay.toLocaleString()}
+                  {row.pay <= 0 ? "Lost" : `${row.qty} u`} · ₡{row.pay.toLocaleString()}
                 </span>
                 <span className="job-title">{row.cargo}</span>
                 <span className="job-route">

@@ -3,6 +3,7 @@ import { createEngine, type EngineHandle } from "@/lib/starwake/engine";
 import { HOME_SYSTEM_ID } from "@/lib/starwake/galaxy";
 import { useStarwake } from "@/lib/starwake/store";
 import { claimStarterShip, loadHangar, payCrewRun } from "@/lib/hangar/api";
+import { rollCrewPirate } from "@/lib/starwake/fleet-run";
 import { getMyProfile } from "@/lib/player-profile/api";
 import { isProfileComplete } from "@/lib/player-profile/types";
 import { STARTER_HULLS } from "@/lib/starwake/catalog";
@@ -109,12 +110,19 @@ export function Play() {
     const id = window.setInterval(() => {
       if (busy) return;
       const due = useStarwake.getState().dueCrews(Date.now());
+      const st = useStarwake.getState();
+      st.launchDueCrews(Date.now());
       if (!due.length) return;
       busy = true;
       void (async () => {
         try {
           for (const row of due) {
-            if (!row.run) continue;
+            if (!row.run?.job || row.run.phase !== "flight") continue;
+            const pirate = rollCrewPirate(row, Date.now());
+            if (pirate.lost) {
+              useStarwake.getState().claimCrewRun(row.id, 0);
+              continue;
+            }
             const r = await payCrewRun({ data: { hull: row.hull, job: row.run.job } });
             useStarwake.getState().claimCrewRun(row.id, r.paid);
           }
