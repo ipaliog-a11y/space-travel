@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { formatEcc, formatPeriod, formatPeriodLine, GALAXY, distLy, plotRoute } from "@/lib/starwake/galaxy";
+import { formatPeriodLine, GALAXY, distLy, plotRoute } from "@/lib/starwake/galaxy";
 import { keplerPlane } from "@/lib/starwake/orbit";
 import type { LocalTarget } from "@/lib/starwake/engine";
 import type { Planet, StarSystem, StationKind } from "@/lib/starwake/types";
@@ -349,17 +349,6 @@ export function SystemDiagram({ system, selectedId, onPick, showShip = true, int
                 r="1.7"
                 className="sys-peri"
               />
-            )}
-            {interactive && (
-              <text
-                x={orbit.label.x}
-                y={orbit.label.y}
-                className={on ? "sys-period on" : "sys-period"}
-                textAnchor="middle"
-              >
-                <tspan x={orbit.label.x} dy="0.15em">{formatPeriod(p.yearDays)}</tspan>
-                <tspan x={orbit.label.x} dy="7">{formatEcc(p.ecc)}</tspan>
-              </text>
             )}
           </g>
         );

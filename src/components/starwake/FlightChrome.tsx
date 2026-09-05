@@ -8,7 +8,8 @@ import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
 import { useFlightWear } from "@/lib/starwake/use-flight-wear";
-import { throttleToVisual, visualToThrottle } from "@/lib/starwake/throttle";
+import { throttleToVisual, visualToThrottle, throttleReadout, idleHalt } from "@/lib/starwake/throttle";
+import type { RadarBlip } from "@/lib/starwake/radar";
 import { calculateWearPenalty } from "@/lib/ship-ownership/types";
 import { Dossier } from "./Dossier";
 import { LogBook } from "./LogBook";
@@ -86,6 +87,7 @@ const IDLE_DRIVE: DriveHud = {
   inBands: false,
   regime: "free",
   speedRel: false,
+  radar: [],
 };
 
 export function FlightChrome({
@@ -252,6 +254,8 @@ export function FlightChrome({
     };
     const endThr = () => {
       thrOn = false;
+      const t = engine?.getThrottle?.() ?? 0;
+      if (t < 0) engine?.setThrottle(0);
     };
 
     stick.addEventListener("pointerdown", onStickDown);
@@ -346,8 +350,12 @@ export function FlightChrome({
   const hullPct = wear ? Math.max(0, 100 - wear.wearPercentage) / 100 : 1;
   const t1 = drive.fuelCap > 0 ? drive.fuel / drive.fuelCap : 0;
   const t2 = drive.fuelCap2 > 0 ? drive.fuel2 / drive.fuelCap2 : 0;
-  const lockAngle = tagName ? (hash01(tagName) * 0.7 + 0.15) : 0.22;
-  const headAngle = 0.62 + Math.max(0, drive.throttle) * 0.08;
+  const thrRead = throttleReadout(drive.throttle, {
+    overdrive: drive.overdrive,
+    docking: drive.docking,
+    berthed: drive.berthed,
+    halt: idleHalt(drive.throttle, drive.docking, Boolean(drive.atStationId), drive.speed / 100),
+  });
 
   return (
     <div className={`hud helion${mapOpen || opts ? " mapped" : ""}${logOpen ? " logged" : ""}`}>
@@ -394,7 +402,7 @@ export function FlightChrome({
                     ? `Jump lock ${locked.name}`
                     : "No look"}
         </div>
-        <Radar heading={headAngle} lock={lockAngle} hasLock={Boolean(tagName)} />
+        <Radar blips={drive.radar ?? []} />
         <div className="helion-acts" data-ui>
           {body && (
             <button type="button" className="h-btn" onClick={() => (known ? setDossier(true) : onScan())}>
@@ -452,6 +460,10 @@ export function FlightChrome({
             <div className="throttle-zero" />
           </div>
           <div className="throttle-knob" ref={thrKnobRef} />
+        </div>
+        <div className="throttle-read">
+          <strong>{thrRead.pct}%</strong>
+          <span>{thrRead.status}</span>
         </div>
       </div>
 
@@ -626,7 +638,7 @@ export function FlightChrome({
           <div className="opt-keys" aria-label="Key bindings">
             <div>
               <kbd>A</kbd> <kbd>Z</kbd>
-              <span>throttle · below 0 reverse</span>
+              <span>throttle · hold Z reverse</span>
             </div>
             <div>
               <kbd>Q</kbd> <kbd>E</kbd>
@@ -649,8 +661,12 @@ export function FlightChrome({
               <span>charts</span>
             </div>
             <div>
-              <kbd>J</kbd>
+              <kbd>X</kbd> <kbd>J</kbd>
               <span>jump</span>
+            </div>
+            <div>
+              <kbd>D</kbd>
+              <span>dock</span>
             </div>
             <div>
               <kbd>Esc</kbd>
@@ -692,11 +708,7 @@ function Bar({
   );
 }
 
-function Radar({ heading, lock, hasLock }: { heading: number; lock: number; hasLock: boolean }) {
-  const hx = 80 + Math.cos(heading * Math.PI * 2) * 48;
-  const hy = 80 + Math.sin(heading * Math.PI * 2) * 48;
-  const lx = 80 + Math.cos(lock * Math.PI * 2) * 36;
-  const ly = 80 + Math.sin(lock * Math.PI * 2) * 36;
+function Radar({ blips }: { blips: RadarBlip[] }) {
   return (
     <svg className="helion-radar" viewBox="0 0 160 160" aria-hidden="true">
       <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(216,208,192,0.2)" strokeWidth="1" />
@@ -707,17 +719,26 @@ function Radar({ heading, lock, hasLock }: { heading: number; lock: number; hasL
       <g className="sweep">
         <path d="M80 80 L80 12 A68 68 0 0 1 128 36 Z" fill="rgba(111,191,182,0.12)" />
       </g>
-      {hasLock && <circle cx={lx} cy={ly} r="3.2" fill="#6fbfb6" />}
-      <circle cx={hx} cy={hy} r="2.2" fill="#d8d0c0" />
+      {blips.map((b) => {
+        const x = 80 + b.u * 66;
+        const y = 80 - b.v * 66;
+        const fill = b.lock ? "#6fbfb6" : b.kind === "station" ? "#c9b48a" : "#d8d0c0";
+        if (b.h > 0.04) {
+          return (
+            <g key={b.id}>
+              <line x1={x} y1={y} x2={x} y2={y - b.h * 10} stroke={fill} strokeWidth="1" opacity="0.55" />
+              <circle cx={x} cy={y} r={b.lock ? 3.4 : b.kind === "star" ? 2.6 : 2.1} fill={fill} />
+            </g>
+          );
+        }
+        if (b.kind === "station") {
+          return <rect key={b.id} x={x - 2} y={y - 2} width="4" height="4" fill={fill} />;
+        }
+        return <circle key={b.id} cx={x} cy={y} r={b.lock ? 3.4 : b.kind === "star" ? 2.6 : 2.1} fill={fill} />;
+      })}
       <polygon points="80,72 84,88 80,84 76,88" fill="#d8d0c0" />
     </svg>
   );
-}
-
-function hash01(s: string) {
-  let n = 0;
-  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
-  return (n % 1000) / 1000;
 }
 
 function formatEta(sec: number | null | undefined) {

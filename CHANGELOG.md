@@ -2,6 +2,14 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.30] - 2026-09-05
+
+### Changed
+- Hold Z to reverse; let go and the lever springs to 0%. Lever now reads percent + Idle/Fwd/Rev/Halt/Od/Dock.
+- Radar is heading-up and live (planets, stations, lock). The sweep is still chrome.
+- Charts dropped the cascading orbit numbers.
+- X jumps. D docks / undocks. J still jumps.
+
 ## [v0.1.29] - 2026-09-05
 
 ### Changed

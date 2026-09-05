@@ -489,6 +489,26 @@ button:disabled { cursor: default; }
   position:absolute;
   left:50%
 }
+.throttle-read {
+  pointer-events:none;
+  text-align:center;
+  font-family:var(--font-helion-mono, ui-monospace, monospace);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--color-helion-ivory, #d8d0c0);
+  font-size:10px;
+  line-height:1.2;
+  margin-top:6px;
+}
+.throttle-read strong {
+  display:block;
+  font-size:11px;
+  font-weight:600;
+}
+.throttle-read span {
+  color:var(--color-helion-teal, #6fbfb6);
+  font-size:9px;
+}
 .throttle.hot label,.throttle.od label {
   color:var(--color-fg)
 }

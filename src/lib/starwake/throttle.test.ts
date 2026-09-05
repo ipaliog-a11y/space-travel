@@ -11,6 +11,8 @@ import {
   dockClose,
   driveFromThrottle,
   idleHalt,
+  springReverse,
+  throttleReadout,
   throttleToVisual,
   visualToThrottle,
 } from "./throttle.ts";
@@ -31,11 +33,6 @@ describe("throttle lever", () => {
     assert.ok(clampThrottle(1, true, OD, false) <= OD);
   });
 
-  /**
-   * Genre bar (Decision #016): Elite FA-on halt at 0 on the pad,
-   * SC precision (reverse is not a second cruise), X4 deadzone, NMS/KSP RCS reverse.
-   * Numbers are % of cruise at courier-scale 10.
-   */
   it("matches the trader throttle quality table", () => {
     const rows: [lever: number, min: number, max: number, note: string][] = [
       [0, 0, 0, "idle"],
@@ -55,6 +52,22 @@ describe("throttle lever", () => {
     assert.ok(FWD_GAMMA > 1.4);
     assert.ok(THR_REV_FRAC <= 0.12);
     assert.ok(THR_DEAD >= 0.03);
+  });
+
+  it("springs reverse to idle when the key is up", () => {
+    assert.equal(springReverse(-0.4, false), 0);
+    assert.equal(springReverse(-0.4, true), -0.4);
+    assert.equal(springReverse(0.3, false), 0.3);
+  });
+
+  it("reads lever percent and a short status", () => {
+    assert.equal(throttleReadout(0, {}).status, "Idle");
+    assert.equal(throttleReadout(0.4, {}).status, "Fwd");
+    assert.equal(throttleReadout(-0.2, {}).status, "Rev");
+    assert.equal(throttleReadout(0, { halt: true }).status, "Halt");
+    assert.equal(throttleReadout(0.8, { overdrive: true }).status, "Od");
+    assert.equal(throttleReadout(0.1, { docking: true }).status, "Dock");
+    assert.equal(throttleReadout(-0.2, {}).pct, -20);
   });
 
   it("round-trips the lever visual with a detent at idle", () => {

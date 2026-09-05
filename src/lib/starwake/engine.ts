@@ -13,7 +13,8 @@ import { extractLots, inScoopBand, sourceFromCatalog, yieldsFor } from "./mining
 import { DOCK, HULL, layoutStation, makeBoxMesh, makeCone, makeCylinder, makeTorus, makeUnitSphere, stationLod } from "./station-mesh";
 import { layoutHull } from "./hull-kit";
 import { systemTraffic } from "./traffic";
-import { clampThrottle, dockClose, driveFromThrottle, idleHalt, THR_DEAD, THR_DOCK_CAP } from "./throttle";
+import { clampThrottle, dockClose, driveFromThrottle, idleHalt, springReverse, THR_DEAD, THR_DOCK_CAP } from "./throttle";
+import { projectRadar, type RadarBlip } from "./radar";
 
 export type LocalTarget =
   | { kind: "star" }
@@ -82,6 +83,7 @@ export type DriveHud = {
   inBands: boolean;
   regime: "free" | "well" | "park" | "od" | "dock";
   speedRel: boolean;
+  radar: RadarBlip[];
 };
 
 export type EngineHandle = {
@@ -97,6 +99,7 @@ export type EngineHandle = {
   refuel: () => void;
   setBoost: (v: boolean) => void;
   setThrottle: (t: number) => void;
+  getThrottle: () => number;
   setStick: (x: number, y: number, active: boolean) => void;
   setGyro: (x: number, y: number, ready: boolean) => void;
   subscribeThrottle: (fn: (t: number) => void) => () => void;
@@ -384,7 +387,28 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			inBands: inHarvestBands(atPlanetId ?? boundId),
 			regime: flightRegime(),
 			speedRel: Boolean(boundId) || mode === "docking" || mode === "berthed",
+			radar: radarBlips(),
 		};
+	}
+	function radarBlips() {
+		const st = getStarwake();
+		const sys = getSystem(st.systemId);
+		const lockId =
+			navTarget?.kind === "planet" || navTarget?.kind === "station" ? navTarget.id : navTarget?.kind === "star" ? "star" : null;
+		const sources = [{ id: "star", kind: "star", x: 0, y: 0, z: 0 }];
+		let maxD = sys.starRadius * 6;
+		for (const p of sys.planets) {
+			const [x, y, z] = planetWorld(p, worldTime);
+			sources.push({ id: p.id, kind: "planet", x, y, z });
+			maxD = Math.max(maxD, Math.hypot(x - shipPos.x, y - shipPos.y, z - shipPos.z));
+		}
+		for (const sn of sys.stations) {
+			const host = sys.planets.find((p) => p.id === sn.planetId);
+			if (!host) continue;
+			const [x, y, z] = stationWorld(sn, host, worldTime);
+			sources.push({ id: sn.id, kind: "station", x, y, z });
+		}
+		return projectRadar(sources, shipPos, headingYaw, maxD * 1.05, lockId);
 	}
 	function flightRegime() {
 		if (mode === "docking" || mode === "berthed") return "dock";
@@ -749,10 +773,18 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			"KeyE",
 			"KeyR",
 			"KeyF",
+			"KeyX",
+			"KeyD",
+			"KeyJ",
 			"Escape"
 		].includes(e.code)) e.preventDefault();
 		if (e.repeat) return;
-		if (e.code === "KeyJ") jumpQueued = true;
+		if (e.code === "KeyJ" || e.code === "KeyX") jumpQueued = true;
+		if (e.code === "KeyD") {
+			if (mode === "berthed") undockFromStation();
+			else if (mode === "docking") cancelDock();
+			else requestDock();
+		}
 		if (e.code === "KeyM") getStarwake().toggleMute();
 		if (e.code === "KeyI") getStarwake().toggleInvert();
 		if (e.code === "KeyN") getStarwake().setMapOpen(!getStarwake().mapOpen);
@@ -2129,6 +2161,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				if (held("KeyA")) thrDelta += 1;
 				if (held("KeyZ") || held("KeyY")) thrDelta -= 1;
 				if (thrDelta) applyThrottle(throttle + thrDelta * thrRate * dt);
+				const revHeld = held("KeyZ") || held("KeyY");
+				const sprung = springReverse(throttle, revHeld);
+				if (sprung !== throttle) applyThrottle(sprung);
 			}
 			const wantBoost = entered && !inJump && !inPort && !dry && throttle > BOOST_GATE && (boostHeld || held("Space") || held("ShiftLeft") || held("ShiftRight"));
 			if (wantBoost && !boostWanted && !boostActive) {

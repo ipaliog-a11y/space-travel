@@ -62,7 +62,24 @@ export function idleHalt(
   return nearStation && relSpeed < HALT_REL;
 }
 
-/** Closing speed along heading while on the pad approach. Negative = reverse. No +floor — that made the first millimetre a jump. */
+export function springReverse(t: number, reverseHeld: boolean): number {
+  if (!reverseHeld && t < 0) return 0;
+  return t;
+}
+
+export function throttleReadout(
+  t: number,
+  opts: { overdrive?: boolean; docking?: boolean; berthed?: boolean; halt?: boolean },
+): { pct: number; status: "Idle" | "Fwd" | "Rev" | "Halt" | "Od" | "Dock" } {
+  const pct = Math.round(t * 100);
+  if (opts.berthed || opts.docking) return { pct, status: "Dock" };
+  if (opts.halt && Math.abs(t) <= THR_DEAD) return { pct: 0, status: "Halt" };
+  if (t < -THR_DEAD) return { pct, status: "Rev" };
+  if (opts.overdrive) return { pct, status: "Od" };
+  if (t > THR_DEAD) return { pct, status: "Fwd" };
+  return { pct: 0, status: "Idle" };
+}
+
 export function dockClose(throttle: number, drive: number): number {
   if (throttle > THR_DEAD) return Math.max(0, drive) * 0.92;
   if (throttle < -THR_DEAD) return drive * 0.85;
