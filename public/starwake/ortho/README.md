@@ -19,4 +19,4 @@
 | `tender-cryo.jpg` | Tender |
 | `hauler-brick.jpg` | Hauler |
 
-No text on the sheets. Same Visual Law + hardware lock as the heroes.
+Tripo image-to-3D: crop cells, do not upload the full 2×2. Prompt: [`docs/TRIPO_ORTHO.md`](../../docs/TRIPO_ORTHO.md).

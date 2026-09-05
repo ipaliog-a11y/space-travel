@@ -110,6 +110,6 @@ Second failure: keep the closest pass, flag the defect, do not invent a third st
 
 One **base** per hull. Variants (boost, dock, extract) are `imagine_image_to_image` from that path. Do not re-roll text-to-image for the same hull.
 
-Ortho sheets: `imagine_image_to_image` from the hero still → 2×2 front / starboard / top / rear, true ortho, dump in `public/starwake/ortho/`. Keep identity. No labels.
+Ortho sheets: `imagine_image_to_image` from the hero still → 2×2 front / starboard / top / rear, true ortho, dump in `public/starwake/ortho/`. Keep identity. No labels. Tripo 3D: [`docs/TRIPO_ORTHO.md`](../../../docs/TRIPO_ORTHO.md) — crop cells, generic prompt, do not feed the contact sheet as one ship.
 
 3D meshes (lathe / kit) **follow this law in silhouette and paint** — charcoal plates, teal glow, amber nav — even when the image tools are not used.
