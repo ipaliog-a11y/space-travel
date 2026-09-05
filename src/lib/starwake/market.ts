@@ -91,6 +91,13 @@ export function goodById(id: GoodId): GoodDef {
   return BY_ID[id];
 }
 
+export function goodIdFromCargo(cargo: string): GoodId | null {
+  const n = cargo.trim().toLowerCase();
+  if (isGoodId(n)) return n;
+  const hit = GOODS.find((g) => g.name.toLowerCase() === n);
+  return hit ? hit.id : null;
+}
+
 export function hubKey(systemId: string, stationId: string) {
   return `${systemId}:${stationId}`;
 }

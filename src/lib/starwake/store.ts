@@ -47,7 +47,8 @@ import {
 import { dueCrews, dueRests, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
 import { claimCrew, launchCrew, makeCrew, originFromSave } from "./fleet-run";
 import { liveNotices, makeNotice, type Notice } from "./notices";
-import { foundOutpost, padCap, type Outpost } from "./outpost";
+import { foundOutpost, crewYieldHub, padCap, type Outpost } from "./outpost";
+import { crewYieldGood } from "./fleet-run";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
@@ -841,14 +842,36 @@ export const useStarwake = create<StarwakeState>()(
         if (!cur?.run || cur.run.phase !== "flight" || cur.run.claimed) return false;
         if (now < cur.run.endsAt) return false;
         const job = cur.run.job;
+        let warehouses = st.warehouses;
+        const pay = Math.max(0, paid);
+        if (job?.kind === "extractor" && paid === 0) {
+          const gid = crewYieldGood(job);
+          if (gid) {
+            const hub = crewYieldHub(job, st.outpost);
+            let key = hubKey(hub.systemId, hub.stationId);
+            let n = Math.max(1, Math.round(job.qty));
+            const cap = padCap(key, st.outpost);
+            const used = cargoQty(st.warehouses[key] ?? []);
+            if (cap != null && used + n > cap) {
+              const fit = Math.max(0, cap - used);
+              if (fit > 0) {
+                warehouses = { ...warehouses, [key]: addCargo(warehouses[key] ?? [], gid, fit, 0) };
+                n -= fit;
+              }
+              key = hubKey(job.to.systemId, job.to.stationId);
+            }
+            if (n > 0) warehouses = { ...warehouses, [key]: addCargo(warehouses[key] ?? [], gid, n, 0) };
+          }
+        }
         const nextCrew = {
-          ...claimCrew(cur, paid, now),
-          log: job ? logDelivery(cur.log ?? [], job, paid, cur.hull, now) : cur.log,
-          earned: (cur.earned ?? 0) + paid,
+          ...claimCrew(cur, pay, now),
+          log: job ? logDelivery(cur.log ?? [], job, pay, cur.hull, now) : cur.log,
+          earned: (cur.earned ?? 0) + pay,
           completed: (cur.completed ?? 0) + 1,
         };
         set({
           crew: st.crew.map((c) => (c.id === id ? nextCrew : c)),
+          warehouses,
           hasSave: true,
           lastSaveAt: now,
         });

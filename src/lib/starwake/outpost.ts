@@ -80,6 +80,14 @@ export function isOwnLock(stationId: string, o: Outpost | null) {
   return Boolean(o && o.id === stationId);
 }
 
+export function crewYieldHub(
+  job: { to: { systemId: string; stationId: string } },
+  o: Outpost | null,
+): { systemId: string; stationId: string } {
+  if (o && o.systemId === job.to.systemId) return { systemId: o.systemId, stationId: o.id };
+  return job.to;
+}
+
 export function padCap(hub: string, o: Outpost | null): number | null {
   if (!o) return null;
   if (hub === `${o.systemId}:${o.id}`) return o.cap;

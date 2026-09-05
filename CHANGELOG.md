@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.39] - 2026-09-05
+
+### Changed
+- Extractor crews dump ore to the annex (or pad). They no longer auto-sell the pull.
+
 ## [v0.1.38] - 2026-09-05
 
 ### Changed

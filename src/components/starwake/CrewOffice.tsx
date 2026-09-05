@@ -128,13 +128,25 @@ export function CrewOffice({ onBack }: Props) {
         void serviceCrewPad({ data: { shipKey: row.shipKey } }).catch(() => {});
       }
       if (pirate.lost) {
-        useStarwake.getState().claimCrewRun(id, 0);
+        useStarwake.getState().claimCrewRun(id, -1);
         useStarwake.getState().pushNotice({
           kicker: "Intercept",
           title: `${row.name} stopped`,
-          body: "Packet gone.",
+          body: row.hull === "extractor" ? "Pull gone." : "Packet gone.",
         });
-        setErr(`${row.name} lost the packet.`);
+        setErr(`${row.name} lost the ${row.hull === "extractor" ? "pull" : "packet"}.`);
+        return;
+      }
+      if (row.hull === "extractor") {
+        const job = row.run.job;
+        useStarwake.getState().claimCrewRun(id, 0);
+        const annex = useStarwake.getState().outpost;
+        const pad = annex && annex.systemId === job.to.systemId ? annex.name : "the pad";
+        useStarwake.getState().pushNotice({
+          kicker: "Pull",
+          title: `${row.name} dumped`,
+          body: `${job.qty} u ${job.cargo} on ${pad}. Rel + tanks.`,
+        });
         return;
       }
       const r = await payCrewRun({ data: { hull: row.hull, job: row.run.job } });

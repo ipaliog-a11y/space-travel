@@ -23,6 +23,7 @@ import {
   markTotal,
   MARKET_HISTORY,
   sanitizeCargo,
+  goodIdFromCargo,
 } from "./market.ts";
 
 describe("market quotes", () => {
@@ -202,5 +203,12 @@ describe("owned cargo", () => {
     assert.equal(ore.pnl, unit * 2 - 10);
     assert.equal(tot.qty, 3);
     assert.ok(tot.mark > 0);
+  });
+
+  it("maps pull cargo names onto goods", () => {
+    assert.equal(goodIdFromCargo("iron ore"), "ore");
+    assert.equal(goodIdFromCargo("ore"), "ore");
+    assert.equal(goodIdFromCargo("nav film"), "film");
+    assert.equal(goodIdFromCargo("scan plates"), null);
   });
 });

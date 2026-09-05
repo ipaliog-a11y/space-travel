@@ -3,7 +3,7 @@ import { distLy, GALAXY, getSystem, HOME_SYSTEM_ID, AU_UNITS } from "./galaxy.ts
 import { jobPayout, jobSpan, makeBoard } from "./jobs.ts";
 import { crewGrade, crewRestSec, resolveCrewPirate } from "./crew-grade.ts";
 import { EXTRACT_SEC, yieldsFor, type YieldSource } from "./mining.ts";
-import { goodById } from "./market.ts";
+import { goodById, goodIdFromCargo, type GoodId } from "./market.ts";
 import {
   CREW_CUT,
   crewNetFromPayout,
@@ -136,6 +136,10 @@ export function pickCrewPull(from: JobStop, seed: number, xp = 0): CargoJob {
     to: site.pad,
     haulAu: site.ly > 0 ? undefined : haulAu,
   };
+}
+
+export function crewYieldGood(job: CargoJob): GoodId | null {
+  return job.kind === "extractor" ? goodIdFromCargo(job.cargo) : null;
 }
 
 export function pickCrewJob(hull: CrewHull, from: JobStop, seed: number, xp = 0): CargoJob {

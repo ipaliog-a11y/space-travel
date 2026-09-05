@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  crewYieldHub,
   foundOutpost,
   isOwnLock,
   OUTPOST_CAP,
@@ -91,6 +92,14 @@ describe("player outpost", () => {
     assert.equal(isOwnLock(o.id, o), true);
     assert.equal(padCap(`helion:${o.id}`, o), OUTPOST_CAP);
     assert.equal(padCap("helion:st-port", o), null);
+    assert.deepEqual(
+      crewYieldHub({ to: { systemId: "helion", stationId: "st-port" } }, o),
+      { systemId: "helion", stationId: o.id },
+    );
+    assert.deepEqual(
+      crewYieldHub({ to: { systemId: "vega", stationId: "st-x" } }, o),
+      { systemId: "vega", stationId: "st-x" },
+    );
   });
 
   it("drops junk saves", () => {
