@@ -86,6 +86,8 @@ Ratio `3:2` hangar / `16:9` hero. Warp and thrusters: **thin cyan/teal**, idle. 
 
 Thumbs crop the same still. Engine sprites still use **`generate2dsprite`** (`#FF00FF`), not this studio shot.
 
+Cleaner set (less plumbing): `public/starwake/hero-clean/` via `cleanBeautyPrompt`. Same law and camera. Conscious deviation: larger plates, fewer pipes. Not luxury chrome.
+
 ## 4. Refuse / retry
 
 Fail the image and retry once if any of these show:

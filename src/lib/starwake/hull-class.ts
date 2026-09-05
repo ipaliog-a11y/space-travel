@@ -142,3 +142,21 @@ Landing gear retracted. Thrusters idle cyan. Nav lights amber.
 Photoreal product visualization, sharp, 8k, no text, no watermark.
 STARWAKE VISUAL LAW applies.`;
 }
+
+export const CLEAN_PASS = `Clean pass: fewer external pipes and antennae. Broad charcoal plate panels, sparse seams, heat stain only at thruster bells. One unique feature. Industrial-sleek, not luxury chrome, not anime wings.`;
+
+/** Cleaner hangar stills under `public/starwake/hero-clean/`. */
+export function cleanBeautyPrompt(shot: BeautyShot) {
+  return `${beautyPrompt(shot)}
+${CLEAN_PASS}`;
+}
+
+export const HERO_CLEAN_STILL: Record<ShipId, string> = {
+  scout: "/starwake/hero-clean/scout-far-eye.jpg",
+  courier: "/starwake/hero-clean/courier-ashwake.jpg",
+  clipper: "/starwake/hero-clean/clipper-hotleg.jpg",
+  tug: "/starwake/hero-clean/tug-collar.jpg",
+  extractor: "/starwake/hero-clean/extractor-wellsip.jpg",
+  tender: "/starwake/hero-clean/tender-cryo.jpg",
+  hauler: "/starwake/hero-clean/hauler-brick.jpg",
+};

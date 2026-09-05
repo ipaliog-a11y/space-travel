@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.47] - 2026-09-05
+
+### Changed
+- Cleaner hangar stills in `public/starwake/hero-clean/` — less plumbing, same law.
+
 ## [v0.1.46] - 2026-09-05
 
 ### Changed
