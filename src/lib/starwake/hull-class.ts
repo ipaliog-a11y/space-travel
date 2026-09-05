@@ -114,6 +114,17 @@ export function beautyOf(shipId: ShipId): BeautyShot {
   return BEAUTY_OF[shipId];
 }
 
+/** Hangar dossier stills under `public/starwake/hero/`. */
+export const HERO_STILL: Record<ShipId, string> = {
+  scout: "/starwake/hero/scout-far-eye.jpg",
+  courier: "/starwake/hero/courier-ashwake.jpg",
+  clipper: "/starwake/hero/clipper-hotleg.jpg",
+  tug: "/starwake/hero/tug-collar.jpg",
+  extractor: "/starwake/hero/extractor-wellsip.jpg",
+  tender: "/starwake/hero/tender-cryo.jpg",
+  hauler: "/starwake/hero/hauler-brick.jpg",
+};
+
 /** Hangar / hero still. Law first, then the locked beauty shot. */
 export function beautyPrompt(shot: BeautyShot) {
   const c = hullClass(shot.classId);

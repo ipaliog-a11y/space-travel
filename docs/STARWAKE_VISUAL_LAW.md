@@ -45,3 +45,5 @@ Photoreal product visualization, sharp, 8k, no text, no watermark.
 STARWAKE VISUAL LAW applies.
 ```
 
+Stills live in [`public/starwake/hero/`](../public/starwake/hero/).
+

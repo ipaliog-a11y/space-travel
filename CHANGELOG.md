@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.45] - 2026-09-05
+
+### Changed
+- Hangar hero stills for all seven hulls in `public/starwake/hero/`.
+
 ## [v0.1.44] - 2026-09-05
 
 ### Changed
