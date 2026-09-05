@@ -1,8 +1,8 @@
 # Starwake
 
-Kepler-system flight sim. Hangar, jobs, orbital locks, FSD jumps.
+Helion trader. Kepler systems, jobs, a galaxy tape, crew, mining, and one lock you can own.
 
-This repository **is** the live app (TanStack Start + raw WebGL). The old single-file prototype (`starwake.html`, Interceptor / Liner, vanilla Pages game) has been removed.
+TanStack Start + raw WebGL. Node 22.
 
 ## Fly
 
@@ -11,28 +11,39 @@ npm install
 npm run dev
 ```
 
-Node 22. Open the printed local URL. Auth and the database stay off.
+Open [http://localhost:8080](http://localhost:8080). Auth and the database stay off in a clone; credits and hulls live in the browser.
+
+```bash
+npm run build
+npm run preview
+```
+
+## Loops
+
+| Loop | What you do |
+|------|-------------|
+| Jobs | Haul someone else’s cargo. Safe ₡. |
+| Merchant | Buy, store, sell on the Watch. One galaxy tape. |
+| Mining | Extractor on hub-less worlds. Ore dumps to the pad. |
+| Fleet | Bond Courier / Hauler / Extractor crews. Packets pay a cut; pulls dump ore. |
+| Station | Found an annex (₡36k). Public sell −6%. Annex is full tape. |
+| Risk | Interdiction (pay / dump / boost). Tape shocks. |
+
+Build order and leftovers: [BUILD.md](BUILD.md).
 
 ## Hulls
 
-Two hangar sets. Selector uses avatars, roles, and a short dossier.
+| Set | Hull | Role | Jump | Hold |
+|-----|------|------|------|------|
+| Line | **Courier** | Packet | 12 ly | 8 u |
+| Line | **Hauler** | Bulk | 18 ly | 48 u |
+| Line | **Scout** | Pathfinder | 22 ly | 6 u |
+| Line | **Clipper** | Runner | 9 ly | 10 u |
+| Yard | **Tender** | Fuel | 14 ly | 20 u |
+| Yard | **Tug** | Harbor | 8 ly | 14 u |
+| Yard | **Extractor** | Miner | 11 ly | 28 u |
 
-| Set | Hull | Role | Jump | Hold | Turn |
-|-----|------|------|------|------|------|
-| Line | **Courier** | Packet | 12 ly | 8 u | 1.35 |
-| Line | **Hauler** | Bulk | 18 ly | 48 u | 0.65 |
-| Line | **Scout** | Pathfinder | 22 ly | 6 u | 1.08 |
-| Line | **Clipper** | Runner | 9 ly | 10 u | 1.48 |
-| Yard | **Tender** | Fuel | 14 ly | 20 u | 0.72 |
-| Yard | **Tug** | Harbor | 8 ly | 14 u | 1.58 |
-
-## In the sky
-
-- Kepler galaxy, planet types, belts, comets, nebulae
-- Moons as scenery (no look / arrive / jump onto satellites)
-- Five station architectures, 10-bay docking ring
-- System map + galaxy map, lock then Jump
-- T1 fuel, boost pips, surveys, jobs
+Starter pick: Courier, Hauler, or Scout. Home system is **Helios**.
 
 ## Stick
 
@@ -41,19 +52,21 @@ Two hangar sets. Selector uses avatars, roles, and a short dossier.
 | `W` `S` | Pitch |
 | `←` `→` | Yaw |
 | `Q` `E` | Roll |
-| `A` `Z` | Throttle |
+| `A` `Z` | Throttle (Z below 0 is reverse) |
 | `Space` | Boost |
-| `J` | Jump (after a lock) |
-| `N` | Map |
-| `Esc` | Gate / hangar |
+| `X` `J` | Jump (lock a star first) |
+| `D` | Dock / undock |
+| `C` `N` | Charts |
+| `Tab` | System / galaxy (charts open) |
+| `Esc` | Close charts, then Gate |
 
-Drag the view to look. Look aims the drive.
+Drag to look. T1 is cruise / boost. T2 is FSD charge + the hop. Refuel costs ₡.
 
 ## Docs
 
+- [Build list](BUILD.md)
 - [Hangar sets](docs/HULL_SET.md)
 - [Station models](docs/STATION_MODELS.md)
-- [Flight physics (recommendations, not coded)](docs/PHYSICS_GROK_BUILD.md)
-- [Build list](BUILD.md)
+- [Decisions](docs/DECISION_LOG.md)
 
 Flight canvas: [`src/lib/starwake/engine.ts`](src/lib/starwake/engine.ts).

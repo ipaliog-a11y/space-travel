@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.41] - 2026-09-05
+
+### Changed
+- README matches current loops, Extractor, and stick (X jump, D dock, C charts).
+
 ## [v0.1.40] - 2026-09-05
 
 ### Changed
