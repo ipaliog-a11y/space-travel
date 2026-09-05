@@ -1,6 +1,6 @@
-# Hangar hero stills — alt clean
+# Hangar hero stills — alt clean (reshoot)
 
-Clean look, **new silhouettes**. Not derived from `hero/` or `hero-clean/`. Same Visual Law and 3/4 camera.
+No offset warp ring. Mains on the stern. RCS smaller. Dishes faired. Radiators on every hull.
 
 | File | Hull | Class | Variant |
 |------|------|-------|---------|

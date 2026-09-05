@@ -29,6 +29,8 @@ describe("hull classes", () => {
     assert.match(p, /3\/4 front-above/);
     assert.match(p, /STARWAKE VISUAL LAW/);
     assert.match(p, /no text/);
+    assert.match(p, /stern/);
+    assert.doesNotMatch(p, /offset warp ring/);
     assert.match(beautyPrompt(FRIGATE_BEAUTY), /VOID_FRIGATE/);
   });
 });

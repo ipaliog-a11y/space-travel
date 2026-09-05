@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.49] - 2026-09-05
+
+### Changed
+- Reshot `hero-alt/`: no hip warp ring. Stern mains, small RCS, faired dishes, radiators on every hull.
+
 ## [v0.1.48] - 2026-09-05
 
 ### Changed

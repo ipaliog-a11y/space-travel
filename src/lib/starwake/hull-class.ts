@@ -46,10 +46,13 @@ export const VISUAL_LAW = `STARWAKE VISUAL LAW:
 Near-future working spacecraft, not sleek luxury sci-fi.
 Blocky modular hull plates, visible seams, rivets, heat-stained metal.
 Asymmetric utility: radiators, sensor masts, cargo latches, docking rings.
-Warp: thin ring or spine emitter, not a glowing fantasy halo.
+Warp: flush spine emitter along the hull, not a hoop hanging off the side, not a glowing fantasy halo.
 Palette: charcoal hull, cold steel, muted amber nav lights, cyan/teal thruster and warp glow.
 No chrome, no anime wings, no text logos, no people, no planets filling the frame.
 Studio presentation: clean product shot, physically plausible scale.`;
+
+/** Hardware lock for every still. Append after the beauty camera. */
+export const HARDWARE_LAW = `Main drive bells exit the stern, on the long axis, facing aft — the back of the ship is the engines. Side / RCS thrusters if any are small flush nozzles, clearly smaller than the mains. Sensor dishes are faired and low, not towers. Every hull shows flat radiator or heat-exchanger panels. No ring, hoop, or torus sticking off the beam.`;
 
 export type BeautyShot = {
   classId: HullClassId;
@@ -62,52 +65,52 @@ export const BEAUTY_OF: Record<ShipId, BeautyShot> = {
   scout: {
     classId: "ION_SCOUT",
     name: `Scout "Far Eye"`,
-    silhouette: "long spine + forward cockpit blister and a high-gain dish boom",
-    feature: "offset sensor mast and a sealed sample drawer",
+    silhouette: "needle hull, flush cockpit, long axis stern-to-bow",
+    feature: "low faired chin dish and dorsal radiator panels",
   },
   courier: {
     classId: "WARP_CUTTER",
     name: `Cutter Mk-II "Ashwake"`,
-    silhouette: "long spine + forward cockpit, packet hold amidships",
-    feature: "offset warp ring on a thin emitter spine",
+    silhouette: "short blunt nose, long rectangular packet spine",
+    feature: "flush FSD spine strip and a pair of aft drive bells",
   },
   clipper: {
     classId: "WARP_CUTTER",
     name: `Clipper "Hotleg"`,
-    silhouette: "delta sprint hull, short FSD, forward cockpit",
-    feature: "hot drive bells and a slim packet rack",
+    silhouette: "long flat dart, slab sides, almost no wings",
+    feature: "one oversized stern drive bell and side radiator vanes",
   },
   tug: {
     classId: "WARP_CUTTER",
     name: `Tug "Collar"`,
-    silhouette: "box hull with folded transfer arms and a docking ring",
-    feature: "folded harbor arms and a face-on capture ring",
+    silhouette: "squat cube-forward hull, mass at the nose",
+    feature: "the docking collar is the entire bow; small RCS; aft bells",
   },
   extractor: {
     classId: "MINING_BARGE",
     name: `Barge "Wellsip"`,
-    silhouette: "fat belly barge with a ventral scoop boom",
-    feature: "ventral mining drill and twin ore bins",
+    silhouette: "wide flat ore skip, low profile",
+    feature: "one side scoop faired to the hull and roof radiator grids",
   },
   tender: {
     classId: "MINING_BARGE",
     name: `Tender "Cryo"`,
-    silhouette: "depot hull with two cryo spheres and a fuel collar",
-    feature: "twin cryo tanks and a transfer collar",
+    silhouette: "long tanker spine, two cryo spheres in a line",
+    feature: "inline tanks, bow collar, radiator panels between the spheres",
   },
   hauler: {
     classId: "HAULER",
     name: `Hauler "Brick"`,
-    silhouette: "fat belly cargo brick, lazy stick, blunt nose",
-    feature: "boxy cargo rack and a wide docking collar",
+    silhouette: "long cargo box on a short drive stub",
+    feature: "flush bow collar and a bank of stern bells under HX vanes",
   },
 };
 
 export const FRIGATE_BEAUTY: BeautyShot = {
   classId: "VOID_FRIGATE",
   name: `Frigate "Voidwake"`,
-  silhouette: "twin-boom combat hull, long keel, forward cockpit",
-  feature: "offset warp ring and faired hardpoint blisters",
+  silhouette: "long keel, twin stern bells, no fighter wings",
+  feature: "flush FSD spine and radiator cheeks",
 };
 
 export function beautyOf(shipId: ShipId): BeautyShot {
@@ -139,6 +142,7 @@ Full ship in frame, 3/4 front-above view, slight bank.
 Dark studio void, faint star pinpricks only, no nebula wallpaper.
 Hard rim light + soft fill. Show panel gaps, thermal discoloration, antennae.
 Landing gear retracted. Thrusters idle cyan. Nav lights amber.
+${HARDWARE_LAW}
 Photoreal product visualization, sharp, 8k, no text, no watermark.
 STARWAKE VISUAL LAW applies.`;
 }

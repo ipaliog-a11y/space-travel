@@ -28,7 +28,7 @@ STARWAKE VISUAL LAW:
 Near-future working spacecraft, not sleek luxury sci-fi.
 Blocky modular hull plates, visible seams, rivets, heat-stained metal.
 Asymmetric utility: radiators, sensor masts, cargo latches, docking rings.
-Warp: thin ring or spine emitter, not a glowing fantasy halo.
+Warp: flush spine emitter along the hull, not a hoop hanging off the side, not a glowing fantasy halo.
 Palette: charcoal hull, cold steel, muted amber nav lights, cyan/teal thruster and warp glow.
 No chrome, no anime wings, no text logos, no people, no planets filling the frame.
 Studio presentation: clean product shot, physically plausible scale.
@@ -73,11 +73,12 @@ STARWAKE ship hero shot.
 Class: {{ION_SCOUT | WARP_CUTTER | MINING_BARGE | HAULER | VOID_FRIGATE}}
 Name / variant: {{e.g. Cutter Mk-II "Ashwake"}}
 Silhouette: {{one sentence: long spine + forward cockpit / fat belly barge / twin-boom fighter}}
-Unique feature: {{e.g. ventral mining drill, offset warp ring, boxy cargo rack}}
+Unique feature: {{one tool — packet hold, collar, scoop, tanks — never an offset warp ring}}
 Full ship in frame, 3/4 front-above view, slight bank.
 Dark studio void, faint star pinpricks only, no nebula wallpaper.
-Hard rim light + soft fill. Show panel gaps, thermal discoloration, antennae.
+Hard rim light + soft fill. Sparse panel gaps.
 Landing gear retracted. Thrusters idle cyan. Nav lights amber.
+Main drive bells exit the stern, on the long axis. RCS if any is smaller and flush. Dishes faired low. Every hull shows radiator / HX panels. No hoop off the beam.
 Photoreal product visualization, sharp, 8k, no text, no watermark.
 STARWAKE VISUAL LAW applies.
 ```
@@ -98,6 +99,10 @@ Fail the image and retry once if any of these show:
 - Crew, faces, hands, EVA suits
 - A planet, nebula, or station eating more than a corner of the frame
 - Fantasy warp: thick halo, rainbow tunnel, energy wings
+- Offset / hip-mounted warp ring or hoop wider than the hull
+- Main thrusters on the sides or nose; side RCS larger than the stern bells
+- Radar dishes as towers or long booms
+- Missing radiators / heat exchangers
 
 Second failure: keep the closest pass, flag the defect, do not invent a third style.
 

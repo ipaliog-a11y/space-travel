@@ -7,7 +7,7 @@ STARWAKE VISUAL LAW:
 Near-future working spacecraft, not sleek luxury sci-fi.
 Blocky modular hull plates, visible seams, rivets, heat-stained metal.
 Asymmetric utility: radiators, sensor masts, cargo latches, docking rings.
-Warp: thin ring or spine emitter, not a glowing fantasy halo.
+Warp: flush spine emitter along the hull, not a hoop hanging off the side, not a glowing fantasy halo.
 Palette: charcoal hull, cold steel, muted amber nav lights, cyan/teal thruster and warp glow.
 No chrome, no anime wings, no text logos, no people, no planets filling the frame.
 Studio presentation: clean product shot, physically plausible scale.
