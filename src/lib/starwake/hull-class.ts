@@ -160,3 +160,13 @@ export const HERO_CLEAN_STILL: Record<ShipId, string> = {
   tender: "/starwake/hero-clean/tender-cryo.jpg",
   hauler: "/starwake/hero-clean/hauler-brick.jpg",
 };
+
+export const HERO_ALT_STILL: Record<ShipId, string> = {
+  scout: "/starwake/hero-alt/scout-far-eye.jpg",
+  courier: "/starwake/hero-alt/courier-ashwake.jpg",
+  clipper: "/starwake/hero-alt/clipper-hotleg.jpg",
+  tug: "/starwake/hero-alt/tug-collar.jpg",
+  extractor: "/starwake/hero-alt/extractor-wellsip.jpg",
+  tender: "/starwake/hero-alt/tender-cryo.jpg",
+  hauler: "/starwake/hero-alt/hauler-brick.jpg",
+};

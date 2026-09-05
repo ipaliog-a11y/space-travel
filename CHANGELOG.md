@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.48] - 2026-09-05
+
+### Changed
+- Alt clean hangar stills in `public/starwake/hero-alt/` — new silhouettes, not edits of the last set.
+
 ## [v0.1.47] - 2026-09-05
 
 ### Changed
