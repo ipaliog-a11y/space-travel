@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.37] - 2026-09-05
+
+### Changed
+- In-system cruise traffic. Flying hulls draw across the system (was pad-only 280u). Debug fly count ~8–14.
+
 ## [v0.1.36] - 2026-09-05
 
 ### Changed

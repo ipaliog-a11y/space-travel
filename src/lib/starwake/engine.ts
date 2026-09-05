@@ -12,7 +12,7 @@ import { holdUsed } from "./jobs";
 import { extractLots, inScoopBand, sourceFromCatalog, yieldsFor } from "./mining";
 import { DOCK, HULL, layoutStation, makeBoxMesh, makeCone, makeCylinder, makeTorus, makeUnitSphere, stationLod } from "./station-mesh";
 import { layoutHull } from "./hull-kit";
-import { systemTraffic } from "./traffic";
+import { flyDrawScale, flyVisible, systemTraffic } from "./traffic";
 import { clampThrottle, dockClose, driveFromThrottle, idleHalt, springReverse, THR_DEAD, THR_DOCK_CAP } from "./throttle";
 import { projectRadar, type RadarBlip } from "./radar";
 
@@ -2007,7 +2007,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	function drawHullAt(pose, cam) {
 		const dx = pose.pos[0] - cam[0], dy = pose.pos[1] - cam[1], dz = pose.pos[2] - cam[2];
 		const dist = Math.hypot(dx, dy, dz);
-		if (dist > 280) return;
+		if (!flyVisible(pose.role, dist)) return;
 		const lod = dist > 95 ? 0 : dist > 38 ? 1 : 2;
 		const parts = layoutHull(pose.hull, lod);
 		const fx = pose.forward[0], fy = pose.forward[1], fz = pose.forward[2];
@@ -2026,7 +2026,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		uz = rx * fy - ry * fx;
 		const ul = Math.hypot(ux, uy, uz) || 1;
 		ux /= ul; uy /= ul; uz /= ul;
-		const scale = pose.scale;
+		const scale = flyDrawScale(pose.role, dist, pose.scale);
 		const seed = seedOf(pose.stationId + pose.hull);
 		for (let i = 0; i < parts.length; i++) {
 			const p = parts[i];

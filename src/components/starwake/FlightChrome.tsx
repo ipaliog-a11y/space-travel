@@ -275,7 +275,7 @@ export function FlightChrome({
   useEffect(() => {
     if (!engine) return;
     const tick = () => {
-      const list = (typeof engine.getTraffic === "function" ? engine.getTraffic() : []) as { role: "berthed" | "approach" | "lane" }[];
+      const list = (typeof engine.getTraffic === "function" ? engine.getTraffic() : []) as { role: "berthed" | "approach" | "lane" | "cruise" }[];
       setNpc(trafficCensus(list));
     };
     tick();
