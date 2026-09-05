@@ -2321,14 +2321,14 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const follow = 1 - Math.exp(-11 * dt);
 			steerX += (targetSteerX - steerX) * follow;
 			steerY += (targetSteerY - steerY) * follow;
-			steerR = targetSteerR;
+			steerR += (targetSteerR - steerR) * follow;
 			const turnRate = def.turnRate * (1 - boostAmt * .2) * lockedTurn;
 			const yawDelta = steerX * turnRate * dt;
 			const pitchDelta = steerY * turnRate * .85 * dt;
-			const rollDelta = steerR * turnRate * .42 * dt;
+			const rollDelta = steerR * turnRate * dt;
 			headingYaw += yawDelta;
 			shipRoll += rollDelta;
-			bankRoll = steerR * 0.28;
+			bankRoll += (steerR * 0.28 - bankRoll) * follow;
 			const cyL = Math.cos(lookYaw), syL = Math.sin(lookYaw);
 			const cpL = Math.cos(lookPitch), spL = Math.sin(lookPitch);
 			const camRight = [
