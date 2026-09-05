@@ -10,6 +10,7 @@ import {
   KIND_LABEL,
   lotBasis,
   lotLabel,
+  markHold,
   MARKET_TICK_MS,
   quoteGood,
   quoteHistory,
@@ -38,6 +39,9 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
   const dumpSell = useStarwake((s) => s.dumpSell);
   const storeCargo = useStarwake((s) => s.storeCargo);
   const retrieveCargo = useStarwake((s) => s.retrieveCargo);
+  const dumpPad = useStarwake((s) => s.dumpPad);
+  const stowPad = useStarwake((s) => s.stowPad);
+  const storeHold = useStarwake((s) => s.storeHold);
   const [busy, setBusy] = useState<string | null>(null);
   const [tick, setTick] = useState(() => Math.floor(Date.now() / MARKET_TICK_MS));
   const hub = hubKey(systemId, stationId);
@@ -101,6 +105,32 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
     }
   }
 
+  async function onSellPad(goodId: GoodId, qty: number) {
+    if (busy || qty <= 0) return;
+    if (!hubListings(hub).includes(goodId)) {
+      onError("This lock does not take that lot");
+      return;
+    }
+    const pulled = dumpPad(goodId, qty, systemId, stationId);
+    if (!pulled) {
+      onError("Nothing on this pad");
+      return;
+    }
+    setBusy(`pad-${goodId}`);
+    onError(null);
+    try {
+      const result = await tradeCargo({
+        data: { goodId, qty, side: "sell", systemId, stationId },
+      });
+      onCredits(result.credits);
+    } catch (err) {
+      stowPad(goodId, pulled.qty, systemId, stationId, pulled.paid);
+      onError(err instanceof Error ? err.message : "Sell failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function onSell(goodId: GoodId, qty: number) {
     if (busy || qty <= 0) return;
     const pulled = dumpSell(goodId, qty);
@@ -132,20 +162,37 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
       <p className="bay-caption">
         Hold {lotLabel(cargo)} · pad {lotLabel(ware)} · {used}/{Math.round(cap)} u
       </p>
+      {cargo.length > 0 && (
+        <div className="gate-acts">
+          <button
+            type="button"
+            className="engage ghost"
+            disabled={busy !== null}
+            onClick={() => storeHold(systemId, stationId)}
+          >
+            Store hold
+          </button>
+        </div>
+      )}
       {ware.length > 0 && (
         <div className="pad-now" aria-label="Cargo on this pad">
           <div className="job-board-head">
             <h2>This pad</h2>
-            <span>Stored here. Load it even if this lock no longer lists the good.</span>
+            <span>Stored here. Sell on this lock if it lists the good. No sell from the Watch warehouse.</span>
           </div>
           <div className="watch-grid">
-            {ware.map((lot) => {
+            {markHold(ware).map((lot) => {
               const good = goodById(lot.goodId);
+              const lists = hubListings(hub).includes(lot.goodId);
               return (
                 <article key={lot.goodId} className="job-card watch-card">
-                  <span className="job-kind">pad · {KIND_LABEL[good.kind]}</span>
+                  <span className="job-kind">
+                    pad · {KIND_LABEL[good.kind]} · ₡{lot.unit}
+                  </span>
                   <span className="job-title">{good.name}</span>
-                  <span className="job-route">{lotBasis(ware, lot.goodId)}</span>
+                  <span className="job-route">
+                    {lotBasis(ware, lot.goodId)} · {lot.pnl >= 0 ? "+" : "−"}₡{Math.abs(lot.pnl).toLocaleString()}
+                  </span>
                   <div className="watch-acts">
                     <button
                       type="button"
@@ -154,6 +201,14 @@ export function MarketWatch({ systemId, stationId, credits, onCredits, onError }
                       onClick={() => retrieveCargo(lot.goodId, Math.min(lot.qty, free), systemId, stationId)}
                     >
                       Load pad
+                    </button>
+                    <button
+                      type="button"
+                      className="job-drop"
+                      disabled={busy !== null || !lists}
+                      onClick={() => void onSellPad(lot.goodId, lot.qty)}
+                    >
+                      {lists ? "Sell pad" : "No list"}
                     </button>
                   </div>
                 </article>

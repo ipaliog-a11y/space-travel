@@ -182,6 +182,9 @@ export type StarwakeState = {
   dumpSell: (goodId: GoodId, qty: number, paid?: number) => { qty: number; paid: number } | null;
   storeCargo: (goodId: GoodId, qty: number, systemId: string, stationId: string) => boolean;
   retrieveCargo: (goodId: GoodId, qty: number, systemId: string, stationId: string) => boolean;
+  dumpPad: (goodId: GoodId, qty: number, systemId: string, stationId: string, paid?: number) => { qty: number; paid: number } | null;
+  stowPad: (goodId: GoodId, qty: number, systemId: string, stationId: string, paid?: number) => void;
+  storeHold: (systemId: string, stationId: string) => boolean;
   setWearPenalty: (v: number) => void;
   ownModule: (id: string) => void;
   setFuel: (v: number) => void;
@@ -503,6 +506,44 @@ export const useStarwake = create<StarwakeState>()(
           lastSaveAt: Date.now(),
         });
         return true;
+      },
+      dumpPad: (goodId, qty, systemId, stationId, paid) => {
+        const st = get();
+        const n = Math.max(0, Math.round(qty));
+        if (n <= 0) return null;
+        const key = hubKey(systemId, stationId);
+        const pulled = pullCargo(st.warehouses[key] ?? [], goodId, n, paid);
+        if (!pulled) return null;
+        const warehouses = { ...st.warehouses };
+        if (pulled.hold.length) warehouses[key] = pulled.hold;
+        else delete warehouses[key];
+        set({
+          warehouses,
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+        return { qty: pulled.qty, paid: pulled.paid };
+      },
+      stowPad: (goodId, qty, systemId, stationId, paid = 0) => {
+        const n = Math.max(0, Math.round(qty));
+        if (n <= 0) return;
+        const key = hubKey(systemId, stationId);
+        const st = get();
+        set({
+          warehouses: { ...st.warehouses, [key]: addCargo(st.warehouses[key] ?? [], goodId, n, paid) },
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+      },
+      storeHold: (systemId, stationId) => {
+        const st = get();
+        const hold = st.cargo[st.shipId] ?? [];
+        if (!hold.length) return false;
+        let ok = false;
+        for (const lot of [...hold]) {
+          if (get().storeCargo(lot.goodId, lot.qty, systemId, stationId)) ok = true;
+        }
+        return ok;
       },
       setWearPenalty: (v) => {
         const next = Math.max(0, Math.min(0.25, v));

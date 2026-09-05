@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.33] - 2026-09-05
+
+### Changed
+- Watch has a Warehouse plate: pad lots and paper ₡. No sell from there. Docked Watch can Sell pad if this lock lists the good, and Store hold.
+
 ## [v0.1.32] - 2026-09-05
 
 ### Changed

@@ -5,10 +5,13 @@ import {
   cargoOf,
   cargoQty,
   EMPTY_HOLD,
+  goodById,
   GOODS,
   lotLabel,
   KINDS,
   KIND_LABEL,
+  markHold,
+  markTotal,
   MARKET_TICK_MS,
   quoteGood,
   quoteHistory,
@@ -31,6 +34,7 @@ const KIND_BLURB: Record<GoodKind, string> = {
 };
 
 export function TapeWatch({ onBack }: Props) {
+  const [page, setPage] = useState<"tape" | "house">("tape");
   const [tick, setTick] = useState(() => Math.floor(Date.now() / MARKET_TICK_MS));
   const [focus, setFocus] = useState<GoodId>("ore");
   const shipId = useStarwake((s) => s.shipId);
@@ -118,11 +122,26 @@ export function TapeWatch({ onBack }: Props) {
     <div className="gate hangar tape-page helion-dock" data-ui>
       <header className="hangar-head">
         <div className="k">Watch</div>
-        <h1>Tape</h1>
+        <h1>{page === "house" ? "Warehouse" : "Tape"}</h1>
+        <div className="map-tabs" role="tablist" aria-label="Watch page">
+          <button type="button" className={page === "tape" ? "on" : ""} onClick={() => setPage("tape")}>
+            Tape
+          </button>
+          <button type="button" className={page === "house" ? "on" : ""} onClick={() => setPage("house")}>
+            Warehouse
+          </button>
+        </div>
         <p className="lede">
-          Forty goods, one galaxy tape. Your hold and pads sit at the top. Click a lot or a row to focus it.
+          {page === "house"
+            ? "Lots on your pads. Paper ₡ only. Sell when you are docked at that lock."
+            : "Forty goods, one galaxy tape. Click a lot or a row to focus it."}
         </p>
       </header>
+
+      {page === "house" ? (
+        <WarehouseLedger pads={pads} tick={tick} />
+      ) : (
+      <>
 
       <section className="job-board hangar-pads" aria-label="Your cargo">
         <div className="job-board-head">
@@ -216,6 +235,8 @@ export function TapeWatch({ onBack }: Props) {
           </div>
         </section>
       ))}
+      </>
+      )}
 
       <div className="gate-acts">
         <button type="button" className="engage ghost" onClick={onBack}>
@@ -223,5 +244,59 @@ export function TapeWatch({ onBack }: Props) {
         </button>
       </div>
     </div>
+  );
+}
+
+function pnlLabel(n: number) {
+  if (n > 0) return `+₡${n.toLocaleString()}`;
+  if (n < 0) return `−₡${Math.abs(n).toLocaleString()}`;
+  return "₡0";
+}
+
+function WarehouseLedger({
+  pads,
+  tick,
+}: {
+  pads: ReturnType<typeof listedPads>;
+  tick: number;
+}) {
+  const lots = pads.flatMap((pad) => markHold(pad.hold, tick));
+  const tot = markTotal(lots);
+  return (
+    <section className="job-board hangar-pads" aria-label="Warehouse">
+      <div className="job-board-head">
+        <h2>Pads</h2>
+        <span>
+          {tot.qty} u · mark ₡{tot.mark.toLocaleString()} · {pnlLabel(tot.pnl)}
+        </span>
+      </div>
+      {pads.length === 0 ? (
+        <p className="survey-empty">Empty. Buy or pull, dock, Store. Sell only from that lock.</p>
+      ) : (
+        <ul className="survey-list pad-list">
+          {pads.map((pad) => {
+            const marked = markHold(pad.hold, tick);
+            const padTot = markTotal(marked);
+            return (
+              <li key={pad.key}>
+                <div className="pad-jump">
+                  <strong>{pad.station}</strong>
+                  <span>{pad.system}</span>
+                  <em>{pnlLabel(padTot.pnl)}</em>
+                </div>
+                {marked.map((lot) => {
+                  const good = goodById(lot.goodId);
+                  return (
+                    <p key={lot.goodId} className="bay-caption">
+                      {lot.qty} {good.name} · tape ₡{lot.unit} · basis ₡{lot.qty ? Math.round(lot.paid / lot.qty) : 0} · {pnlLabel(lot.pnl)}
+                    </p>
+                  );
+                })}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

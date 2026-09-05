@@ -274,3 +274,34 @@ export function lotBasis(hold: CargoHold | null | undefined, goodId: GoodId) {
   if (qty <= 0) return "0 u";
   return avg > 0 ? `${qty} u @₡${avg}` : `${qty} u`;
 }
+
+export type MarkLot = {
+  goodId: GoodId;
+  qty: number;
+  paid: number;
+  unit: number;
+  mark: number;
+  pnl: number;
+};
+
+/** Paper mark vs what you paid. Extracted lots (paid 0) show the full tape as profit. */
+export function markHold(hold: CargoHold | null | undefined, tick?: number): MarkLot[] {
+  if (!hold?.length) return [];
+  return hold.map((lot) => {
+    const unit = quoteGood(lot.goodId, tick);
+    const mark = unit * lot.qty;
+    return { goodId: lot.goodId, qty: lot.qty, paid: lot.paid, unit, mark, pnl: mark - lot.paid };
+  });
+}
+
+export function markTotal(lots: MarkLot[]) {
+  return lots.reduce(
+    (acc, lot) => ({
+      qty: acc.qty + lot.qty,
+      paid: acc.paid + lot.paid,
+      mark: acc.mark + lot.mark,
+      pnl: acc.pnl + lot.pnl,
+    }),
+    { qty: 0, paid: 0, mark: 0, pnl: 0 },
+  );
+}

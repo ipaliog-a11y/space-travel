@@ -17,6 +17,8 @@ import {
   sparkPath,
   takeCargo,
   trendDelta,
+  markHold,
+  markTotal,
   MARKET_HISTORY,
   sanitizeCargo,
 } from "./market.ts";
@@ -171,5 +173,16 @@ describe("owned cargo", () => {
     const hold = sanitizeCargo([{ goodId: "ice", qty: 3 }]);
     assert.equal(cargoPaid(hold, "ice"), 0);
     assert.equal(cargoAvg(hold, "ice"), 0);
+  });
+
+  it("marks warehouse paper profit without selling", () => {
+    const unit = quoteGood("ore", 40);
+    const lots = markHold(addCargo(addCargo([], "ore", 2, 10), "ice", 1, 0), 40);
+    const tot = markTotal(lots);
+    const ore = lots.find((l) => l.goodId === "ore");
+    assert.ok(ore);
+    assert.equal(ore.pnl, unit * 2 - 10);
+    assert.equal(tot.qty, 3);
+    assert.ok(tot.mark > 0);
   });
 });
