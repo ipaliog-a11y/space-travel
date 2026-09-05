@@ -129,7 +129,8 @@ export function quoteGood(goodId: GoodId, tick = marketTick()) {
     const n = unit01(`tape|${good.id}|${t}`) * 2 - 1;
     x = x * (1 - PULL) + n * VOL;
   }
-  return Math.max(1, Math.round(good.base * (1 + amp * Math.tanh(x))));
+  const walk = Math.max(1, Math.round(good.base * (1 + amp * Math.tanh(x))));
+  return Math.max(1, Math.round(walk * shockMul(goodId, tick)));
 }
 
 export function quoteHistory(goodId: GoodId, tick = marketTick()) {
@@ -304,4 +305,49 @@ export function markTotal(lots: MarkLot[]) {
     }),
     { qty: 0, paid: 0, mark: 0, pnl: 0 },
   );
+}
+
+export const SHOCK_EVERY = 16;
+
+export type TapeShock = {
+  goodId: GoodId;
+  kind: "spike" | "crash";
+  startTick: number;
+  ticks: number;
+  amp: number;
+};
+
+/** Rare galaxy-wide spike or crash. Same ₡ at every lock. */
+export function tapeShock(tick = marketTick()): TapeShock | null {
+  const bucket = Math.floor(Math.max(0, tick) / SHOCK_EVERY) * SHOCK_EVERY;
+  const rng = mulberry32(hashu(`shock|${bucket}`) >>> 0);
+  if (rng() > 0.62) return null;
+  const good = GOODS[Math.floor(rng() * GOODS.length)];
+  if (!good) return null;
+  return {
+    goodId: good.id,
+    kind: rng() > 0.5 ? "spike" : "crash",
+    startTick: bucket,
+    ticks: 4 + Math.floor(rng() * 3),
+    amp: 0.28 + rng() * 0.3,
+  };
+}
+
+export function shockMul(goodId: GoodId, tick = marketTick()): number {
+  const s = tapeShock(tick);
+  if (!s || s.goodId !== goodId) return 1;
+  const age = tick - s.startTick;
+  if (age < 0 || age >= s.ticks) return 1;
+  const u = (age + 0.5) / Math.max(1, s.ticks);
+  const env = Math.sin(Math.min(1, u) * Math.PI);
+  const sign = s.kind === "spike" ? 1 : -1;
+  return 1 + sign * s.amp * env;
+}
+
+export function shockLive(tick = marketTick()): TapeShock | null {
+  const s = tapeShock(tick);
+  if (!s) return null;
+  const age = tick - s.startTick;
+  if (age < 0 || age >= s.ticks) return null;
+  return s;
 }

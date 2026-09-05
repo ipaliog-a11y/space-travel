@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createEngine, type EngineHandle } from "@/lib/starwake/engine";
 import { HOME_SYSTEM_ID } from "@/lib/starwake/galaxy";
 import { useStarwake } from "@/lib/starwake/store";
-import { claimStarterShip, loadHangar, payCrewRun } from "@/lib/hangar/api";
+import { claimStarterShip, loadHangar, payCrewRun, serviceCrewPad } from "@/lib/hangar/api";
 import { rollCrewPirate } from "@/lib/starwake/fleet-run";
 import { getMyProfile } from "@/lib/player-profile/api";
 import { isProfileComplete } from "@/lib/player-profile/types";
@@ -119,6 +119,10 @@ export function Play() {
           for (const row of due) {
             if (!row.run?.job || row.run.phase !== "flight") continue;
             const pirate = rollCrewPirate(row, Date.now());
+            if (row.shipKey) {
+              useStarwake.getState().topOffCrewHull(row.hull);
+              void serviceCrewPad({ data: { shipKey: row.shipKey } }).catch(() => {});
+            }
             if (pirate.lost) {
               useStarwake.getState().claimCrewRun(row.id, 0);
               continue;

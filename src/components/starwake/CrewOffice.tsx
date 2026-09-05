@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { hireCrewBond, loadHangar, loadRepairStatus, payCrewRun } from "@/lib/hangar/api";
+import { hireCrewBond, loadHangar, loadRepairStatus, payCrewRun, serviceCrewPad } from "@/lib/hangar/api";
 import type { HangarShip } from "@/lib/hangar/types";
 import { PilotGlyph } from "@/lib/player-profile/glyphs";
 import {
@@ -123,6 +123,10 @@ export function CrewOffice({ onBack }: Props) {
     setBusy(id);
     try {
       const pirate = rollCrewPirate(row, Date.now());
+      if (row.shipKey) {
+        useStarwake.getState().topOffCrewHull(row.hull);
+        void serviceCrewPad({ data: { shipKey: row.shipKey } }).catch(() => {});
+      }
       if (pirate.lost) {
         useStarwake.getState().claimCrewRun(id, 0);
         setErr(`${row.name} lost the packet.`);
@@ -192,7 +196,7 @@ export function CrewOffice({ onBack }: Props) {
                   </span>
                   <span className="job-title">{c.name}</span>
                   {rest ? (
-                    <p>Pad rest · {etaLabel(c.run!.endsAt, now)}</p>
+                    <p>Pad rest · Rel + tanks · {etaLabel(c.run!.endsAt, now)}</p>
                   ) : c.run?.job ? (
                     <p>
                       {c.run.job.cargo} · {c.run.job.qty}u · {formatStop(c.run.job.from)} → {formatStop(c.run.job.to)}
@@ -367,7 +371,7 @@ function CrewDossier({
             <span>{due ? "Docked" : rest ? "Pad" : etaLabel(crew.run.endsAt, now)}</span>
           </div>
           {rest ? (
-            <p className="survey-empty">Rest equals the last hop until they learn the pad. {etaLabel(crew.run.endsAt, now)} left.</p>
+            <p className="survey-empty">Rel and tanks every dock. Rest equals the last hop until they learn the pad. {etaLabel(crew.run.endsAt, now)} left.</p>
           ) : job ? (
             <article className="job-card">
               <span className="job-kind">

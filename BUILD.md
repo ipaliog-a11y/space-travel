@@ -53,8 +53,8 @@ Hub-less worlds are **resource planets**, not stations. Each yields a couple of 
 ### 10. Fleet — in play
 **Cosmetic traffic** still berths on occupied gates. **Crew office:** hire up to two NPC Courier / Hauler crews on **contracts only** (not merchant). Bond ₡6k / ₡9k. They loop packets while you fly; you take 42% minus upkeep (₡110 / ₡190). Dismiss spends the bond. Player can fly jobs, trade, and run the fleet at the same time.
 
-### 11. Risk and events
-Pirate / interdiction on hauls. Market shocks (spikes / crashes that feed the watch). Reputation / faction contracts stay deprioritized.
+### 11. Risk and events — in play
+Pirate / interdiction on hauls (pay, dump, or boost — ship stays). Market shocks (spikes / crashes on the one galaxy tape). Reputation / faction contracts stay deprioritized.
 
 ### 12. Player station
 Buy a station somewhere. Storage first, then price / hold leverage for the merchant loop. Upgrades over time. Extractor pads on resource worlds can share this track.

@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.35] - 2026-09-05
+
+### Changed
+- BUILD 11: tape shocks, OD intercept (pay / dump / boost). Crews Rel and tank every dock.
+
 ## [v0.1.34] - 2026-09-05
 
 ### Changed

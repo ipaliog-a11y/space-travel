@@ -176,6 +176,8 @@ export type StarwakeState = {
   refreshHubBoard: () => void;
   acceptJob: (id: string) => boolean;
   dropJob: () => void;
+  jettisonHaul: () => void;
+  topOffCrewHull: (hull: CrewHull) => void;
   loadCargo: (systemId: string, stationId: string) => boolean;
   deliverCargo: (systemId: string, stationId: string, paid?: number) => boolean;
   stowBuy: (goodId: GoodId, qty: number, paid?: number) => boolean;
@@ -406,6 +408,31 @@ export const useStarwake = create<StarwakeState>()(
           board: refillBoard([...st.board, man.job], man.job.from.systemId, seed, hubId, st.retiredJobs),
           boardStationId: hubId,
           jobSeed: seed,
+        });
+      },
+      jettisonHaul: () => {
+        const st = get();
+        const man = st.manifests[st.shipId];
+        const cargo = st.cargo[st.shipId] ?? [];
+        if (!man && !cargo.length) return;
+        const retired = man?.loaded ? retireContract(st.retiredJobs, man.job) : st.retiredJobs;
+        set({
+          manifests: { ...st.manifests, [st.shipId]: null },
+          cargo: { ...st.cargo, [st.shipId]: [] },
+          retiredJobs: retired,
+          hasSave: true,
+          lastSaveAt: Date.now(),
+        });
+      },
+      topOffCrewHull: (hull) => {
+        const st = get();
+        if (st.shipId === hull) return;
+        const def = fittedShip(hull, st.loadout);
+        set({
+          fuel: { ...st.fuel, [hull]: def.fuelCap },
+          fuel2: { ...st.fuel2, [hull]: def.fuelCap2 },
+          hasSave: true,
+          lastSaveAt: Date.now(),
         });
       },
       loadCargo: (systemId, stationId) => {

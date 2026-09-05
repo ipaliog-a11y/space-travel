@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
 import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
-import { formatStop, holdUsed } from "@/lib/starwake/jobs";
-import { EMPTY_HOLD, lotLabel } from "@/lib/starwake/market";
+import { formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
+import { cargoQty, EMPTY_HOLD, lotLabel, markHold, markTotal } from "@/lib/starwake/market";
+import { hashu, mulberry32 } from "@/lib/starwake/math";
+import { boostEscapes, haulAtRisk, INTERDICT_COOL_MS, interdictRansom, rollInterdict } from "@/lib/starwake/risk";
+import { payRansom } from "@/lib/hangar/api";
 import { sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
@@ -115,6 +118,11 @@ export function FlightChrome({
   const [opts, setOpts] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [tab, setTab] = useState<Mfd>("hold");
+  const [hit, setHit] = useState<{ ransom: number } | null>(null);
+  const [hitBusy, setHitBusy] = useState(false);
+  const [hitErr, setHitErr] = useState<string | null>(null);
+  const odSec = useRef(0);
+  const lastHitAt = useRef(0);
   const driveRef = useRef(drive);
 
   const leaveToMenu = useCallback(() => {
@@ -128,6 +136,45 @@ export function FlightChrome({
       st.markSave();
     }
   }, [engine]);
+
+  const clearHit = useCallback(() => {
+    setHit(null);
+    setHitBusy(false);
+    setHitErr(null);
+    odSec.current = 0;
+  }, []);
+
+  async function onPayHit() {
+    if (!hit || hitBusy) return;
+    setHitBusy(true);
+    setHitErr(null);
+    try {
+      await payRansom({ data: { amount: hit.ransom } });
+      clearHit();
+    } catch (e) {
+      setHitErr(e instanceof Error ? e.message : "Pay failed");
+      setHitBusy(false);
+    }
+  }
+
+  function onDumpHit() {
+    if (hitBusy) return;
+    useStarwake.getState().jettisonHaul();
+    clearHit();
+  }
+
+  function onBoostHit() {
+    if (hitBusy) return;
+    const spent = useStarwake.getState().spendBoost();
+    engine?.setBoost(Boolean(spent));
+    const rng = mulberry32(hashu(`run|${Date.now()}`) >>> 0);
+    if (spent && boostEscapes(rng())) {
+      clearHit();
+      return;
+    }
+    useStarwake.getState().jettisonHaul();
+    clearHit();
+  }
 
   const syncThr = useCallback((t: number, heat = 0) => {
     const el = thrRef.current;
@@ -176,6 +223,7 @@ export function FlightChrome({
       e.preventDefault();
       e.stopImmediatePropagation();
       const d = driveRef.current;
+      if (hit) return;
       if (dossier) setDossier(false);
       else if (logOpen) setLogOpen(false);
       else if (opts) setOpts(false);
@@ -186,7 +234,35 @@ export function FlightChrome({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [dossier, opts, logOpen, mapOpen, onMap, engine]);
+  }, [dossier, opts, logOpen, mapOpen, onMap, engine, hit]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (hit) return;
+      const d = driveRef.current;
+      const st = useStarwake.getState();
+      const man = st.manifests[st.shipId];
+      const cargo = st.cargo[st.shipId] ?? EMPTY_HOLD;
+      const loaded = haulAtRisk(Boolean(man?.loaded), cargoQty(cargo));
+      if (d.regime !== "od" || d.berthed || !loaded) {
+        odSec.current = 0;
+        return;
+      }
+      odSec.current += 1;
+      if (Date.now() - lastHitAt.current < INTERDICT_COOL_MS) return;
+      if (odSec.current % 4 !== 0) return;
+      const rng = mulberry32(hashu(`hit|${st.shipId}|${Math.floor(Date.now() / 4000)}`) >>> 0);
+      if (!rollInterdict(odSec.current, rng(), loaded)) return;
+      const jobPay = man?.loaded ? jobPayout(man.job) : 0;
+      const ransom = interdictRansom(jobPay, markTotal(markHold(cargo)).mark);
+      engine?.setBoost(false);
+      engine?.setThrottle(0.4);
+      setHitErr(null);
+      setHit({ ransom });
+      lastHitAt.current = Date.now();
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [engine, hit]);
 
   useEffect(() => {
     const stick = stickRef.current;
@@ -588,6 +664,30 @@ export function FlightChrome({
             </div>
           </div>
           <p className="dock-hint">Slow. Center the gate. Fly through.</p>
+        </div>
+      )}
+
+      {hit && (
+        <div className="helion-confirm" role="dialog" aria-modal="true" aria-labelledby="intercept-title">
+          <div className="helion-confirm-card">
+            <div className="k">Intercept</div>
+            <h2 id="intercept-title">A kite on the tape</h2>
+            <p className="lede">
+              Pay ₡{hit.ransom.toLocaleString()}, dump the haul, or boost. Ship stays.
+            </p>
+            {hitErr && <p className="survey-empty">{hitErr}</p>}
+            <div className="gate-acts">
+              <button type="button" className="engage" disabled={hitBusy} onClick={() => void onPayHit()}>
+                Pay
+              </button>
+              <button type="button" className="engage ghost" disabled={hitBusy} onClick={onDumpHit}>
+                Dump
+              </button>
+              <button type="button" className="engage ghost" disabled={hitBusy} onClick={onBoostHit}>
+                Boost
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -283,6 +283,32 @@ export const payJobDelivery = createServerFn({ method: "POST" })
     return { credits: profile.credits, paid };
   });
 
+export const serviceCrewPad = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { shipKey: string }) => data)
+  .handler(async ({ context, data }): Promise<{ ok: boolean }> => {
+    const key = typeof data.shipKey === "string" ? data.shipKey.trim() : "";
+    if (!key) return { ok: false };
+    const { getPlayerShips, repairShip } = await import("../ship-ownership/server.ts");
+    const ships = await getPlayerShips(context.userId);
+    const ship = ships.find((s) => s.id === key);
+    if (!ship) return { ok: false };
+    if (ship.wearPoints > 0) await repairShip(ship.id);
+    return { ok: true };
+  });
+
+export const payRansom = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { amount: number }) => data)
+  .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const paid = Math.max(1, Math.min(50_000, Math.round(Number(data.amount) || 0)));
+    const profile = await requireCompleteProfile(context.userId);
+    if (profile.credits < paid) throw new Error(`Need ₡${paid.toLocaleString()}`);
+    const next = await modifyCredits(context.userId, -paid);
+    return { credits: next.credits, paid };
+  });
+
 export const hireCrewBond = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { hull: "courier" | "hauler" | "extractor"; shipKey: string }) => data)

@@ -507,6 +507,22 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 - Hints always include a station name on dump if any lock lists it
 - Paper ₡ uses `markHold`
 
+## Decision #018: Risk is pay / dump / boost + one-tape shocks
+
+**Date:** 2026-09-05  
+**Status:** Approved  
+**Context:** BUILD 11. Crews already roll pirates off-screen. Player hauls had no risk. Tape walked but never evented.
+
+**Decision:** Helion trader, not a combat sim.
+
+- **Shocks:** rare spike/crash on one good, same ₡ everywhere. Analysis shows it.
+- **Intercept:** only in OD with a loaded job or owned hold. Pay a cut, dump the haul, or spend a boost to run. Fail dump. Ship stays.
+- **Crew pad:** every dock Rel + tanks the assigned hull. Upkeep already paid in the cut.
+
+**Don’t:** dogfights, hull loss, per-hub prices, faction standing.
+
+**Quality bar:** `risk.test.ts`, `shockLive` never prices a good below ₡1, ransom ≥ ₡40.
+
 ---
 
 ## Pending Decisions
@@ -522,4 +538,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-05  
-**Total Decisions:** 17 approved, 2 pending
+**Total Decisions:** 18 approved, 2 pending

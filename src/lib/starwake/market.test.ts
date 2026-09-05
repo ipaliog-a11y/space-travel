@@ -14,6 +14,8 @@ import {
   KINDS,
   quoteGood,
   quoteHistory,
+  shockLive,
+  shockMul,
   sparkPath,
   takeCargo,
   trendDelta,
@@ -116,6 +118,22 @@ describe("market quotes", () => {
     assert.ok(base.food < base.seed);
     assert.ok(base.stimulants < base.medicine);
     assert.ok(base.lh2 < base.helium3);
+  });
+
+  it("shocks one good on the same galaxy tape", () => {
+    let hit: { tick: number; id: (typeof GOODS)[number]["id"] } | null = null;
+    for (let t = 0; t < 240; t++) {
+      const live = shockLive(t);
+      if (live) {
+        hit = { tick: t, id: live.goodId };
+        break;
+      }
+    }
+    assert.ok(hit);
+    const mul = shockMul(hit.id, hit.tick);
+    assert.ok(mul !== 1);
+    assert.equal(quoteGood(hit.id, hit.tick), quoteGood(hit.id, hit.tick));
+    assert.ok(quoteGood(hit.id, hit.tick) >= 1);
   });
 });
 

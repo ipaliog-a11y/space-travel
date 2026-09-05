@@ -6,6 +6,7 @@ import {
   KIND_LABEL,
   markHold,
   markTotal,
+  shockLive,
   type CargoHold,
   type GoodId,
 } from "@/lib/starwake/market";
@@ -45,9 +46,21 @@ export function WatchAnalysis({ tick, systemId, cargo, pads, rows, onFocus }: Pr
     () => Object.fromEntries(owned.map((lot) => [lot.goodId, hopsForGood(lot.goodId, systemId)])),
     [owned, systemId],
   );
+  const shock = shockLive(tick);
 
   return (
     <>
+      {shock && (
+        <section className="job-board hangar-pads" aria-label="Tape shock">
+          <div className="job-board-head">
+            <h2>{shock.kind === "spike" ? "Spike" : "Crash"}</h2>
+            <span>Same ₡ everywhere. {goodById(shock.goodId).name}.</span>
+          </div>
+          <p className="bay-caption">
+            {shock.kind === "spike" ? "Tape is fat." : "Tape is thin."} Hold or dump from the lots below. No sell here.
+          </p>
+        </section>
+      )}
       <section className="job-board hangar-pads" aria-label="Movers">
         <div className="job-board-head">
           <h2>Movers</h2>
