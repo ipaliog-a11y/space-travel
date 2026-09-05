@@ -301,7 +301,7 @@ Hangar alts were ₡450–₡1,200 while Rel was ₡5k / ₡15k / ₡30k. The li
 ## Decision #007: Economy, Mining, Fleet, Galaxy (28 Aug chat)
 
 **Date:** 2026-08-28  
-**Status:** ✅ Implemented (merchant + watch + Extractor mining in play; cosmetic traffic in play; fleet contracts in play; risk / station later)  
+**Status:** ✅ Implemented (merchant + watch + Extractor mining in play; fleet / risk / station later)  
 **Session:** [session-2026-08-28-progress-review](sessions/session-2026-08-28-progress-review.md)
 
 ### Context
@@ -461,6 +461,37 @@ After mining / Extractor lands on the same plates.
 
 ---
 
+## Decision #016: Throttle is FA-on trader, not a reverse gear
+
+**Date:** 2026-09-05  
+**Status:** ✅ Implemented  
+**Session:** reverse + pad halt, then soften; genre pass vs Elite / Star Citizen / X4 / NMS
+
+### Context
+Starwake first shipped a 0–1 lever that coasted at idle. Reverse below 0 was added, then felt like a second cruise. Need a bar from games that already solved pad work.
+
+### Research
+| Game | Idle at 0 | Reverse | Pad |
+|---|---|---|---|
+| **Elite** (FA on, default) | Computer fires retro — 0 is a halt, not a coast | Full reverse speed exists; HOTAS often puts 0 at a detent | Throttle to 0; docking computer or crawl. Blue zone ~75% is approach, not pad RCS. |
+| **Star Citizen** (coupled) | 0 brakes. Space-brake is an explicit halt. | Reverse exists; landing gear **precision mode** caps ~20–30 m/s | Gear-out is a different speed band, not a second cruise. |
+| **X4** | FA-on airplane feel; 0 is stop | Bidirectional axis; too-small deadzone **creeps reverse** (TWCS reports) | Slow on purpose. Docking computer finishes alignment. |
+| **NMS** | Thrust + brake, arcade | Reverse is not a first-class space axis (mods add it) | Land is a button, not a reverse gear. |
+| **KSP** | Throttle is 0–100% burn | Main engines do not reverse; RCS translates | Dock with RCS, not the main throttle. |
+
+### Decision
+Starwake stays **Elite FA-on / X4 trader**, not SC sim and not KSP.
+
+- **0 near a pad = halt.** Open space at 0 still coasts (Newtonian-ish, we are not FA-on everywhere).
+- **Reverse is RCS**, ~9% of cruise — KSP/NMS pad work, not Elite’s full reverse.
+- **Forward eases in** (`x^1.75`) so a crack of lever is a crawl. Cruise still lands at the old 75% detent. Overdrive above that.
+- **Deadzone ~4%** at 0 so analog/keyboard does not creep reverse (X4 lesson).
+- **Pad cap** stays 26% lever. No closing-speed floor — that made the first millimetre a jump.
+
+Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by editing `throttle.ts` constants, then that table.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -473,5 +504,5 @@ After mining / Extractor lands on the same plates.
 
 ---
 
-**Last Updated:** 2026-09-03  
-**Total Decisions:** 15 approved, 2 pending
+**Last Updated:** 2026-09-05  
+**Total Decisions:** 16 approved, 2 pending

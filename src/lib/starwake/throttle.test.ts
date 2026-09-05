@@ -15,31 +15,46 @@ import {
   visualToThrottle,
 } from "./throttle.ts";
 
+const CRUISE = 10;
+const OD = 0.75;
+const OD_SPD = 20;
+
+function drive(t: number) {
+  return driveFromThrottle(t, CRUISE, OD_SPD, OD);
+}
+
 describe("throttle lever", () => {
   it("lets Z pull below 0 into reverse, and caps the pad", () => {
-    assert.ok(clampThrottle(-0.4, false, 0.75, false) < 0);
-    assert.equal(clampThrottle(-2, false, 0.75, false), -1);
-    assert.equal(clampThrottle(1, false, 0.75, true), THR_DOCK_CAP);
-    assert.ok(clampThrottle(1, true, 0.75, false) <= 0.75);
+    assert.ok(clampThrottle(-0.4, false, OD, false) < 0);
+    assert.equal(clampThrottle(-2, false, OD, false), -1);
+    assert.equal(clampThrottle(1, false, OD, true), THR_DOCK_CAP);
+    assert.ok(clampThrottle(1, true, OD, false) <= OD);
   });
 
-  it("keeps reverse in the RCS band", () => {
-    const d = driveFromThrottle(-1, 10, 20, 0.75);
-    assert.ok(d < 0);
-    assert.ok(Math.abs(d) <= 10 * THR_REV_FRAC + 1e-9);
-    assert.ok(Math.abs(d) < 1.1);
-  });
-
-  it("eases into cruise so a crack of lever is not a jump", () => {
-    const cruise = 10;
-    const od = 0.75;
-    const low = 0.2;
-    const linear = (low / od) * cruise;
-    const shaped = driveFromThrottle(low, cruise, 20, od);
-    assert.ok(shaped > 0);
-    assert.ok(shaped < linear * 0.55);
-    assert.ok(driveFromThrottle(od, cruise, 20, od) > cruise * 0.98);
-    assert.ok(FWD_GAMMA > 1);
+  /**
+   * Genre bar (Decision #016): Elite FA-on halt at 0 on the pad,
+   * SC precision (reverse is not a second cruise), X4 deadzone, NMS/KSP RCS reverse.
+   * Numbers are % of cruise at courier-scale 10.
+   */
+  it("matches the trader throttle quality table", () => {
+    const rows: [lever: number, min: number, max: number, note: string][] = [
+      [0, 0, 0, "idle"],
+      [0.075, 0.05, 0.45, "10% of cruise detent — crawl, not a jump"],
+      [0.2, 0.4, 1.6, "low stick still well under linear"],
+      [0.375, 2.2, 4.2, "half to the detent is still under half cruise"],
+      [OD, 9.8, 10.2, "detent is cruise"],
+      [1, 19.5, 20.5, "top is overdrive"],
+      [-1, -1.05, -0.7, "full reverse is RCS, ~9% cruise"],
+    ];
+    for (const [lever, min, max, note] of rows) {
+      const d = drive(lever);
+      assert.ok(d >= min && d <= max, `${note}: lever ${lever} → ${d}, want ${min}..${max}`);
+    }
+    const linearLow = (0.2 / OD) * CRUISE;
+    assert.ok(drive(0.2) < linearLow * 0.55);
+    assert.ok(FWD_GAMMA > 1.4);
+    assert.ok(THR_REV_FRAC <= 0.12);
+    assert.ok(THR_DEAD >= 0.03);
   });
 
   it("round-trips the lever visual with a detent at idle", () => {
@@ -57,7 +72,6 @@ describe("throttle lever", () => {
     assert.equal(idleHalt(0, false, true, HALT_REL + 2), false);
     assert.equal(idleHalt(0, false, false, 1), false);
     assert.equal(idleHalt(0.5, true, true, 1), false);
-    assert.ok(THR_DEAD < 0.05);
   });
 
   it("backs off the gate when the lever is below 0, without a closing floor", () => {

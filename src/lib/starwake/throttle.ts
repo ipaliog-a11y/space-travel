@@ -1,7 +1,9 @@
 /**
- * Throttle lever: reverse below 0, idle halt near a pad, forward / overdrive above.
- * Reverse is RCS only. Forward is eased so a crack of lever is not a jump.
+ * Throttle lever — Decision #016 (Elite FA-on trader, not a reverse gear).
+ *
+ * Reverse below 0 is RCS. Idle halt near a pad. Forward eases in.
  * Visual: reverse is the bottom 22% of the track; 0 sits on a detent.
+ * Change feel via the constants; keep throttle.test.ts quality table green.
  */
 export const THR_MIN = -1;
 export const THR_MAX = 1;
