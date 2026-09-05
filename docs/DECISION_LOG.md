@@ -2,6 +2,8 @@
 
 All major design decisions for Starwake.
 
+Standing process (AGENTS.md **Starwake request loop**): comps → steal/don't → quality bar → patch. Every feature, not only throttle.
+
 ---
 
 ## Decision #001: Wear System Scale
