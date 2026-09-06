@@ -87,6 +87,8 @@ const IDLE_DRIVE: DriveHud = {
   navDist: null,
   etaSec: null,
   canJump: false,
+  jumpHead01: 0,
+  jumpLock01: 0,
   atPlanetId: null,
   scanned: false,
   coasting: false,
@@ -682,7 +684,13 @@ export function FlightChrome({
               ? "Aligned"
               : jumping
                 ? "Spooling"
-                : "Heading off"
+                : !locked
+                  ? "No lock"
+                  : drive.jumpLock01 < 0.4
+                    ? "Out of range"
+                    : drive.jumpLock01 < 0.8
+                      ? "Need T2"
+                      : "Heading off"
             : tab === "ship"
               ? wear
                 ? `wear ${wear.wearPercentage.toFixed(0)}% · bst ${drive.boostCharges}/${drive.boostMax}`
@@ -703,14 +711,12 @@ export function FlightChrome({
         {tab === "jump" ? (
           <div className="bars">
             <Bar label="T2" value={t2} teal dry={drive.dry2} />
-            <Bar label="Head" value={canJump ? 0.92 : 0.34} warn={!canJump} />
-            <Bar label="Lock" value={locked ? 0.8 : 0.12} />
+            <Bar label="Head" value={drive.jumpHead01} warn={drive.jumpHead01 < 0.55} />
+            <Bar label="Lock" value={drive.jumpLock01} warn={drive.jumpLock01 < 0.8} />
           </div>
         ) : tab === "ship" ? (
           <div className="bars">
             <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
-            <Bar label="Heat" value={drive.heat01} warn={drive.overheated} />
-            <Bar label="Thr" value={Math.max(0, drive.throttle)} />
             <Bar label="Bst" value={drive.boostMax ? drive.boostCharges / drive.boostMax : 0} teal />
           </div>
         ) : (

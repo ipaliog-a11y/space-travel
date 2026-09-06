@@ -570,6 +570,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #022: Jump Head / Lock are analog
+
+**Date:** 2026-09-07  
+**Status:** ✅ Implemented  
+**Comps:** Elite FSD alignment, SC quantum alignment.
+
+**Steal / don’t:** Head is nose vs locked star on the map plane. Generous 55% cone to fire. Lock is 0 / out of range / need T2 / solid. Not two fake fills (92/34, 80/12). Ship tab drops duplicate Heat and Thr.
+
+**Quality bar:** `jump-align.test.ts` — head 1 on bearing, 0 opposite, lock 0 with no star.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -582,5 +594,5 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
-**Last Updated:** 2026-09-06  
-**Total Decisions:** 21 approved, 2 pending
+**Last Updated:** 2026-09-07  
+**Total Decisions:** 22 approved, 2 pending

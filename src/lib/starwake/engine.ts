@@ -3,6 +3,7 @@ import type { Planet, Station, FlightMode } from "./types";
 import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
 import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
+import { headReady, jumpHead01 as headFromYaw, jumpLock01 as lockFromHop } from "./jump-align";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
 import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetMu, planetSOI, starMu } from "./orbit";
 import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, perspective, quatFromEuler, quatFromAxisAngle, quatInvert, quatLook, quatMul, quatNormalize, quatSlerp, quatToMat4, rotateVec, translation, viewFromLook, wrapDelta } from "./math";
@@ -57,6 +58,8 @@ export type DriveHud = {
   navDist: number | null;
   etaSec: number | null;
   canJump: boolean;
+  jumpHead01: number;
+  jumpLock01: number;
   scanned: boolean;
   coasting: boolean;
   well: string | null;
@@ -361,6 +364,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			navDist: navName ? navDist : focusName ? focusDist : null,
 			etaSec: hopEta(),
 			canJump: canFireJump(),
+			jumpHead01: jumpMeters().head,
+			jumpLock01: jumpMeters().lock,
 			scanned: Boolean(atPlanetId && getStarwake().scanned[atPlanetId]),
 			coasting: st.entered && Math.abs(throttle) <= THR_DEAD,
 			well: boundName,
@@ -1318,6 +1323,21 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		if (!(d > 1) || lastWorldSpeed < 0.08) return null;
 		return d / lastWorldSpeed;
 	}
+	function jumpMeters() {
+		const st = getStarwake();
+		const lock = st.lockedSystemId;
+		if (!lock || lock === st.systemId) return { head: 0, lock: 0, hop: false, t2ok: false };
+		const here = getSystem(st.systemId);
+		const dest = getSystem(lock);
+		const hop = nextHop(here, dest, hull().jumpRangeLy);
+		const t2ok = Boolean(hop) && fuel2Local + 1e-4 >= hopT2Cost(here.id, hop.id);
+		return {
+			head: headFromYaw(headingYaw, here, dest),
+			lock: lockFromHop({ locked: true, hop: Boolean(hop), t2ok }),
+			hop: Boolean(hop),
+			t2ok,
+		};
+	}
 	function canFireJump() {
 		const st = getStarwake();
 		if (!st.entered) return false;
@@ -1325,10 +1345,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const lock = st.lockedSystemId;
 		if (lock && lock !== st.systemId) {
 			if (t2Dry()) return false;
-			const def = hull();
-			const hop = nextHop(getSystem(st.systemId), getSystem(lock), def.jumpRangeLy);
-			if (!hop) return false;
-			return fuel2Local + 1e-4 >= hopT2Cost(st.systemId, hop.id);
+			const m = jumpMeters();
+			return m.hop && m.t2ok && headReady(m.head);
 		}
 		return Boolean(hopTarget());
 	}
