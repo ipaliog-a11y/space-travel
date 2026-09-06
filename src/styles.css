@@ -750,7 +750,8 @@ button:disabled { cursor: default; }
   flex-wrap:wrap;
   justify-content:center;
   gap:10px;
-  display:flex
+  display:flex;
+  margin-top:8px
 }
 .save-slots {
   width:min(640px,100%);
@@ -2607,7 +2608,16 @@ button.pad-jump em {
 }
 .job-board .save-slots {
   width: 100%;
-  margin: 0;
+  margin: 0 0 8px;
+}
+.save-slot-acts {
+  min-height: 1.5rem;
+}
+.helion-dock .save-slot-act {
+  min-height: 0;
+  height: auto;
+  padding: 4px 8px 8px;
+  font-size: 0.68rem;
 }
 .pilot-form {
   width: min(640px, 100%);
@@ -3101,7 +3111,6 @@ button.pad-jump em {
 .helion-dock .engage,
 .helion-dock .job-take,
 .helion-dock .job-drop,
-.helion-dock .save-slot-act,
 .helion-dock .hull-tabs button,
 .helion-dock .slot-tabs button {
   border-radius: 0;
@@ -3578,7 +3587,7 @@ button.pad-jump em {
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
-  height: 168px;
+  height: 176px;
   border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 16%, transparent);
   background: color-mix(in oklab, var(--color-helion-ink) 70%, transparent);
   touch-action: pan-x;
@@ -3611,14 +3620,14 @@ button.pad-jump em {
 }
 .rank-track-rail {
   position: relative;
-  height: 168px;
+  height: 176px;
   min-width: 100%;
 }
 .rank-track-bed,
 .rank-track-fill {
   position: absolute;
   left: 0;
-  top: 72px;
+  top: 40px;
   height: 2px;
   pointer-events: none;
 }
@@ -3638,7 +3647,7 @@ button.pad-jump em {
 }
 .rank-track-marker {
   position: absolute;
-  top: 64px;
+  top: 33px;
   width: 16px;
   height: 16px;
   margin-left: -8px;
@@ -3663,12 +3672,13 @@ button.pad-jump em {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   font-family: var(--font-helion);
+  z-index: 1;
 }
 .rank-node-badge {
   position: relative;
@@ -3679,6 +3689,7 @@ button.pad-jump em {
   border: 1px solid color-mix(in oklab, currentColor 55%, transparent);
   background: var(--color-helion-plate);
   color: inherit;
+  z-index: 1;
 }
 .rank-node-badge svg {
   width: 22px;
@@ -3691,7 +3702,9 @@ button.pad-jump em {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: inherit;
-  line-height: 1.1;
+  line-height: 1.2;
+  text-align: center;
+  padding-top: 6px;
 }
 .rank-node-reward {
   font-family: var(--font-helion-mono);
