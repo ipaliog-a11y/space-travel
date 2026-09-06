@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.54] - 2026-09-06
+
+### Added
+- Jump/drop kites by system heat. Rank raises Slip % on the intercept card (never immunity). Helion stays quiet.
+
 ## [v0.1.53] - 2026-09-06
 
 ### Added

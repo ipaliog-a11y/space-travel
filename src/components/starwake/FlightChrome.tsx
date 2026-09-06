@@ -4,8 +4,19 @@ import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
 import { formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { cargoQty, EMPTY_HOLD, lotLabel, markHold, markTotal } from "@/lib/starwake/market";
 import { hashu, mulberry32 } from "@/lib/starwake/math";
-import { boostEscapes, haulAtRisk, INTERDICT_COOL_MS, interdictRansom, rollInterdict } from "@/lib/starwake/risk";
+import {
+  boostEscapes,
+  haulAtRisk,
+  INTERDICT_COOL_MS,
+  interdictRansom,
+  kiteOdds,
+  rollInterdict,
+  rollJumpKite,
+  slipKite,
+  type KiteFlavor,
+} from "@/lib/starwake/risk";
 import { payRansom } from "@/lib/hangar/api";
+import { getMyProfile } from "@/lib/player-profile/api";
 import { sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
@@ -37,6 +48,15 @@ type Props = {
 };
 
 type Mfd = "ship" | "hold" | "jump";
+
+function flavorOf(systemId: string): KiteFlavor {
+  const sys = getSystem(systemId);
+  return {
+    home: sys.id === "helion",
+    wild: sys.planets.some((p) => p.interest === "wild"),
+    pads: sys.stations.length,
+  };
+}
 
 function regimeLabel(drive: DriveHud) {
   if (drive.regime === "dock") return "Dock";
@@ -124,11 +144,13 @@ export function FlightChrome({
   const [tab, setTab] = useState<Mfd>("hold");
   const sight = useStarwake((s) => s.sight);
   const setSight = useStarwake((s) => s.setSight);
-  const [hit, setHit] = useState<{ ransom: number } | null>(null);
+  const [hit, setHit] = useState<{ ransom: number; evadePct: number; canSlip: boolean } | null>(null);
   const [hitBusy, setHitBusy] = useState(false);
   const [hitErr, setHitErr] = useState<string | null>(null);
   const odSec = useRef(0);
   const lastHitAt = useRef(0);
+  const rankRef = useRef(1);
+  const dropSeen = useRef(false);
   const [npc, setNpc] = useState({ fly: 0, pad: 0 });
   const driveRef = useRef(drive);
 
@@ -183,6 +205,48 @@ export function FlightChrome({
     useStarwake.getState().jettisonHaul();
     clearHit();
   }
+
+  function onSlipHit() {
+    if (!hit?.canSlip || hitBusy) return;
+    const rng = mulberry32(hashu(`slip|${Date.now()}`) >>> 0);
+    if (slipKite(hit.evadePct / 100, rng())) {
+      useStarwake.getState().pushNotice({
+        kicker: "Intercept",
+        title: "Slipped the kite",
+        body: `${hit.evadePct}% held. Lane opens.`,
+      });
+      clearHit();
+      return;
+    }
+    setHit({ ...hit, canSlip: false });
+    setHitErr(`No slip. ${hit.evadePct}% missed.`);
+  }
+
+  function openKite(ransom: number, evadePct: number, why: string) {
+    engine?.setBoost(false);
+    engine?.setThrottle(0.4);
+    setHitErr(null);
+    setHit({ ransom, evadePct, canSlip: true });
+    lastHitAt.current = Date.now();
+    useStarwake.getState().pushNotice({
+      kicker: "Intercept",
+      title: "A kite on the tape",
+      body: why,
+    });
+  }
+
+  useEffect(() => {
+    let live = true;
+    getMyProfile()
+      .then((p) => {
+        if (!live || !p) return;
+        rankRef.current = Math.max(1, p.currentRank || 1);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const syncThr = useCallback((t: number, heat = 0) => {
     const el = thrRef.current;
@@ -266,23 +330,35 @@ export function FlightChrome({
       odSec.current += 1;
       if (Date.now() - lastHitAt.current < INTERDICT_COOL_MS) return;
       if (odSec.current % 4 !== 0) return;
+      const odds = kiteOdds(st.systemId, rankRef.current, flavorOf(st.systemId));
       const rng = mulberry32(hashu(`hit|${st.shipId}|${Math.floor(Date.now() / 4000)}`) >>> 0);
-      if (!rollInterdict(odSec.current, rng(), loaded)) return;
+      if (!rollInterdict(odSec.current, rng(), loaded, odds.presence)) return;
       const jobPay = man?.loaded ? jobPayout(man.job) : 0;
       const ransom = interdictRansom(jobPay, markTotal(markHold(cargo)).mark);
-      engine?.setBoost(false);
-      engine?.setThrottle(0.4);
-      setHitErr(null);
-      setHit({ ransom });
-      lastHitAt.current = Date.now();
-      useStarwake.getState().pushNotice({
-        kicker: "Intercept",
-        title: "A kite on the tape",
-        body: `Pay ₡${ransom.toLocaleString()}, dump, or boost.`,
-      });
+      openKite(ransom, odds.evadePct, `OD kite. Slip ${odds.evadePct}%, pay, dump, or boost.`);
     }, 1000);
     return () => window.clearInterval(id);
   }, [engine, hit]);
+
+  useEffect(() => {
+    if (mode !== "dropping") {
+      dropSeen.current = false;
+      return;
+    }
+    if (dropSeen.current || hit) return;
+    dropSeen.current = true;
+    if (Date.now() - lastHitAt.current < INTERDICT_COOL_MS) return;
+    const st = useStarwake.getState();
+    const man = st.manifests[st.shipId];
+    const cargo = st.cargo[st.shipId] ?? EMPTY_HOLD;
+    const loaded = haulAtRisk(Boolean(man?.loaded), cargoQty(cargo));
+    const odds = kiteOdds(st.systemId, rankRef.current, flavorOf(st.systemId));
+    const rng = mulberry32(hashu(`drop|${st.systemId}|${st.shipId}|${Math.floor(Date.now() / 8000)}`) >>> 0);
+    if (!rollJumpKite(odds.presence, rng(), loaded)) return;
+    const jobPay = man?.loaded ? jobPayout(man.job) : 0;
+    const ransom = interdictRansom(jobPay, markTotal(markHold(cargo)).mark);
+    openKite(ransom, odds.evadePct, `Drop kite. Slip ${odds.evadePct}%, pay, dump, or boost.`);
+  }, [mode, hit]);
 
   useEffect(() => {
     if (!engine) return;
@@ -756,7 +832,8 @@ export function FlightChrome({
             <div className="k">Intercept</div>
             <h2 id="intercept-title">A kite on the tape</h2>
             <p className="lede">
-              Pay ₡{hit.ransom.toLocaleString()}, dump the haul, or boost. Ship stays.
+              Pay ₡{hit.ransom.toLocaleString()}, dump the haul, boost, or slip.
+              Rank holds a {hit.evadePct}% avoid.
             </p>
             {hitErr && <p className="survey-empty">{hitErr}</p>}
             <div className="gate-acts">
@@ -768,6 +845,14 @@ export function FlightChrome({
               </button>
               <button type="button" className="engage ghost" disabled={hitBusy} onClick={onBoostHit}>
                 Boost
+              </button>
+              <button
+                type="button"
+                className="engage ghost"
+                disabled={hitBusy || !hit.canSlip}
+                onClick={onSlipHit}
+              >
+                Slip {hit.evadePct}%
               </button>
             </div>
           </div>

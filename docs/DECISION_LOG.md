@@ -558,6 +558,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #021: Jump kites, system heat, rank slip
+
+**Date:** 2026-09-06  
+**Status:** ✅ Implemented  
+**Comps:** Elite interdiction on drop, X4 system security, Freelancer lane ambush.
+
+**Steal / don’t:** Helion trader. Kites on hyperspace/in-system drop to a pad or world, and still in OD. Presence 4–20% by system (Helion quiet, wild hotter). Rank raises **slip**, never immunity. No combat, no hull loss.
+
+**Quality bar:** `risk.test.ts` — home ≤ 6%, far ≤ 20%, evade 8%→72%, loaded haul only.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -571,4 +583,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-06  
-**Total Decisions:** 20 approved, 2 pending
+**Total Decisions:** 21 approved, 2 pending
