@@ -20,6 +20,8 @@ import { SaveSlots } from "./SaveSlots";
 import { StationBay } from "./StationBay";
 import { trafficCensus } from "@/lib/starwake/traffic";
 import { rollCrewPirate } from "@/lib/starwake/fleet-run";
+import { SIGHTS, type SightId } from "@/lib/starwake/hud-sight";
+import { HudSight } from "./HudSight";
 
 type Props = {
   engine: EngineHandle | null;
@@ -120,6 +122,8 @@ export function FlightChrome({
   const [opts, setOpts] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [tab, setTab] = useState<Mfd>("hold");
+  const sight = useStarwake((s) => s.sight);
+  const setSight = useStarwake((s) => s.setSight);
   const [hit, setHit] = useState<{ ransom: number } | null>(null);
   const [hitBusy, setHitBusy] = useState(false);
   const [hitErr, setHitErr] = useState<string | null>(null);
@@ -477,6 +481,14 @@ export function FlightChrome({
 
   return (
     <div className={`hud helion${mapOpen || opts ? " mapped" : ""}${logOpen ? " logged" : ""}`}>
+      <HudSight
+        sight={sight}
+        heat01={drive.heat01}
+        overheated={drive.overheated}
+        overdrive={drive.overdrive}
+        locked={Boolean(drive.atPlanet || drive.navName)}
+      />
+
       {tagName && (
         <div ref={tagRef} className={`planet-tag${drive.atPlanet ? " near" : ""}`}>
           {tagName}
@@ -605,6 +617,13 @@ export function FlightChrome({
                   ? lotLabel(cargo)
                   : "empty hold"}
         </div>
+        <div className={`od-heat${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}`}>
+          <span>Heat</span>
+          <i>
+            <b style={{ width: `${Math.round(Math.max(0, Math.min(1, drive.heat01)) * 100)}%` }} />
+          </i>
+          <em>{drive.overheated ? "Lim" : drive.overdrive ? "Od" : "Ok"}</em>
+        </div>
         {tab === "jump" ? (
           <div className="bars">
             <Bar label="T2" value={t2} teal dry={drive.dry2} />
@@ -644,6 +663,19 @@ export function FlightChrome({
           <button type="button" data-on={tab === "jump"} onClick={() => setTab("jump")}>
             Jump
           </button>
+        </div>
+        <div className="mfd sight-mfd" data-ui aria-label="Sight">
+          {SIGHTS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              data-on={sight === s.id}
+              title={s.note}
+              onClick={() => setSight(s.id as SightId)}
+            >
+              {s.name}
+            </button>
+          ))}
         </div>
         {tab === "jump" && (
           <button type="button" className="h-btn jump" data-ui disabled={!canJump} onClick={onJump}>
@@ -719,8 +751,8 @@ export function FlightChrome({
       </div>
 
       {hit && (
-        <div className="helion-confirm" role="dialog" aria-modal="true" aria-labelledby="intercept-title">
-          <div className="helion-confirm-card">
+        <div className="helion-confirm" role="dialog" aria-modal="true" aria-labelledby="intercept-title" data-ui>
+          <div className="helion-confirm-card" data-ui>
             <div className="k">Intercept</div>
             <h2 id="intercept-title">A kite on the tape</h2>
             <p className="lede">

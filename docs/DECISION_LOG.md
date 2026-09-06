@@ -543,6 +543,21 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #020: Look-sights, OD heat, intercept clicks
+
+**Date:** 2026-09-06  
+**Status:** ✅ Implemented  
+**Comps:** Elite Dangerous (pip + heat), DCS (ladder HUD), Star Citizen / NMS (lock ring). Elite interdiction for the kite card.
+
+**Steal / don’t:** Helion trader. Take a look-sight and OD heat, not a gun pipper or lead indicator. Heat fills in overdrive, dumps when you drop off OD. Intercept is pay / dump / boost — no combat.
+
+**Quality bar:**
+- Three persisted sights: pip, ladder, ring.
+- Heat 0→1 on the sight ring and the right plate while OD; empties on cool; warn at limiter.
+- Intercept card has `data-ui` + pointer-events so Pay / Dump / Boost register.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -555,5 +570,5 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
-**Last Updated:** 2026-09-05  
-**Total Decisions:** 19 approved, 2 pending
+**Last Updated:** 2026-09-06  
+**Total Decisions:** 20 approved, 2 pending

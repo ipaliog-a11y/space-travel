@@ -170,31 +170,55 @@ button:disabled { cursor: default; }
 }
 .crosshair {
   pointer-events:none;
-  opacity:.55;
-  width:18px;
-  height:18px;
-  margin:-9px 0 0 -9px;
+  opacity:.7;
+  width:88px;
+  height:88px;
+  margin:-44px 0 0 -44px;
   position:absolute;
   top:50%;
   left:50%
 }
-.crosshair span {
-  background:var(--color-fg);
-  position:absolute
-}
-.crosshair span:first-child {
-  width:1px;
-  height:100%;
-  margin-left:-.5px;
-  top:0;
-  left:50%
-}
-.crosshair span:last-child {
+.crosshair.hud-sight svg {
+  display:block;
   width:100%;
-  height:1px;
-  margin-top:-.5px;
-  top:50%;
-  left:0
+  height:100%;
+  overflow:visible
+}
+.sight-marks {
+  fill:none;
+  stroke:var(--color-helion-ivory);
+  stroke-width:1.15;
+  stroke-linecap:square;
+  stroke-linejoin:miter
+}
+.sight-marks rect,
+.sight-marks circle {
+  fill:var(--color-helion-ivory);
+  stroke:none
+}
+.sight-ring .sight-marks circle:first-of-type {
+  fill:none;
+  stroke:var(--color-helion-teal);
+  stroke-width:1.1
+}
+.sight-heat-bed,
+.sight-heat {
+  fill:none;
+  stroke-width:2;
+  stroke-linecap:butt
+}
+.sight-heat-bed {
+  stroke: color-mix(in oklab, var(--color-helion-ivory) 16%, transparent);
+}
+.sight-heat {
+  stroke: var(--color-helion-teal);
+  transition: stroke-dashoffset 80ms linear, stroke 160ms ease;
+}
+.hud-sight.hot .sight-heat {
+  stroke: var(--color-helion-warn);
+}
+.hud-sight.od .sight-marks {
+  stroke: var(--color-helion-teal);
 }
 .crosshair.locked {
   opacity:.95
@@ -2880,6 +2904,42 @@ button.pad-jump em {
   background: var(--color-helion-ivory);
   border-color: var(--color-helion-ivory);
 }
+.sight-mfd {
+  margin-top: 0.35rem;
+}
+.od-heat {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr 2.2rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.45rem 0 0.2rem;
+  font-family: var(--font-helion-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-helion-dim);
+}
+.od-heat i {
+  display: block;
+  height: 5px;
+  background: color-mix(in oklab, var(--color-helion-ivory) 12%, transparent);
+}
+.od-heat i b {
+  display: block;
+  height: 100%;
+  background: var(--color-helion-ivory);
+  transition: width 80ms linear, background 160ms ease;
+}
+.od-heat.od i b {
+  background: var(--color-helion-teal);
+}
+.od-heat.hot i b {
+  background: var(--color-helion-warn);
+}
+.od-heat.hot em,
+.od-heat.od em {
+  color: var(--color-helion-ivory);
+}
 .helion-acts {
   display: flex;
   flex-wrap: wrap;
@@ -3868,6 +3928,10 @@ button.pad-jump em {
   place-items: center;
   padding: 24px;
   background: color-mix(in oklab, var(--color-helion-ink) 72%, transparent);
+  pointer-events: auto;
+}
+.hud .helion-confirm {
+  pointer-events: auto;
 }
 .helion-confirm-card {
   width: min(420px, 100%);

@@ -45,10 +45,10 @@ import {
   type SlotLive,
 } from "./saves";
 import { dueCrews, dueRests, FLEET_CAP, sanitizeCrew, type Crew, type CrewHull } from "./fleet";
-import { claimCrew, launchCrew, makeCrew, originFromSave } from "./fleet-run";
+import { claimCrew, launchCrew, makeCrew, originFromSave, crewYieldGood } from "./fleet-run";
 import { liveNotices, makeNotice, type Notice } from "./notices";
 import { foundOutpost, crewYieldHub, padCap, upgradeOutpost, type Outpost } from "./outpost";
-import { crewYieldGood } from "./fleet-run";
+import { coerceSight, type SightId } from "./hud-sight";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
@@ -126,6 +126,7 @@ export type StarwakeState = {
   mapLayer: MapLayer;
   invertY: boolean;
   invertX: boolean;
+  sight: SightId;
   muted: boolean;
   gyro: boolean;
   showOrbits: boolean;
@@ -168,6 +169,7 @@ export type StarwakeState = {
   setMapLayer: (l: MapLayer) => void;
   toggleInvert: () => void;
   toggleInvertX: () => void;
+  setSight: (id: SightId) => void;
   toggleMute: () => void;
   setGyro: (v: boolean) => void;
   toggleOrbits: () => void;
@@ -236,6 +238,7 @@ export const useStarwake = create<StarwakeState>()(
       mapLayer: "system",
       invertY: false,
       invertX: false,
+      sight: "pip" as SightId,
       muted: false,
       gyro: false,
       showOrbits: false,
@@ -299,6 +302,7 @@ export const useStarwake = create<StarwakeState>()(
       setMapLayer: (l) => set({ mapLayer: l }),
       toggleInvert: () => set({ invertY: !get().invertY }),
       toggleInvertX: () => set({ invertX: !get().invertX }),
+      setSight: (id) => set({ sight: coerceSight(id) }),
       toggleMute: () => set({ muted: !get().muted }),
       setGyro: (v) => set({ gyro: v }),
       toggleOrbits: () => set({ showOrbits: !get().showOrbits }),
@@ -948,6 +952,7 @@ export const useStarwake = create<StarwakeState>()(
           version: SAVE_VERSION,
           invertY: s.invertY,
           invertX: s.invertX,
+          sight: s.sight,
           muted: s.muted,
           gyro: s.gyro,
           showOrbits: s.showOrbits,
@@ -984,6 +989,7 @@ export const useStarwake = create<StarwakeState>()(
           slots,
           invertY: Boolean(p.invertY ?? current.invertY),
           invertX: Boolean(p.invertX),
+          sight: coerceSight(p.sight ?? current.sight),
           muted: Boolean(p.muted),
           gyro: Boolean(p.gyro),
           showOrbits: Boolean(p.showOrbits),

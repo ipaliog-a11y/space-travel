@@ -2,6 +2,14 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.53] - 2026-09-06
+
+### Added
+- Three look-sights (Pip / Ladder / Ring) on the right plate. OD heat fills the sight ring and a Heat strip; cools when you drop OD.
+
+### Fixed
+- Intercept Pay / Dump / Boost were dead: HUD ate the clicks.
+
 ## [v0.1.52] - 2026-09-06
 
 ### Changed
