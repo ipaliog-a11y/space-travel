@@ -6,7 +6,6 @@ import {
   CREW_BOND,
   FLEET_CAP,
   crewGlyphId,
-  isCrewHull,
   spareShips,
   type Crew,
   type CrewHull,
@@ -38,11 +37,12 @@ export function CrewOffice({ onBack }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const [credits, setCredits] = useState<number | null>(null);
   const [ships, setShips] = useState<HangarShip[]>([]);
-  const [hangarReady, setHangarReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [spareId, setSpareId] = useState<string | null>(null);
+  const [hireHull, setHireHull] = useState<CrewHull | null>(null);
   const [pendingHire, setPendingHire] = useState(false);
+  const [assignFor, setAssignFor] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -55,8 +55,6 @@ export function CrewOffice({ onBack }: Props) {
       setShips(hangar.ships);
     } catch {
       /* hangar stats optional */
-    } finally {
-      setHangarReady(true);
     }
   }, [shipId]);
 
@@ -78,6 +76,10 @@ export function CrewOffice({ onBack }: Props) {
         setPendingHire(false);
         return;
       }
+      if (assignFor) {
+        setAssignFor(null);
+        return;
+      }
       if (focusId) {
         setFocusId(null);
         return;
@@ -86,34 +88,47 @@ export function CrewOffice({ onBack }: Props) {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onBack, pendingHire, focusId]);
+  }, [onBack, pendingHire, focusId, assignFor]);
 
   const spares = spareShips(ships, crew);
-  const spare = spares.find((s) => s.id === spareId) ?? null;
-  const spareHull: CrewHull | null = spare && isCrewHull(spare.shipType) ? spare.shipType : null;
   const open = FLEET_CAP - crew.length;
   const focused = crew.find((c) => c.id === focusId) ?? null;
-
-  useEffect(() => {
-    if (spareId && !spares.some((s) => s.id === spareId)) setSpareId(null);
-  }, [spareId, spares]);
+  const office = crew.filter((c) => !c.shipKey);
+  const line = crew.filter((c) => c.shipKey);
+  const assignSpares = assignFor
+    ? spares.filter((s) => {
+        const row = crew.find((c) => c.id === assignFor);
+        return row && s.shipType === row.hull;
+      })
+    : [];
 
   async function onHire() {
-    if (!spare || !spareHull || crew.length >= FLEET_CAP || busy) return;
+    if (!hireHull || crew.length >= FLEET_CAP || busy) return;
     setErr(null);
-    setBusy(spare.id);
+    setBusy(hireHull);
     try {
-      const r = await hireCrewBond({ data: { hull: spareHull, shipKey: spare.id } });
+      const r = await hireCrewBond({ data: { hull: hireHull } });
       setCredits(r.credits);
-      useStarwake.getState().hireCrew(spareHull, spare.id);
+      useStarwake.getState().hireCrew(hireHull);
       setPendingHire(false);
-      setSpareId(null);
+      setHireHull(null);
       await refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Bond failed");
     } finally {
       setBusy(null);
     }
+  }
+
+  function onAssign(crewId: string, shipKey: string) {
+    const row = crew.find((c) => c.id === crewId);
+    if (!row || busy) return;
+    if (!useStarwake.getState().assignCrew(crewId, shipKey)) {
+      setErr("Cannot assign while they are on a hop.");
+      return;
+    }
+    setAssignFor(null);
+    setSpareId(null);
   }
 
   async function onCollect(id: string) {
@@ -164,7 +179,7 @@ export function CrewOffice({ onBack }: Props) {
     }
   }
 
-  if (focused) {
+  if (focused && !assignFor) {
     return (
       <CrewDossier
         crew={focused}
@@ -177,6 +192,10 @@ export function CrewOffice({ onBack }: Props) {
           useStarwake.getState().dismissCrew(focused.id);
           setFocusId(null);
         }}
+        onPark={() => {
+          if (!useStarwake.getState().parkCrew(focused.id)) setErr("Wait until they dock.");
+        }}
+        onAssign={() => setAssignFor(focused.id)}
       />
     );
   }
@@ -187,24 +206,62 @@ export function CrewOffice({ onBack }: Props) {
         <div className="k">Crew</div>
         <h1>Line office</h1>
         <p className="lede">
-          A crew flies a spare hull. Green hands take local film, sit the hop on the pad, and cannot hold a pirate.
-        Hauls teach them. Open a name for their file.
+          Bond a hand first. Then assign a spare hull. Park them and they wait here — not fired. Green hands take local film, sit the hop, and cannot hold a pirate.
         </p>
         {credits != null && <p className="bay-caption">Wallet ₡{credits.toLocaleString()}</p>}
       </header>
 
-      <section className="job-board" aria-label="Hired crews">
+      <section className="job-board" aria-label="Office">
         <div className="job-board-head">
-          <h2>On the line</h2>
+          <h2>Office</h2>
           <span>
-            {crew.length}/{FLEET_CAP} crews
+            {crew.length}/{FLEET_CAP} bonded
           </span>
         </div>
-        {crew.length === 0 ? (
-          <p className="survey-empty">No crews. Assign a spare Courier or Hauler, then bond.</p>
+        {office.length === 0 ? (
+          <p className="survey-empty">Empty benches. Bond a Courier, Hauler, or Extractor hand.</p>
         ) : (
           <div className="job-grid">
-            {crew.map((c) => {
+            {office.map((c) => {
+              const grade = crewGrade(c.xp ?? 0);
+              return (
+                <article key={c.id} className="job-card watch-card">
+                  <span className="job-kind">
+                    {SHIPS[c.hull].name}
+                    <em>
+                      {grade.name} · {crewArms(c.xp ?? 0)}
+                    </em>
+                  </span>
+                  <span className="job-title">{c.name}</span>
+                  <p>Waiting. Assign a spare {SHIPS[c.hull].name}.</p>
+                  <div className="watch-acts">
+                    <button type="button" className="job-take" onClick={() => setAssignFor(c.id)}>
+                      Assign
+                    </button>
+                    <button type="button" className="job-take" onClick={() => setFocusId(c.id)}>
+                      File
+                    </button>
+                    <button type="button" className="job-drop" onClick={() => useStarwake.getState().dismissCrew(c.id)}>
+                      Dismiss
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="job-board" aria-label="On the line">
+        <div className="job-board-head">
+          <h2>On the line</h2>
+          <span>{line.length} flying</span>
+        </div>
+        {line.length === 0 ? (
+          <p className="survey-empty">No assigned hulls. Office hands stay on the bench.</p>
+        ) : (
+          <div className="job-grid">
+            {line.map((c) => {
               const due = c.run && c.run.phase === "flight" && !c.run.claimed && now >= c.run.endsAt;
               const rest = c.run?.phase === "rest";
               const grade = crewGrade(c.xp ?? 0);
@@ -224,7 +281,7 @@ export function CrewOffice({ onBack }: Props) {
                       {c.run.job.cargo} · {c.run.job.qty}u · {formatStop(c.run.job.from)} → {formatStop(c.run.job.to)}
                     </p>
                   ) : (
-                    <p>Idle.</p>
+                    <p>Assigned. Idle.</p>
                   )}
                   <div className="watch-acts">
                     {due ? (
@@ -237,8 +294,15 @@ export function CrewOffice({ onBack }: Props) {
                     <button type="button" className="job-take" onClick={() => setFocusId(c.id)}>
                       File
                     </button>
-                    <button type="button" className="job-drop" onClick={() => useStarwake.getState().dismissCrew(c.id)}>
-                      Dismiss
+                    <button
+                      type="button"
+                      className="job-drop"
+                      disabled={c.run?.phase === "flight"}
+                      onClick={() => {
+                        if (!useStarwake.getState().parkCrew(c.id)) setErr("Wait until they dock.");
+                      }}
+                    >
+                      Park
                     </button>
                   </div>
                 </article>
@@ -251,45 +315,35 @@ export function CrewOffice({ onBack }: Props) {
       {open > 0 && (
         <section className="job-board">
           <div className="job-board-head">
-            <h2>Spare hull</h2>
-            <span>They take one bay. You keep one hull to fly.</span>
+            <h2>Bond</h2>
+            <span>Hire to the office. Assign a hull after.</span>
           </div>
-          { !hangarReady ? (
-            <p className="survey-empty">Reading the bay…</p>
-          ) : spares.length === 0 ? (
-            <p className="survey-empty">
-              No spare Courier, Hauler, or Extractor. Buy another hull in Market, then come back to bond a crew to it.
-            </p>
-          ) : (
-            <div className="ship-rail" role="listbox" aria-label="Spare hull">
-              {spares.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="option"
-                  aria-selected={spareId === s.id}
-                  className={`ship-rail-card${spareId === s.id ? " on" : ""}`}
-                  onClick={() => setSpareId(s.id)}
-                >
-                  <img src={`/ships/${s.shipType}-thumb.png`} alt="" className="ship-rail-art" />
-                  <span className="ship-rail-name">{SHIPS[s.shipType as CrewHull].name}</span>
-                  <span className="ship-rail-role">{SHIPS[s.shipType as CrewHull].role}</span>
-                  <span className="ship-rail-data">
-                    bond ₡{CREW_BOND[s.shipType as CrewHull].toLocaleString()}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {spareHull && (
+          <div className="ship-rail" role="listbox" aria-label="Crew line">
+            {(["courier", "hauler", "extractor"] as CrewHull[]).map((h) => (
+              <button
+                key={h}
+                type="button"
+                role="option"
+                aria-selected={hireHull === h}
+                className={`ship-rail-card${hireHull === h ? " on" : ""}`}
+                onClick={() => setHireHull(h)}
+              >
+                <img src={`/ships/${h}-thumb.png`} alt="" className="ship-rail-art" />
+                <span className="ship-rail-name">{SHIPS[h].name}</span>
+                <span className="ship-rail-role">{SHIPS[h].role}</span>
+                <span className="ship-rail-data">bond ₡{CREW_BOND[h].toLocaleString()}</span>
+              </button>
+            ))}
+          </div>
+          {hireHull && (
             <div className="gate-acts">
               <button
                 type="button"
                 className="engage"
-                disabled={Boolean(busy) || (credits != null && credits < CREW_BOND[spareHull])}
+                disabled={Boolean(busy) || (credits != null && credits < CREW_BOND[hireHull])}
                 onClick={() => setPendingHire(true)}
               >
-                Bond {SHIPS[spareHull].name} · ₡{CREW_BOND[spareHull].toLocaleString()}
+                Bond {SHIPS[hireHull].name} · ₡{CREW_BOND[hireHull].toLocaleString()}
               </button>
             </div>
           )}
@@ -304,16 +358,57 @@ export function CrewOffice({ onBack }: Props) {
         </button>
       </div>
 
-      {pendingHire && spare && spareHull && (
+      {pendingHire && hireHull && (
         <HelionConfirm
           kicker="Line office"
-          title={`Bond ${SHIPS[spareHull].name}`}
-          body={`Assign this spare ${SHIPS[spareHull].name} to a green crew for ₡${CREW_BOND[spareHull].toLocaleString()}. ${spareHull === "extractor" ? "They fly local pulls, rest the hop, and cannot hold a pirate." : "They start on local film, rest the hop, and cannot hold a pirate."} No refund on dismiss.`}
+          title={`Bond ${SHIPS[hireHull].name} hand`}
+          body={`Pay ₡${CREW_BOND[hireHull].toLocaleString()} to hire a green ${SHIPS[hireHull].name} crew into the office. They wait here until you assign a spare hull. No refund on dismiss.`}
           confirmLabel="Bond"
           busy={Boolean(busy)}
           onConfirm={() => void onHire()}
           onCancel={() => setPendingHire(false)}
         />
+      )}
+
+      {assignFor && (
+        <HelionConfirm
+          kicker="Line office"
+          title="Assign hull"
+          body={
+            assignSpares.length === 0
+              ? "No spare matching hull. Buy another in Market, and keep one bay for yourself."
+              : "They take this bay. You cannot fly it while they hold it. Park returns them to the office."
+          }
+          confirmLabel={spareId ? "Assign" : "Assign"}
+          confirmDisabled={!spareId || assignSpares.length === 0}
+          busy={Boolean(busy)}
+          onConfirm={() => {
+            if (spareId) onAssign(assignFor, spareId);
+          }}
+          onCancel={() => {
+            setAssignFor(null);
+            setSpareId(null);
+          }}
+        >
+          {assignSpares.length > 0 && (
+            <div className="ship-rail" role="listbox" aria-label="Spare hull">
+              {assignSpares.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="option"
+                  aria-selected={spareId === s.id}
+                  className={`ship-rail-card${spareId === s.id ? " on" : ""}`}
+                  onClick={() => setSpareId(s.id)}
+                >
+                  <img src={`/ships/${s.shipType}-thumb.png`} alt="" className="ship-rail-art" />
+                  <span className="ship-rail-name">{SHIPS[s.shipType as CrewHull].name}</span>
+                  <span className="ship-rail-data">{s.id.slice(-4)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </HelionConfirm>
       )}
     </div>
   );
@@ -327,6 +422,8 @@ function CrewDossier({
   onBack,
   onCollect,
   onDismiss,
+  onPark,
+  onAssign,
 }: {
   crew: Crew;
   now: number;
@@ -335,6 +432,8 @@ function CrewDossier({
   onBack: () => void;
   onCollect: () => void;
   onDismiss: () => void;
+  onPark: () => void;
+  onAssign: () => void;
 }) {
   const due = crew.run && crew.run.phase === "flight" && !crew.run.claimed && now >= crew.run.endsAt;
   const rest = crew.run?.phase === "rest";
@@ -349,7 +448,7 @@ function CrewDossier({
         <h1>{crew.name}</h1>
         <p className="lede">
           {SHIPS[crew.hull].name}
-          {ship ? ` · ${ship.hardpointTier}` : ""}
+          {crew.shipKey ? (ship ? ` · ${ship.hardpointTier}` : " · assigned") : " · office"}
           {crew.hiredAt ? ` · hired ${hiredWhen(crew.hiredAt)}` : ""}
         </p>
       </header>
@@ -447,6 +546,15 @@ function CrewDossier({
         {due && (
           <button type="button" className="engage" onClick={onCollect} disabled={busy === crew.id}>
             {busy === crew.id ? "Paying" : "Collect"}
+          </button>
+        )}
+        {crew.shipKey ? (
+          <button type="button" className="engage ghost" onClick={onPark} disabled={crew.run?.phase === "flight"}>
+            Park
+          </button>
+        ) : (
+          <button type="button" className="engage" onClick={onAssign}>
+            Assign
           </button>
         )}
         <button type="button" className="engage ghost" onClick={onDismiss}>

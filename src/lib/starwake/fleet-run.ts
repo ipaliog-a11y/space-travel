@@ -197,7 +197,7 @@ export function makeCrew(
     hull,
     name,
     hiredAt: now,
-    run: startCrewRun(hull, from, now, hashu(id), 0),
+    run: shipKey ? startCrewRun(hull, from, now, hashu(id), 0) : null,
     shipKey,
     log: [],
     earned: 0,
@@ -229,6 +229,7 @@ export function restCrew(crew: Crew, now: number): Crew {
 }
 
 export function launchCrew(crew: Crew, now: number): Crew {
+  if (!crew.shipKey) return { ...crew, run: null };
   const from = crew.run?.dest ?? originFromSave("helion", null);
   return { ...crew, run: startCrewRun(crew.hull, from, now, hashu(`${crew.id}|${now}`), crew.xp ?? 0) };
 }

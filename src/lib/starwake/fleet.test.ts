@@ -9,6 +9,8 @@ import {
   dueCrews,
   dueRests,
   isCrewHull,
+  hullFullyCrewed,
+  hullDuty,
   occupiedShipKeys,
   sanitizeCrew,
   spareShips,
@@ -112,15 +114,15 @@ describe("fleet crews", () => {
     );
   });
 
-  it("treats a crew with no shipKey as occupying a matching hull", () => {
+  it("office crews do not occupy a bay", () => {
     const ships = [
       { id: "a", shipType: "courier" },
       { id: "b", shipType: "hauler" },
       { id: "c", shipType: "scout" },
     ];
     const used = occupiedShipKeys([crew({ shipKey: "", hull: "courier" })], ships);
-    assert.equal(used.has("a"), true);
-    assert.equal(spareShips(ships, [crew({ shipKey: "", hull: "courier" })]).some((s) => s.id === "a"), false);
+    assert.equal(used.size, 0);
+    assert.ok(spareShips(ships, [crew({ shipKey: "", hull: "courier" })]).some((s) => s.id === "a"));
   });
 
   it("lets an Extractor crew take pulls, not packets", () => {
@@ -131,5 +133,17 @@ describe("fleet crews", () => {
       { id: "e", shipType: "extractor" },
     ];
     assert.ok(spareShips(ships, []).some((s) => s.shipType === "extractor"));
+  });
+
+  it("locks a type when every instance is assigned", () => {
+    const ships = [
+      { id: "a", shipType: "courier" },
+      { id: "b", shipType: "scout" },
+    ];
+    const line = [crew({ shipKey: "a", hull: "courier" })];
+    assert.equal(hullFullyCrewed("courier", line, ships), true);
+    assert.equal(hullFullyCrewed("scout", line, ships), false);
+    assert.equal(hullDuty("courier", "scout", line, ships), "working");
+    assert.equal(hullDuty("scout", "scout", line, ships), "flying");
   });
 });

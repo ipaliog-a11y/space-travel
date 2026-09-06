@@ -60,27 +60,64 @@ export function dueRests(crew: Crew[], now: number) {
   return crew.filter((c) => c.run && c.run.phase === "rest" && now >= c.run.endsAt);
 }
 
-/** Hangar ids a crew already occupies. Empty shipKey claims one matching hull type. */
-export function occupiedShipKeys(crew: Crew[], ships: AssignableHull[]): Set<string> {
+/** Hangar ids a crew already occupies. Empty shipKey = sitting in the office. */
+export function occupiedShipKeys(crew: Crew[], _ships?: AssignableHull[]): Set<string> {
   const used = new Set<string>();
   for (const c of crew) {
-    if (c.shipKey && ships.some((s) => s.id === c.shipKey)) used.add(c.shipKey);
-  }
-  for (const c of crew) {
-    if (c.shipKey && used.has(c.shipKey)) continue;
-    const found = ships.find((s) => s.shipType === c.hull && !used.has(s.id));
-    if (found) used.add(found.id);
+    if (c.shipKey) used.add(c.shipKey);
   }
   return used;
 }
 
 /**
- * Hulls a new crew can take. Courier / Hauler / Extractor. Always leave the player one hull.
+ * Hulls a crew can take. Courier / Hauler / Extractor. Always leave the player one hull.
  */
 export function spareShips(ships: AssignableHull[], crew: Crew[]): AssignableHull[] {
-  if (ships.length - crew.length <= 1) return [];
   const used = occupiedShipKeys(crew, ships);
-  return ships.filter((s) => isCrewHull(s.shipType) && !used.has(s.id));
+  const free = ships.filter((s) => !used.has(s.id));
+  if (free.length <= 1) return [];
+  return free.filter((s) => isCrewHull(s.shipType));
+}
+
+export function assignedCrew(crew: Crew) {
+  return Boolean(crew.shipKey);
+}
+
+export type HullDuty = "flying" | "working" | "resting" | "assigned" | "unassigned";
+
+export function hullDuty(
+  type: string,
+  playerShip: string,
+  crew: Crew[],
+  ships: AssignableHull[],
+): HullDuty {
+  const ofType = ships.filter((s) => s.shipType === type);
+  const onType = crew.filter((c) => c.shipKey && ofType.some((s) => s.id === c.shipKey));
+  if (onType.some((c) => c.run?.phase === "flight")) return "working";
+  if (onType.some((c) => c.run?.phase === "rest")) return "resting";
+  if (onType.length) return "assigned";
+  if (playerShip === type) return "flying";
+  return "unassigned";
+}
+
+export const HULL_DUTY_LABEL: Record<HullDuty, string> = {
+  flying: "Flying",
+  working: "Working",
+  resting: "Resting",
+  assigned: "Assigned",
+  unassigned: "Unassigned",
+};
+
+/** True when every hangar instance of this type is a crew bay. */
+export function hullFullyCrewed(type: string, crew: Crew[], ships: AssignableHull[]): boolean {
+  const ofType = ships.filter((s) => s.shipType === type);
+  if (!ofType.length) return crew.some((c) => c.hull === type && Boolean(c.shipKey));
+  const used = occupiedShipKeys(crew, ships);
+  return ofType.every((s) => used.has(s.id));
+}
+
+export function firstFreeHull(types: string[], crew: Crew[], ships: AssignableHull[]): string | null {
+  return types.find((t) => !hullFullyCrewed(t, crew, ships)) ?? null;
 }
 
 export function crewGlyphId(name: string): string {

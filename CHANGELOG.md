@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.51] - 2026-09-06
+
+### Changed
+- Hangar Rel/module buys confirm first. Crew: bond to office, then assign; park returns them. Crew hulls cannot be flown. Hangar shows working / resting / assigned / flying.
+
 ## [v0.1.50] - 2026-09-05
 
 ### Changed

@@ -52,7 +52,7 @@ import { crewYieldGood } from "./fleet-run";
 
 export type { SaveSlotId, SaveSlotSnapshot, SlotCareer } from "./saves";
 
-const SAVE_VERSION = 21;
+const SAVE_VERSION = 22;
 
 function captureLive(s: {
   hasSave: boolean;
@@ -209,7 +209,9 @@ export type StarwakeState = {
   beginNewCareer: () => SaveSlotId | null;
   seedCareerIfMissing: (career: SlotCareer) => void;
   deleteCareerSlot: (id: SaveSlotId) => SaveSlotId | null;
-  hireCrew: (hull: CrewHull, shipKey: string, now?: number) => boolean;
+  hireCrew: (hull: CrewHull, shipKey?: string, now?: number) => boolean;
+  assignCrew: (id: string, shipKey: string, now?: number) => boolean;
+  parkCrew: (id: string) => boolean;
   dismissCrew: (id: string) => void;
   dueCrews: (now?: number) => Crew[];
   launchDueCrews: (now?: number) => void;
@@ -801,12 +803,11 @@ export const useStarwake = create<StarwakeState>()(
         });
         return nextId;
       },
-      hireCrew: (hull, shipKey, now = Date.now()) => {
+      hireCrew: (hull, shipKey = "", now = Date.now()) => {
         const st = get();
         if (st.crew.length >= FLEET_CAP) return false;
         const key = shipKey.trim();
-        if (!key) return false;
-        if (st.crew.some((c) => c.shipKey === key)) return false;
+        if (key && st.crew.some((c) => c.shipKey === key)) return false;
         const taken = st.crew.map((c) => c.name);
         const from = originFromSave(st.systemId, st.boardStationId);
         const next = makeCrew(hull, now, from, taken, key);
@@ -814,6 +815,34 @@ export const useStarwake = create<StarwakeState>()(
           crew: [...st.crew, next],
           hasSave: true,
           lastSaveAt: now,
+        });
+        return true;
+      },
+      assignCrew: (id, shipKey, now = Date.now()) => {
+        const st = get();
+        const key = shipKey.trim();
+        if (!key) return false;
+        if (st.crew.some((c) => c.id !== id && c.shipKey === key)) return false;
+        const cur = st.crew.find((c) => c.id === id);
+        if (!cur || cur.run?.phase === "flight") return false;
+        set({
+          crew: st.crew.map((c) =>
+            c.id === id ? launchCrew({ ...c, shipKey: key, run: null }, now) : c,
+          ),
+          hasSave: true,
+          lastSaveAt: now,
+        });
+        return true;
+      },
+      parkCrew: (id) => {
+        const st = get();
+        const cur = st.crew.find((c) => c.id === id);
+        if (!cur?.shipKey) return false;
+        if (cur.run?.phase === "flight") return false;
+        set({
+          crew: st.crew.map((c) => (c.id === id ? { ...c, shipKey: "", run: null } : c)),
+          hasSave: true,
+          lastSaveAt: Date.now(),
         });
         return true;
       },

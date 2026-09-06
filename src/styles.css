@@ -905,6 +905,14 @@ button:disabled { cursor: default; }
   font-size:10px;
   display:block
 }
+.ship-rail-duty {
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--color-accent);
+  font-size:10px;
+  display:block;
+  margin-top:2px
+}
 .ship-rail-data {
   letter-spacing:.06em;
   text-transform:uppercase;

@@ -8,6 +8,8 @@ import { getMyProfile } from "@/lib/player-profile/api";
 import { isProfileComplete } from "@/lib/player-profile/types";
 import { STARTER_HULLS } from "@/lib/starwake/catalog";
 import { firstEmptySlotId, firstOccupiedSlotId } from "@/lib/starwake/saves";
+import { firstFreeHull, hullFullyCrewed } from "@/lib/starwake/fleet";
+import type { HangarShip } from "@/lib/hangar/types";
 import { FlightChrome } from "./FlightChrome";
 import { Gate } from "./Gate";
 import { Hangar } from "./Hangar";
@@ -30,6 +32,7 @@ export function Play() {
   const [engine, setEngine] = useState<EngineHandle | null>(null);
   const [glError, setGlError] = useState<string | null>(null);
   const [ownedHulls, setOwnedHulls] = useState<ShipId[] | null>(null);
+  const [hangarShips, setHangarShips] = useState<HangarShip[]>([]);
   const [starterClaimed, setStarterClaimed] = useState(false);
   const hydrated = useStarwake((s) => s.hydrated);
   const career = useStarwake((s) => s.career);
@@ -44,6 +47,7 @@ export function Play() {
         if (cancelled) return;
         const types = [...new Set(ships.map((s) => s.shipType))] as ShipId[];
         setOwnedHulls(types);
+        setHangarShips(ships);
         setStarterClaimed(Boolean(profile?.starterClaimed) || types.length > 0);
         const st = useStarwake.getState();
         if (profile && isProfileComplete(profile)) {
@@ -200,8 +204,13 @@ export function Play() {
 
   function engage() {
     if (!canFly) return;
-    engine?.unlockAudio();
     const st = useStarwake.getState();
+    if (hullFullyCrewed(st.shipId, st.crew, hangarShips)) {
+      const fly = firstFreeHull(ownedHulls ?? [], st.crew, hangarShips);
+      if (!fly) return;
+      st.setShipId(fly as ShipId);
+    }
+    engine?.unlockAudio();
     st.setSystemId(st.systemId || HOME_SYSTEM_ID);
     st.visitSystem(st.systemId);
     st.markSave();
@@ -210,8 +219,14 @@ export function Play() {
 
   function cont() {
     if (!canFly) return;
+    const st = useStarwake.getState();
+    if (hullFullyCrewed(st.shipId, st.crew, hangarShips)) {
+      const fly = firstFreeHull(ownedHulls ?? [], st.crew, hangarShips);
+      if (!fly) return;
+      st.setShipId(fly as ShipId);
+    }
     engine?.unlockAudio();
-    useStarwake.getState().setEntered(true);
+    st.setEntered(true);
   }
 
   function createNewProfile() {

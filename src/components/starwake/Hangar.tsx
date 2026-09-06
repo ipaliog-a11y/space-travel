@@ -16,15 +16,17 @@ import { listedPads } from "@/lib/starwake/market-hubs";
 import { EMPTY_HOLD, cargoQty, lotLabel } from "@/lib/starwake/market";
 import { useStarwake } from "@/lib/starwake/store";
 import type { ModuleDef, ShipId, SlotId, StatKey } from "@/lib/starwake/types";
-import { buyFuel, buyModuleFit, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
-import { HARDPOINT_TIER_NAMES } from "@/lib/hangar/types";
+import { buyFuel, buyModuleFit, loadHangar, loadRepairStatus, upgradeCurrentHardpoint } from "@/lib/hangar/api";
+import { HARDPOINT_TIER_NAMES, type HangarShip } from "@/lib/hangar/types";
 import {
   HARDPOINT_BONUSES,
   HARDPOINT_COSTS,
   getNextHardpointTier,
   type HardpointTier,
 } from "@/lib/ship-ownership/types";
+import { HULL_DUTY_LABEL, hullDuty, hullFullyCrewed } from "@/lib/starwake/fleet";
 import { HullBay } from "./HullBay";
+import { HelionConfirm } from "./HelionConfirm";
 
 const RELIABILITY_TAB = "reliability" as const;
 type FitTab = SlotId | typeof RELIABILITY_TAB;
@@ -72,6 +74,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   const scanned = useStarwake((s) => s.scanned);
   const visits = useStarwake((s) => s.visitedPlanets);
   const dropJob = useStarwake((s) => s.dropJob);
+  const crew = useStarwake((s) => s.crew);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
   const fuel2 = useStarwake((s) => s.fuel2[s.shipId]);
   const refuel = useStarwake((s) => s.refuel);
@@ -81,7 +84,11 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   const [fitError, setFitError] = useState<string | null>(null);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [fueling, setFueling] = useState(false);
+  const [pendingHp, setPendingHp] = useState<HardpointTier | null>(null);
+  const [pendingMod, setPendingMod] = useState<ModuleDef | null>(null);
+  const [bayShips, setBayShips] = useState<HangarShip[]>([]);
   const fitted = fittedShip(shipId, loadout);
+  const crewLocked = hullFullyCrewed(shipId, crew, bayShips);
   const needT1 = Math.max(0, fitted.fuelCap - (fuel ?? 0));
   const needT2 = Math.max(0, fitted.fuelCap2 - (fuel2 ?? 0));
   const pumpQuote = refuelQuote(needT1, needT2);
@@ -104,11 +111,12 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
 
   useEffect(() => {
     let cancelled = false;
-    loadRepairStatus({ data: { shipType: shipId } })
-      .then((status) => {
+    Promise.all([loadRepairStatus({ data: { shipType: shipId } }), loadHangar()])
+      .then(([status, hangar]) => {
         if (cancelled) return;
         setCredits(status.credits);
         setHardpointTier(status.hardpointTier);
+        setBayShips(hangar.ships);
         setFitError(null);
       })
       .catch(() => undefined);
@@ -132,6 +140,12 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
       setFitError(`Need ₡${cost.toLocaleString()}`);
       return;
     }
+    setPendingMod(mod);
+  }
+
+  async function confirmModule() {
+    const mod = pendingMod;
+    if (!mod || buyingId) return;
     setBuyingId(mod.id);
     setFitError(null);
     try {
@@ -139,6 +153,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
       setCredits(result.credits);
       ownModule(mod.id);
       setModule(mod.slot, mod.id);
+      setPendingMod(null);
     } catch (err) {
       setFitError(err instanceof Error ? err.message : "Fit failed");
     } finally {
@@ -155,12 +170,19 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
       setFitError(`Need ₡${cost.toLocaleString()}`);
       return;
     }
+    setPendingHp(tier);
+  }
+
+  async function confirmHardpoint() {
+    const tier = pendingHp;
+    if (!tier || buyingId) return;
     setBuyingId(tier);
     setFitError(null);
     try {
       const status = await upgradeCurrentHardpoint({ data: { shipType: shipId } });
       setCredits(status.credits);
       setHardpointTier(status.hardpointTier);
+      setPendingHp(null);
     } catch (err) {
       setFitError(err instanceof Error ? err.message : "Hardpoint fit failed");
     } finally {
@@ -267,6 +289,8 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
             {hulls.map((id) => {
               const hull = SHIPS[id];
               const fit = fittedShip(id, loadout);
+              const duty = hullDuty(id, shipId, crew, bayShips);
+              const locked = hullFullyCrewed(id, crew, bayShips);
               return (
                 <button
                   key={id}
@@ -283,6 +307,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
                   <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
                   <span className="ship-rail-name">{hull.name}</span>
                   <span className="ship-rail-role">{hull.role}</span>
+                  <span className="ship-rail-duty">{locked ? "Crew bay" : HULL_DUTY_LABEL[duty]}</span>
                   <span className="ship-rail-blurb">{hull.blurb}</span>
                   <span className="ship-rail-data">
                     {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)} · t2 {Math.round(fit.fuelCap2)}
@@ -561,11 +586,33 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
           type="button"
           className="engage"
           onClick={onUndock}
-          disabled={!ownedHulls || ownedHulls.length === 0}
+          disabled={!ownedHulls || ownedHulls.length === 0 || crewLocked}
         >
-          Fly
+          {crewLocked ? "Crew flying this hull" : "Fly"}
         </button>
       </div>
+      {pendingHp && (
+        <HelionConfirm
+          kicker="Hangar"
+          title={`Fit ${HARDPOINT_TIER_NAMES[pendingHp]}`}
+          body={`Pay ₡${HARDPOINT_COSTS[pendingHp].toLocaleString()} to buy and fit Rel ${HARDPOINT_TIER_NAMES[pendingHp]} on this ${SHIPS[shipId].name}. Wear pool +${HARDPOINT_BONUSES[pendingHp]}.`}
+          confirmLabel={`Fit ₡${HARDPOINT_COSTS[pendingHp].toLocaleString()}`}
+          busy={Boolean(buyingId)}
+          onConfirm={() => void confirmHardpoint()}
+          onCancel={() => setPendingHp(null)}
+        />
+      )}
+      {pendingMod && (
+        <HelionConfirm
+          kicker="Hangar"
+          title={`Fit ${pendingMod.name}`}
+          body={`Pay ₡${moduleFitCost(pendingMod).toLocaleString()} to buy and fit ${pendingMod.name} on this ${SHIPS[shipId].name}.`}
+          confirmLabel={`Fit ₡${moduleFitCost(pendingMod).toLocaleString()}`}
+          busy={Boolean(buyingId)}
+          onConfirm={() => void confirmModule()}
+          onCancel={() => setPendingMod(null)}
+        />
+      )}
     </div>
   );
 }

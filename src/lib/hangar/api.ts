@@ -333,20 +333,13 @@ export const buyOutpostT1 = createServerFn({ method: "POST" })
 
 export const hireCrewBond = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((data: { hull: "courier" | "hauler" | "extractor"; shipKey: string }) => data)
+  .validator((data: { hull: "courier" | "hauler" | "extractor"; shipKey?: string }) => data)
   .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
     const { CREW_BOND, isCrewHull } = await import("../starwake/fleet.ts");
     const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
-    const { getHangarShips } = await import("./server.ts");
     if (!isCrewHull(data.hull)) throw new Error("Courier, Hauler, or Extractor crews only");
-    const key = typeof data.shipKey === "string" ? data.shipKey.trim() : "";
-    if (!key) throw new Error("Assign a spare hull");
     const paid = CREW_BOND[data.hull];
     await requireCompleteProfile(context.userId);
-    const ships = await getHangarShips(context.userId);
-    const assigned = ships.find((s) => s.id === key);
-    if (!assigned) throw new Error("That hull is not in this bay");
-    if (assigned.shipType !== data.hull) throw new Error("Crew hull must match the spare");
     const profile = await modifyCredits(context.userId, -paid);
     return { credits: profile.credits, paid };
   });
