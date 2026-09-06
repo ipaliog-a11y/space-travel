@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { SHIPS } from "@/lib/starwake/catalog";
+import { planetLog } from "@/lib/starwake/galaxy";
 import { diaryEarnings, formatHaul, formatStop } from "@/lib/starwake/jobs";
 import { useStarwake } from "@/lib/starwake/store";
 
@@ -19,6 +20,10 @@ export function PilotDiary({ onBack }: Props) {
   const jobLog = useStarwake((s) => s.jobLog);
   const completed = useStarwake((s) => s.completed);
   const earned = diaryEarnings(jobLog);
+  const visits = useStarwake((s) => s.visitedPlanets);
+  const scanned = useStarwake((s) => s.scanned);
+  const surveys = useStarwake((s) => s.surveys);
+  const worlds = planetLog(visits, scanned, surveys);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -67,6 +72,28 @@ export function PilotDiary({ onBack }: Props) {
               </article>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="job-board survey-log" aria-label="Worlds log">
+        <div className="job-board-head">
+          <h2>Worlds</h2>
+          <span>Arrivals and scans. Same book as the flight log.</span>
+        </div>
+        {worlds.length === 0 ? (
+          <p className="survey-empty">Empty. Arrive, then scan from the well.</p>
+        ) : (
+          <ul className="survey-list">
+            {worlds.map((row) => (
+              <li key={row.id}>
+                <strong>{row.name}</strong>
+                <span>{row.system}</span>
+                <em>
+                  {row.surveyed ? "survey" : row.scanned ? row.kindLabel : "visited"}
+                </em>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

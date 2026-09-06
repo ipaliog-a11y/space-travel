@@ -322,8 +322,6 @@ export function Play() {
         <Gate
           shipId={shipId}
           hasSave={hasSave}
-          ownedHulls={ownedHulls}
-          onPick={(id) => useStarwake.getState().setShipId(id)}
           onHangar={() => useStarwake.getState().setMenuView("hangar")}
           onProfile={() => useStarwake.getState().setMenuView("profile")}
           onMarket={() => useStarwake.getState().setMenuView("market")}

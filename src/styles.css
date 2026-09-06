@@ -1013,6 +1013,29 @@ button:disabled { cursor: default; }
   background:var(--color-fg);
   border-color:var(--color-fg)
 }
+.hangar-overview {
+  grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);
+  gap:18px;
+  width:min(1080px,100%);
+  margin:0 auto 18px;
+  display:grid;
+  align-items:start
+}
+.hangar-line .ship-set {
+  margin-bottom:12px
+}
+.ship-rail-pick {
+  background:transparent;
+  border:0;
+  color:inherit;
+  text-align:left;
+  width:100%;
+  padding:0;
+  cursor:pointer
+}
+.ship-rail-card .job-take {
+  margin-top:8px
+}
 .hangar-grid {
   grid-template-columns:minmax(0,1.2fr) minmax(260px,.9fr);
   gap:18px;
@@ -2123,7 +2146,7 @@ button.pad-jump em {
   }
 }
 @media (width<=720px) {
-  .hangar-grid,.job-grid,.watch-grid,.tape-grid,.tape-hubs ul {
+  .hangar-overview,.hangar-grid,.job-grid,.watch-grid,.tape-grid,.tape-hubs ul {
     grid-template-columns:1fr
   }
   .ship-rail {

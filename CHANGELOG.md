@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.52] - 2026-09-06
+
+### Changed
+- Crew cards show cut earned. Double Esc in flight returns to the Gate. Hangar is cards + status; Bay is 3D and fits. Worlds log lives on Pilot diary. Gate no longer repeats hull cards.
+
 ## [v0.1.51] - 2026-09-06
 
 ### Changed

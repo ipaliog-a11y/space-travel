@@ -10,8 +10,7 @@ import {
   modulesFor,
   refuelQuote,
 } from "@/lib/starwake/catalog";
-import { planetLog } from "@/lib/starwake/galaxy";
-import { diaryEarnings, formatHaul, formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
+import { formatHaul, formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { listedPads } from "@/lib/starwake/market-hubs";
 import { EMPTY_HOLD, cargoQty, lotLabel } from "@/lib/starwake/market";
 import { useStarwake } from "@/lib/starwake/store";
@@ -67,12 +66,6 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   const cargoHolds = useStarwake((s) => s.cargo);
   const warehouses = useStarwake((s) => s.warehouses);
   const pads = listedPads(warehouses);
-  const completed = useStarwake((s) => s.completed);
-  const jobLog = useStarwake((s) => s.jobLog);
-  const earned = diaryEarnings(jobLog);
-  const surveys = useStarwake((s) => s.surveys);
-  const scanned = useStarwake((s) => s.scanned);
-  const visits = useStarwake((s) => s.visitedPlanets);
   const dropJob = useStarwake((s) => s.dropJob);
   const crew = useStarwake((s) => s.crew);
   const fuel = useStarwake((s) => s.fuel[s.shipId]);
@@ -87,6 +80,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   const [pendingHp, setPendingHp] = useState<HardpointTier | null>(null);
   const [pendingMod, setPendingMod] = useState<ModuleDef | null>(null);
   const [bayShips, setBayShips] = useState<HangarShip[]>([]);
+  const [bayOpen, setBayOpen] = useState(false);
   const fitted = fittedShip(shipId, loadout);
   const crewLocked = hullFullyCrewed(shipId, crew, bayShips);
   const needT1 = Math.max(0, fitted.fuelCap - (fuel ?? 0));
@@ -99,7 +93,7 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
   const man = manifests[shipId];
   const cargo = cargoHolds[shipId] ?? EMPTY_HOLD;
   const used = holdUsed(man, cargo);
-  const log = planetLog(visits, scanned, surveys);
+  const duty = hullDuty(shipId, shipId, crew, bayShips);
 
   useEffect(() => {
     const fit = loadout[shipId];
@@ -214,29 +208,26 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
       if (e.code !== "Escape") return;
       e.preventDefault();
       e.stopPropagation();
+      if (pendingHp || pendingMod) return;
+      if (bayOpen) {
+        setBayOpen(false);
+        return;
+      }
       onBack();
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onBack]);
+  }, [onBack, bayOpen, pendingHp, pendingMod]);
 
   return (
     <div className="gate hangar helion-dock" data-ui>
       <header className="hangar-head">
-        <div className="k">Hangar</div>
+        <div className="k">{bayOpen ? "Bay" : "Hangar"}</div>
         <h1>{SHIPS[shipId].name}</h1>
-        <p className="lede">Two sets. Line flies the routes. Yard fuels, shoves, and pulls. Pick a bay, fit it, fly.</p>
+        <p className="lede">
+          {bayOpen ? "3D bay and fits. Esc returns to the line." : "Pick a hull. Status is on the right. Bay opens the kit."}
+        </p>
         <p className="keys-hint">
-          {completed} run{completed === 1 ? "" : "s"}
-          {earned > 0 && (
-            <>
-              <span className="dot">·</span>
-              ₡{earned.toLocaleString()} earned
-            </>
-          )}
-          <span className="dot">·</span>
-          {log.length} logged
-          <span className="dot">·</span>
           Hold {used}/{Math.round(fitted.cargoCap)} u
           {pads.length > 0 && (
             <>
@@ -253,29 +244,28 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
         </p>
       </header>
 
-      {!(ownedHulls !== null && ownedHulls.length === 0) && (
+      {!bayOpen && pads.length > 0 && (
         <section className="job-board hangar-pads" aria-label="Pad stores">
           <div className="job-board-head">
             <h2>Pads</h2>
-            <span>Stored on a lock. Fly there, dock, Load pad on Watch.</span>
+            <span>Stored on a lock. Load from Watch when docked there.</span>
           </div>
-          {pads.length === 0 ? (
-            <p className="survey-empty">Empty. Buy on a hub Watch, then Store to leave it on that pad.</p>
-          ) : (
-            <ul className="survey-list pad-list">
-              {pads.map((pad) => (
-                <li key={pad.key}>
-                  <strong>{pad.station}</strong>
-                  <span>{pad.system}</span>
-                  <em>{cargoQty(pad.hold)} u</em>
-                  <p className="bay-caption">{lotLabel(pad.hold)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="survey-list pad-list">
+            {pads.map((pad) => (
+              <li key={pad.key}>
+                <strong>{pad.station}</strong>
+                <span>{pad.system}</span>
+                <em>{cargoQty(pad.hold)} u</em>
+                <p className="bay-caption">{lotLabel(pad.hold)}</p>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
+      {!bayOpen && (
+      <div className="hangar-overview">
+        <div className="hangar-line">
       {SHIP_SETS.map((set) => {
         const hulls = ownedHulls?.filter((id) => set.hulls.includes(id)) ?? [];
         if (hulls.length === 0) return null;
@@ -289,48 +279,64 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
             {hulls.map((id) => {
               const hull = SHIPS[id];
               const fit = fittedShip(id, loadout);
-              const duty = hullDuty(id, shipId, crew, bayShips);
+              const rowDuty = hullDuty(id, shipId, crew, bayShips);
               const locked = hullFullyCrewed(id, crew, bayShips);
               return (
-                <button
+                <div
                   key={id}
-                  type="button"
                   role="tab"
                   aria-selected={shipId === id}
                   className={`ship-rail-card${shipId === id ? " on" : ""}`}
-                  onClick={() => {
-                    onPick(id);
-                    setSlot("tank");
-                    setFitError(null);
-                  }}
                 >
-                  <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
-                  <span className="ship-rail-name">{hull.name}</span>
-                  <span className="ship-rail-role">{hull.role}</span>
-                  <span className="ship-rail-duty">{locked ? "Crew bay" : HULL_DUTY_LABEL[duty]}</span>
-                  <span className="ship-rail-blurb">{hull.blurb}</span>
-                  <span className="ship-rail-data">
-                    {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u · t1 {Math.round(fit.fuelCap)} · t2 {Math.round(fit.fuelCap2)}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    className="ship-rail-pick"
+                    onClick={() => {
+                      onPick(id);
+                      setSlot("tank");
+                      setFitError(null);
+                    }}
+                  >
+                    <img src={`/ships/${id}-thumb.png`} alt="" className="ship-rail-art" />
+                    <span className="ship-rail-name">{hull.name}</span>
+                    <span className="ship-rail-role">{hull.role}</span>
+                    <span className="ship-rail-duty">{locked ? "Crew bay" : HULL_DUTY_LABEL[rowDuty]}</span>
+                    <span className="ship-rail-data">
+                      {fit.jumpRangeLy.toFixed(0)} ly · {Math.round(fit.cargoCap)} u
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="job-take"
+                    onClick={() => {
+                      onPick(id);
+                      setSlot("tank");
+                      setFitError(null);
+                      setBayOpen(true);
+                    }}
+                  >
+                    Bay
+                  </button>
+                </div>
               );
             })}
           </div>
         </section>
         );
       })}
-
-      {!(ownedHulls !== null && ownedHulls.length === 0) && (
-      <div className="hull-dossier">
-        <img src={`/ships/${shipId}.png`} alt="" className="hull-dossier-art" />
-        <div>
-          <p className="hull-dossier-kicker">
-            {SHIPS[shipId].role}
-            <span className="dot">·</span>
-            {SHIPS[shipId].name}
-          </p>
-          <p className="hull-dossier-copy">{SHIPS[shipId].detail}</p>
+        </div>
+        {!(ownedHulls !== null && ownedHulls.length === 0) && (
+        <aside className="hangar-status job-board" aria-label="Selected hull">
+          <div className="job-board-head">
+            <h2>{SHIPS[shipId].name}</h2>
+            <span>{crewLocked ? "Crew bay" : HULL_DUTY_LABEL[duty]}</span>
+          </div>
+          <p className="bay-caption">{SHIPS[shipId].blurb}</p>
           <ul className="hull-chips">
+            <li>
+              <em>Rel</em>
+              <strong>{HARDPOINT_TIER_NAMES[hardpointTier]}</strong>
+            </li>
             <li>
               <em>Jump</em>
               <strong>{fitted.jumpRangeLy.toFixed(0)}</strong>
@@ -338,107 +344,56 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
             </li>
             <li>
               <em>Hold</em>
-              <strong>{Math.round(fitted.cargoCap)}</strong>
+              <strong>
+                {used}/{Math.round(fitted.cargoCap)}
+              </strong>
               <span>u</span>
             </li>
             <li>
-              <em>Turn</em>
-              <strong>{fitted.turnRate.toFixed(2)}</strong>
-            </li>
-            <li>
-              <em>Mass</em>
-              <strong>{fitted.mass.toFixed(2)}</strong>
-            </li>
-            <li>
-              <em>Cruise</em>
-              <strong>{fitted.cruiseSpeed.toFixed(1)}</strong>
-            </li>
-            <li>
               <em>T1</em>
-              <strong>{Math.round(fitted.fuelCap)}</strong>
+              <strong>
+                {Math.round(fuel ?? 0)}/{Math.round(fitted.fuelCap)}
+              </strong>
             </li>
             <li>
               <em>T2</em>
-              <strong>{Math.round(fitted.fuelCap2)}</strong>
-            </li>
-            <li>
-              <em>Boost</em>
-              <strong>{fitted.boostCapacity}</strong>
-            </li>
-            <li>
-              <em>Survey</em>
-              <strong>{fitted.surveySec.toFixed(1)}</strong>
-              <span>s</span>
-            </li>
-            <li>
-              <em>Pull</em>
-              <strong>{fitted.extractSec.toFixed(1)}</strong>
-              <span>s</span>
-            </li>
-            <li>
-              <em>Rel</em>
-              <strong>{HARDPOINT_TIER_NAMES[hardpointTier]}</strong>
+              <strong>
+                {Math.round(fuel2 ?? 0)}/{Math.round(fitted.fuelCap2)}
+              </strong>
             </li>
           </ul>
-        </div>
+          {man ? (
+            <article className="job-card on">
+              <span className="job-kind">{man.loaded ? "loaded" : "accepted"} · {man.job.kind}</span>
+              <span className="job-title">{man.job.title}</span>
+              <span className="job-route">
+                {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u · {formatHaul(man.job)} · ₡{jobPayout(man.job).toLocaleString()}
+              </span>
+              {!man.loaded && (
+                <button type="button" className="job-drop" onClick={dropJob}>
+                  Drop
+                </button>
+              )}
+            </article>
+          ) : (
+            <p className="survey-empty">No haul on this hull. Hub boards after you dock.</p>
+          )}
+          {cargo.length > 0 && <p className="bay-caption">Ship hold {lotLabel(cargo)}</p>}
+          <div className="watch-acts">
+            <button type="button" className="job-take" onClick={() => setBayOpen(true)}>
+              Bay
+            </button>
+          </div>
+        </aside>
+        )}
       </div>
       )}
 
-      {!(ownedHulls !== null && ownedHulls.length === 0) && (
+      {bayOpen && !(ownedHulls !== null && ownedHulls.length === 0) && (
       <div className="hangar-grid">
         <div className="bay">
           <HullBay hull={shipId} slot={hullSlot} onSlot={setSlot} />
           <p className="bay-caption">{SHIPS[shipId].blurb}</p>
-          <section className="job-board" aria-label="Cargo jobs">
-            <div className="job-board-head">
-              <h2>Haul</h2>
-              {man ? <span>Active on {SHIPS[shipId].name}</span> : <span>Pick jobs on a hub board after you dock.</span>}
-            </div>
-            {man ? (
-              <div className="job-card on" aria-label={`Active ${man.job.title}`}>
-                <span className="job-kind">{man.loaded ? "loaded" : "accepted"} · {man.job.kind}</span>
-                <span className="job-title">{man.job.title}</span>
-                <span className="job-route">
-                  {formatStop(man.job.from)} → {formatStop(man.job.to)} · {man.job.qty} u · {formatHaul(man.job)} · ₡{jobPayout(man.job).toLocaleString()}
-                </span>
-                {!man.loaded && (
-                  <button type="button" className="job-drop" onClick={dropJob}>
-                    Drop
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="bay-caption">Hub boards list hauls that leave that lock. Buy on the station watch to own cargo.</p>
-            )}
-            {cargo.length > 0 && (
-              <p className="bay-caption">Ship hold {lotLabel(cargo)}</p>
-            )}
-          </section>
-          <section className="job-board survey-log" aria-label="Ship log">
-            <div className="job-board-head">
-              <h2>Log</h2>
-              <span>Worlds you arrived at. Scan fills the page.</span>
-            </div>
-            {log.length === 0 ? (
-              <p className="survey-empty">Empty. Arrive, then scan from the well.</p>
-            ) : (
-              <ul className="survey-list">
-                {log.map((row) => (
-                  <li key={row.id}>
-                    <strong>{row.name}</strong>
-                    <span>{row.system}</span>
-                    <em>
-                      {row.surveyed
-                        ? "survey"
-                        : row.scanned
-                          ? row.kindLabel
-                          : "visited"}
-                    </em>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
         </div>
         <div className="fit-col">
           <dl className="spec-list">
@@ -553,9 +508,15 @@ export function Hangar({ shipId, onPick, onBack, onProfile, onMarket, onWatch, o
       )}
 
       <div className="gate-acts">
-        <button type="button" className="engage ghost" onClick={onBack}>
-          Menu
-        </button>
+        {bayOpen ? (
+          <button type="button" className="engage ghost" onClick={() => setBayOpen(false)}>
+            Line
+          </button>
+        ) : (
+          <button type="button" className="engage ghost" onClick={onBack}>
+            Menu
+          </button>
+        )}
         <button type="button" className="engage ghost" onClick={onMarket}>
           Market
         </button>

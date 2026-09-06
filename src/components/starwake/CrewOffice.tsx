@@ -26,6 +26,10 @@ function etaLabel(endsAt: number, now: number) {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
+function crewCut(c: Crew) {
+  return c.earned || diaryEarnings(c.log);
+}
+
 function hiredWhen(at: number) {
   if (!at) return "";
   return new Date(at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -234,6 +238,7 @@ export function CrewOffice({ onBack }: Props) {
                   </span>
                   <span className="job-title">{c.name}</span>
                   <p>Waiting. Assign a spare {SHIPS[c.hull].name}.</p>
+                  <p className="bay-caption">Cut ₡{Math.round(crewCut(c)).toLocaleString()}</p>
                   <div className="watch-acts">
                     <button type="button" className="job-take" onClick={() => setAssignFor(c.id)}>
                       Assign
@@ -283,6 +288,7 @@ export function CrewOffice({ onBack }: Props) {
                   ) : (
                     <p>Assigned. Idle.</p>
                   )}
+                  <p className="bay-caption">Cut ₡{Math.round(crewCut(c)).toLocaleString()}</p>
                   <div className="watch-acts">
                     {due ? (
                       <button type="button" className="job-take" onClick={() => void onCollect(c.id)} disabled={busy === c.id}>

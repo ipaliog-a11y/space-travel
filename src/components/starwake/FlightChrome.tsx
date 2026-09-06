@@ -139,6 +139,7 @@ export function FlightChrome({
       st.markSave();
     }
   }, [engine]);
+  const lastEscAt = useRef(0);
 
   const clearHit = useCallback(() => {
     setHit(null);
@@ -227,6 +228,13 @@ export function FlightChrome({
       e.stopImmediatePropagation();
       const d = driveRef.current;
       if (hit) return;
+      const now = Date.now();
+      if (now - lastEscAt.current < 700) {
+        lastEscAt.current = 0;
+        leaveToMenu();
+        return;
+      }
+      lastEscAt.current = now;
       if (dossier) setDossier(false);
       else if (logOpen) setLogOpen(false);
       else if (opts) setOpts(false);
@@ -237,7 +245,7 @@ export function FlightChrome({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [dossier, opts, logOpen, mapOpen, onMap, engine, hit]);
+  }, [dossier, opts, logOpen, mapOpen, onMap, engine, hit, leaveToMenu]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
