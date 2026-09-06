@@ -31,6 +31,7 @@ export function Play() {
   const flashRef = useRef<HTMLDivElement>(null);
   const [engine, setEngine] = useState<EngineHandle | null>(null);
   const [glError, setGlError] = useState<string | null>(null);
+  const [glBoot, setGlBoot] = useState(0);
   const [ownedHulls, setOwnedHulls] = useState<ShipId[] | null>(null);
   const [hangarShips, setHangarShips] = useState<HangarShip[]>([]);
   const [starterClaimed, setStarterClaimed] = useState(false);
@@ -193,14 +194,25 @@ export function Play() {
     const vignette = vignetteRef.current;
     const flash = flashRef.current;
     if (!canvas || !tunnel || !vignette || !flash) return;
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      setGlError("Display dropped");
+    };
+    canvas.addEventListener("webglcontextlost", onLost);
     try {
       const eng = createEngine({ canvas, tunnel, vignette, flash });
       setEngine(eng);
-      return () => eng.destroy();
+      setGlError(null);
+      return () => {
+        canvas.removeEventListener("webglcontextlost", onLost);
+        eng.destroy();
+        setEngine(null);
+      };
     } catch (err) {
+      canvas.removeEventListener("webglcontextlost", onLost);
       setGlError(err instanceof Error ? err.message : "WebGL failed");
     }
-  }, []);
+  }, [glBoot]);
 
   function engage() {
     if (!canFly) return;
@@ -267,10 +279,23 @@ export function Play() {
       <NoticeStack />
 
       {glError && (
-        <div className="gate helion-dock">
+        <div className="gate helion-dock" data-ui>
           <div className="k">Gate</div>
           <h1>Starwake</h1>
-          <p className="lede">{glError}. Try Chrome or Firefox.</p>
+          <p className="lede">{glError}. The display dropped.</p>
+          <div className="gate-acts">
+            <button
+              type="button"
+              className="engage"
+              onClick={() => {
+                useStarwake.getState().setEntered(false);
+                setGlError(null);
+                setGlBoot((n) => n + 1);
+              }}
+            >
+              Pad
+            </button>
+          </div>
         </div>
       )}
 

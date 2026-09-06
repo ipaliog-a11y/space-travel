@@ -31,7 +31,7 @@ export function SaveSlots({ compact }: Props) {
               <strong>{label}</strong>
               <span>
                 {occupied
-                  ? `${slot.career?.displayName ? `${slot.career.displayName} · ` : ""}${SHIPS[slot.shipId].name}`
+                  ? `${slot.career?.displayName ? `${slot.career.displayName} · ` : ""}${SHIPS[slot.shipId]?.name ?? slot.shipId}`
                   : "Empty"}
               </span>
             </button>

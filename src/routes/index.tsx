@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Play } from "@/components/starwake/Play";
+import { PlayErrorBound } from "@/components/starwake/PlayErrorBound";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -7,5 +8,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  return <Play />;
+  return (
+    <PlayErrorBound>
+      <Play />
+    </PlayErrorBound>
+  );
 }

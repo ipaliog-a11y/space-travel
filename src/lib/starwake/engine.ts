@@ -453,6 +453,11 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	let cruiseAmt = 0;
 	const transitFrom = { x: 0, y: 0, z: 0 };
 	let lastTickErr = null;
+	canvasEl.addEventListener("webglcontextlost", (e) => {
+		e.preventDefault();
+		running = false;
+		lastTickErr = "context lost";
+	});
 	let lastDt = 0;
 	let orientQuat = [
 		0,

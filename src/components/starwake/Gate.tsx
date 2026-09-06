@@ -37,7 +37,7 @@ export function Gate({
         <h1>Starwake</h1>
         <p className="lede">
           {career?.callSign ? `${career.callSign} · ` : ""}
-          {SHIPS[shipId].name} on the pad. Hangar for the bay. Fly to undock.
+          {SHIPS[shipId]?.name ?? "Hull"} on the pad. Hangar for the bay. Fly to undock.
         </p>
       </header>
 

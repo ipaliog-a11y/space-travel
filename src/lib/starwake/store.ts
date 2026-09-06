@@ -961,6 +961,7 @@ export const useStarwake = create<StarwakeState>()(
         };
       },
       merge: (persisted, current) => {
+        try {
         const p = (persisted ?? {}) as Record<string, unknown>;
         const migrated = migrateSlots(p);
         const slots = {} as Record<SaveSlotId, SaveSlotSnapshot>;
@@ -1001,6 +1002,16 @@ export const useStarwake = create<StarwakeState>()(
           charge01: 0,
           wearPenalty: 0,
         };
+        } catch (err) {
+          console.error(err);
+          return {
+            ...current,
+            entered: false,
+            menuView: "menu",
+            mode: "docked",
+            mapOpen: false,
+          };
+        }
       },
       onRehydrateStorage: () => (_state, _error) => {
         queueMicrotask(() => useStarwake.setState({ hydrated: true }));
