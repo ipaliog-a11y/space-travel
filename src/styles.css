@@ -223,6 +223,10 @@ button:disabled { cursor: default; }
 .crosshair.locked {
   opacity:.95
 }
+.vel-tick {
+  fill: var(--color-helion-teal);
+  stroke: none;
+}
 .planet-tag {
   pointer-events:none;
   letter-spacing:.18em;
@@ -3079,8 +3083,10 @@ button.pad-jump em {
 }
 .hud.helion .stick label { display: none; }
 .hud.helion .drive-dock {
-  right: calc(max(1rem, env(safe-area-inset-right)) + min(36vw, 230px) + 10px);
+  right: max(1rem, env(safe-area-inset-right));
   bottom: max(1.2rem, env(safe-area-inset-bottom));
+  align-items: flex-end;
+  gap: 0.55rem;
 }
 .hud.helion .throttle {
   width: 28px;
@@ -3136,6 +3142,98 @@ button.pad-jump em {
   margin: 0.35rem 0.35rem 0 0;
 }
 
+.hold-chip {
+  margin-top: 0.4rem;
+  font-family: var(--font-helion-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--color-helion-teal);
+}
+.hold-chip.warn { color: var(--color-helion-warn); }
+
+.clip-drive {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+.clip-tank {
+  width: 1.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  font-family: var(--font-helion-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-helion-dim);
+}
+.clip-tank i {
+  flex: 1;
+  width: 8px;
+  min-height: 72px;
+  display: flex;
+  align-items: flex-end;
+  background: color-mix(in oklab, var(--color-helion-ivory) 12%, transparent);
+}
+.clip-tank i b {
+  display: block;
+  width: 100%;
+  background: var(--color-helion-ivory);
+}
+.clip-tank.low { color: var(--color-helion-warn); }
+.clip-tank.low i b { background: var(--color-helion-warn); }
+.clip-tank.dry i {
+  outline: 1px solid var(--color-helion-warn);
+}
+.clip-tank.dry i b { background: var(--color-helion-warn); }
+.clip-drive-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.jump-rail {
+  width: min(42vw, 220px);
+  padding: 0.55rem 0.65rem 0.6rem;
+  background: color-mix(in oklab, var(--color-helion-plate) 55%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+}
+.jump-rail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.jump-rail-head strong {
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-helion-ivory);
+}
+.jump-lamp {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--color-helion-ivory) 22%, transparent);
+}
+.jump-lamp.amber { background: var(--color-helion-warn); }
+.jump-lamp.teal {
+  background: var(--color-helion-teal);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--color-helion-teal) 50%, transparent);
+}
+.jump-rail-meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--font-helion-mono);
+  font-size: 0.62rem;
+  color: var(--color-helion-dim);
+}
+.jump-rail-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
 @media (max-width: 720px) {
   .helion-plate {
     width: calc(50% - 1.4rem);
@@ -3153,7 +3251,6 @@ button.pad-jump em {
   }
   .helion-plate .mfd button { min-height: 2rem; font-size: 0.6rem; }
   .h-btn { min-height: 2rem; }
-  .hud.helion .drive-dock { display: none; }
   .hud.helion .stick {
     width: 56px;
     height: 56px;

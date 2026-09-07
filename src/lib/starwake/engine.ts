@@ -65,6 +65,9 @@ export type DriveHud = {
   lockAimOn: boolean;
   lockAimNdcX: number;
   lockAimNdcY: number;
+  velOn: boolean;
+  velNdcX: number;
+  velNdcY: number;
   scanned: boolean;
   coasting: boolean;
   well: string | null;
@@ -409,6 +412,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			lockAimOn: lockAim().on,
 			lockAimNdcX: lockAim().ndcX,
 			lockAimNdcY: lockAim().ndcY,
+			velOn: velAim().on,
+			velNdcX: velAim().ndcX,
+			velNdcY: velAim().ndcY,
 			scanned: Boolean(atPlanetId && getStarwake().scanned[atPlanetId]),
 			coasting: st.entered && Math.abs(throttle) <= THR_DEAD,
 			well: boundName,
@@ -421,8 +427,6 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			stranded: getStarwake().entered && mode === "local" && !t1Dry() && !canReachPad(),
 			canScoop: scoopState() !== "out",
 			scooping,
-			fsdT1: 0,
-			fsdT2: 0,
 			padId: nearestPad()?.id ?? null,
 			padName: nearestPad()?.name ?? null,
 			atStation,
@@ -1441,6 +1445,19 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const pr = projectWorld(shipPos.x + m.sky[0] * far, shipPos.y + m.sky[1] * far, shipPos.z + m.sky[2] * far);
 		if (!pr) return { on: false, ndcX: 0, ndcY: 0 };
 		const on = Math.abs(pr.ndcX) < 1.15 && Math.abs(pr.ndcY) < 1.15;
+		return { on, ndcX: pr.ndcX, ndcY: pr.ndcY };
+	}
+	function velAim() {
+		const spd = Math.hypot(shipVel.x, shipVel.y, shipVel.z);
+		if (spd < 0.12) return { on: false, ndcX: 0, ndcY: 0 };
+		const far = 96;
+		const pr = projectWorld(
+			shipPos.x + (shipVel.x / spd) * far,
+			shipPos.y + (shipVel.y / spd) * far,
+			shipPos.z + (shipVel.z / spd) * far,
+		);
+		if (!pr) return { on: false, ndcX: 0, ndcY: 0 };
+		const on = Math.abs(pr.ndcX) < 1.2 && Math.abs(pr.ndcY) < 1.2;
 		return { on, ndcX: pr.ndcX, ndcY: pr.ndcY };
 	}
 	function canFireJump() {

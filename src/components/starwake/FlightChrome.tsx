@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
 import { getCatalog, getSystem, HOME_SYSTEM_ID } from "@/lib/starwake/galaxy";
-import { formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
+import { holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { cargoQty, EMPTY_HOLD, lotLabel, markHold, markTotal } from "@/lib/starwake/market";
 import { hashu, mulberry32 } from "@/lib/starwake/math";
 import {
@@ -25,7 +25,6 @@ import { destPad, listenTug, tugCost, tugWaitSec, type TugKind, type TugPad } fr
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
 import { useFlightWear } from "@/lib/starwake/use-flight-wear";
 import { throttleToVisual, visualToThrottle, throttleReadout, idleHalt } from "@/lib/starwake/throttle";
-import type { RadarBlip } from "@/lib/starwake/radar";
 import { calculateWearPenalty } from "@/lib/ship-ownership/types";
 import { Dossier } from "./Dossier";
 import { LogBook } from "./LogBook";
@@ -33,7 +32,7 @@ import { SaveSlots } from "./SaveSlots";
 import { StationBay } from "./StationBay";
 import { trafficCensus } from "@/lib/starwake/traffic";
 import { rollCrewPirate } from "@/lib/starwake/fleet-run";
-import { SIGHTS, type SightId } from "@/lib/starwake/hud-sight";
+import { jumpLamp, lookVerb } from "@/lib/starwake/hud-clip";
 import { HudSight } from "./HudSight";
 
 type Props = {
@@ -48,8 +47,6 @@ type Props = {
   charge01: number;
   onJump: () => void;
 };
-
-type Mfd = "ship" | "hold" | "jump";
 
 function flavorOf(systemId: string): KiteFlavor {
   const sys = getSystem(systemId);
@@ -96,6 +93,9 @@ const IDLE_DRIVE: DriveHud = {
   lockAimOn: false,
   lockAimNdcX: 0,
   lockAimNdcY: 0,
+  velOn: false,
+  velNdcX: 0,
+  velNdcY: 0,
   atPlanetId: null,
   scanned: false,
   coasting: false,
@@ -157,9 +157,6 @@ export function FlightChrome({
   const [savedFlash, setSavedFlash] = useState(false);
   const [opts, setOpts] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
-  const [tab, setTab] = useState<Mfd>("hold");
-  const sight = useStarwake((s) => s.sight);
-  const setSight = useStarwake((s) => s.setSight);
   const [hit, setHit] = useState<{ ransom: number; evadePct: number; canSlip: boolean } | null>(null);
   const [hitBusy, setHitBusy] = useState(false);
   const [hitErr, setHitErr] = useState<string | null>(null);
@@ -663,14 +660,39 @@ export function FlightChrome({
     dry: drive.dry,
     halt: idleHalt(drive.throttle, drive.docking, Boolean(drive.atStationId), drive.speed / 100),
   });
+  const verb = lookVerb({
+    docking: drive.docking,
+    canDock,
+    canScoop: drive.canScoop,
+    scooping: drive.scooping,
+    extracting: drive.extracting,
+    canExtract,
+    gasHarvest,
+    canSurvey,
+    hasBody: Boolean(body),
+    known,
+  });
+  const lamp = jumpLamp(drive.jumpLock01);
+  const showJump = drive.jumpKind === "fsd" || drive.jumpKind === "hop" || drive.stranded || drive.dry2;
+  const holdChip = man ? `${man.job.cargo} · ${man.job.qty}u` : cargo.length ? lotLabel(cargo) : null;
+
+  function onLookVerb() {
+    if (!verb) return;
+    if (verb.id === "abort-dock") engine?.cancelDock();
+    else if (verb.id === "dock") engine?.requestDock();
+    else if (verb.id === "sip") engine?.requestScoop();
+    else if (verb.id === "abort-extract" || verb.id === "extract") engine?.requestExtract();
+    else if (verb.id === "survey") engine?.requestSurvey();
+    else if (verb.id === "file") setDossier(true);
+    else if (verb.id === "scan") onScan();
+  }
 
   return (
     <div className={`hud helion${mapOpen || opts ? " mapped" : ""}${logOpen ? " logged" : ""}`}>
       <HudSight
-        sight={sight}
-        heat01={drive.heat01}
-        overheated={drive.overheated}
-        overdrive={drive.overdrive}
+        velOn={drive.velOn}
+        velNdcX={drive.velNdcX}
+        velNdcY={drive.velNdcY}
         locked={Boolean(drive.atPlanet || drive.navName)}
       />
 
@@ -715,7 +737,7 @@ export function FlightChrome({
       </div>
 
       <div className="helion-plate left">
-        <div className="k">Lock</div>
+        <div className="k">Look</div>
         <div className="name">{tagName || locked?.name || "—"}</div>
         <div className="meta">
           {mode === "transit" && tagName
@@ -730,41 +752,14 @@ export function FlightChrome({
                     ? `Jump lock ${locked.name}`
                     : "No look"}
         </div>
-        <Radar blips={drive.radar ?? []} />
+        {holdChip && <div className="hold-chip">{holdChip}</div>}
+        {wear && hullPct < 0.85 && (
+          <div className="hold-chip warn">Hull {Math.round(hullPct * 100)}%</div>
+        )}
         <div className="helion-acts" data-ui>
-          {body && (
-            <button type="button" className="h-btn" onClick={() => (known ? setDossier(true) : onScan())}>
-              {known ? "File" : "Scan"}
-            </button>
-          )}
-          {canSurvey && !drive.surveying && (
-            <button type="button" className="h-btn" onClick={() => engine?.requestSurvey()}>
-              Survey
-            </button>
-          )}
-          {canExtract && !drive.extracting && (
-            <button type="button" className="h-btn" onClick={() => engine?.requestExtract()}>
-              {gasHarvest ? "Scoop" : "Extract"}
-            </button>
-          )}
-          {drive.extracting && (
-            <button type="button" className="h-btn" onClick={() => engine?.requestExtract()}>
-              Abort
-            </button>
-          )}
-          {drive.canScoop && (
-            <button type="button" className={`h-btn${drive.scooping ? " on" : ""}`} onClick={() => engine?.requestScoop()}>
-              {drive.scooping ? "Sip…" : "Sip star"}
-            </button>
-          )}
-          {canDock && (
-            <button type="button" className="h-btn" onClick={() => engine?.requestDock()}>
-              Dock
-            </button>
-          )}
-          {drive.docking && (
-            <button type="button" className="h-btn" onClick={() => engine?.cancelDock()}>
-              Abort
+          {verb && (
+            <button type="button" className={`h-btn${verb.id === "sip" && drive.scooping ? " on" : ""}`} onClick={onLookVerb}>
+              {verb.label}
             </button>
           )}
           <button type="button" className={`h-btn${mapOpen ? " on" : ""}`} onClick={onMap}>
@@ -778,174 +773,91 @@ export function FlightChrome({
       </div>
 
       <div className="drive-dock">
-        <div
-          className={`throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}${drive.throttle < -0.02 ? " rev" : ""}`}
-          ref={thrRef}
-          data-ui
-          aria-label="Throttle"
-        >
-          <div className="throttle-track">
-            <div className="throttle-od-zone" />
-            <div className="throttle-rev-zone" />
-            <div className="throttle-heat" ref={heatRef} />
-            <div className="throttle-fill" ref={fillRef} />
-            <div className="throttle-notch" />
-            <div className="throttle-zero" />
-          </div>
-          <div className="throttle-knob" ref={thrKnobRef} />
-        </div>
-        <div className="throttle-read">
-          <strong>{thrRead.pct}%</strong>
-          <span>{thrRead.status}</span>
-        </div>
-      </div>
-
-      <div className="helion-plate right">
-        <div className="k">{tab === "jump" ? (drive.jumpKind === "fsd" ? "Fsd" : "Hop") : tab === "ship" ? "Hull" : "Own"}</div>
-        <div className="name">
-          {tab === "jump"
-            ? drive.jumpKind === "fsd"
-              ? (locked?.name ?? "Jump")
-              : drive.navName || tagName || "Jump"
-            : hull.name}
-        </div>
-        <div className="meta">
-          {tab === "jump"
-            ? jumping
-              ? "Spooling"
-              : drive.jumpKind === "fsd"
-                ? canJump
-                  ? `FSD T1 ${drive.fsdT1} · T2 ${drive.fsdT2}`
-                  : drive.jumpLock01 < 0.2
-                    ? "No plot"
-                    : drive.jumpLock01 < 0.5
-                      ? `Need T1 ${drive.fsdT1} · T2 ${drive.fsdT2}`
-                      : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
-                : drive.jumpKind === "hop"
+        {showJump && (
+          <div className="jump-rail" data-ui>
+            <div className="jump-rail-head">
+              <i className={`jump-lamp ${lamp}`} aria-hidden="true" />
+              <strong>
+                {drive.jumpKind === "fsd" ? (locked?.name ?? "FSD") : drive.navName || tagName || "Hop"}
+              </strong>
+            </div>
+            <span className="jump-rail-meta">
+              {jumping
+                ? "Spooling"
+                : drive.jumpKind === "fsd"
                   ? canJump
-                    ? "Hop locked"
-                    : drive.jumpLock01 < 0.5
-                      ? "Need T1"
-                      : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
-                  : drive.jumpKind === "look"
-                    ? `On nose · ${Math.round(drive.jumpHead01 * 100)}%`
-                    : "Look at a world · or Charts a star"
-            : tab === "ship"
-              ? wear
-                ? `wear ${wear.wearPercentage.toFixed(0)}%`
-                : "pad hull"
-              : man
-                ? `${man.job.cargo} · ${man.job.qty}u`
-                : cargo.length
-                  ? lotLabel(cargo)
-                  : "empty hold"}
-        </div>
-        <div className={`od-heat${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}`}>
-          <span>Heat</span>
-          <i>
-            <b style={{ width: `${Math.round(Math.max(0, Math.min(1, drive.heat01)) * 100)}%` }} />
-          </i>
-          <em>{drive.overheated ? "Lim" : drive.overdrive ? "Od" : "Ok"}</em>
-        </div>
-        {tab === "jump" ? (
-          <div className="bars">
-            <Bar label="T2" value={t2} teal dry={drive.dry2} />
-            <Bar label="Head" value={drive.jumpHead01} warn={drive.jumpHead01 < 0.55} />
-            <Bar label="Lock" value={drive.jumpLock01} warn={drive.jumpLock01 < 1} teal={drive.jumpLock01 >= 1} />
-          </div>
-        ) : tab === "ship" ? (
-          <div className="bars">
-            <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
-          </div>
-        ) : (
-          <div className="bars">
-            <Bar label="T1" value={t1} teal dry={drive.dry} />
-            <Bar label="T2" value={t2} dry={drive.dry2} />
-            <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
-            <Bar label="Hold" value={cap ? used / cap : 0} />
-          </div>
-        )}
-        {tab === "hold" && (man || cargo.length > 0) && (
-          <div className="hold-line">
-            {man ? `${formatStop(man.job.from)} → ${formatStop(man.job.to)}` : lotLabel(cargo)}
-            <span>
-              {used}/{Math.round(cap)}
+                    ? `T1 ${drive.fsdT1} · T2 ${drive.fsdT2}`
+                    : drive.jumpLock01 < 0.2
+                      ? "No plot"
+                      : drive.jumpLock01 < 0.5
+                        ? `Need T1 ${drive.fsdT1} · T2 ${drive.fsdT2}`
+                        : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
+                  : drive.jumpKind === "hop"
+                    ? canJump
+                      ? "Hop ready"
+                      : drive.jumpLock01 < 0.5
+                        ? "Need T1"
+                        : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
+                    : drive.stranded
+                      ? "Pad out of sip"
+                      : drive.dry2
+                        ? "T2 dry"
+                        : "Look · or Charts"}
             </span>
+            <div className="jump-rail-acts">
+              <button type="button" className="h-btn jump" disabled={!canJump} onClick={onJump}>
+                {jumping ? "Spool" : drive.jumpKind === "fsd" ? "Jump" : "Hop"}
+              </button>
+              {drive.jumpKind === "fsd" && !canJump && !jumping && !tug && (
+                <button type="button" className="h-btn" onClick={() => openTug("local")}>
+                  Tug
+                </button>
+              )}
+              {drive.jumpKind === "fsd" && !canJump && !jumping && drive.padId && !drive.stranded && (
+                <button type="button" className="h-btn" onClick={() => engine?.goToBody({ kind: "station", id: drive.padId! })}>
+                  Pad
+                </button>
+              )}
+              {drive.dry2 && !drive.dry && drive.jumpKind !== "fsd" && !tug && (
+                <button type="button" className="h-btn" onClick={() => openTug("ferry")}>
+                  Ferry
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <div className="fuel-lamps" aria-label="Tanks">
-          <span className={`fuel-lamp ${tankBand(drive.fuel, drive.fuelCap)}`}>
-            T1 {tankLabel(tankBand(drive.fuel, drive.fuelCap))}
-          </span>
-          <span className={`fuel-lamp ${tankBand(drive.fuel2, drive.fuelCap2)}`}>
-            T2 {tankLabel(tankBand(drive.fuel2, drive.fuelCap2))}
-          </span>
-        </div>
-        <div className="mfd" data-ui>
-          <button type="button" data-on={tab === "ship"} onClick={() => setTab("ship")}>
-            Ship
-          </button>
-          <button type="button" data-on={tab === "hold"} onClick={() => setTab("hold")}>
-            Hold
-          </button>
-          <button type="button" data-on={tab === "jump"} onClick={() => setTab("jump")}>
-            Jump
-          </button>
-        </div>
-        <div className="mfd sight-mfd" data-ui aria-label="Sight">
-          {SIGHTS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              data-on={sight === s.id}
-              title={s.note}
-              onClick={() => setSight(s.id as SightId)}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-        {tab === "jump" && (
-          <button type="button" className="h-btn jump" data-ui disabled={!canJump} onClick={onJump}>
-            {jumping
-              ? "Spool"
-              : drive.jumpKind === "fsd"
-                ? `Jump T1 ${drive.fsdT1}`
-                : drive.dry2
-                  ? "T2 dry"
-                  : "Jump"}
-          </button>
-        )}
-        {tab === "jump" && drive.jumpKind === "fsd" && !canJump && !jumping && !tug && (
-          <button type="button" className="h-btn" data-ui onClick={() => openTug("local")}>
-            Tug
-          </button>
-        )}
-        {tab === "jump" && drive.jumpKind === "fsd" && !canJump && !jumping && drive.padId && !drive.stranded && (
-          <button
-            type="button"
-            className="h-btn"
+        <div className="clip-drive">
+          <ClipTank label="T1" frac={t1} band={tankBand(drive.fuel, drive.fuelCap)} />
+          <div
+            className={`throttle${drive.overheated ? " hot" : ""}${drive.overdrive ? " od" : ""}${drive.throttle < -0.02 ? " rev" : ""}`}
+            ref={thrRef}
             data-ui
-            onClick={() => engine?.goToBody({ kind: "station", id: drive.padId! })}
+            aria-label="Throttle"
           >
-            Pad {drive.padName ?? ""}
-          </button>
-        )}
-        {tab === "jump" && drive.dry2 && !drive.dry && drive.jumpKind !== "fsd" && !tug && (
-          <button type="button" className="h-btn" data-ui onClick={() => openTug("ferry")}>
-            Ferry
-          </button>
-        )}
-        {tab === "ship" && (
-          <div className="boost-row" data-ui>
-            <BoostButton
-              engine={engine}
-              disabled={jumping || !drive.boostArmed || (drive.boostCharges <= 0 && !drive.boosting)}
-              active={drive.boosting}
-              charges={`${drive.boostCharges}/${drive.boostMax}`}
-            />
+            <div className="throttle-track">
+              <div className="throttle-od-zone" />
+              <div className="throttle-rev-zone" />
+              <div className="throttle-heat" ref={heatRef} />
+              <div className="throttle-fill" ref={fillRef} />
+              <div className="throttle-notch" />
+              <div className="throttle-zero" />
+            </div>
+            <div className="throttle-knob" ref={thrKnobRef} />
           </div>
-        )}
+          <ClipTank label="T2" frac={t2} band={tankBand(drive.fuel2, drive.fuelCap2)} />
+        </div>
+        <div className="clip-drive-meta">
+          <div className="throttle-read">
+            <strong>{thrRead.pct}%</strong>
+            <span>{thrRead.status}</span>
+          </div>
+          <BoostButton
+            engine={engine}
+            disabled={jumping || !drive.boostArmed || (drive.boostCharges <= 0 && !drive.boosting)}
+            active={drive.boosting}
+            charges={`${drive.boostCharges}/${drive.boostMax}`}
+          />
+        </div>
       </div>
 
       {(mode === "charging" || mode === "transit" || drive.surveying || drive.extracting) && (
@@ -1171,64 +1083,24 @@ export function FlightChrome({
   );
 }
 
-function Bar({
+function ClipTank({
   label,
-  value,
-  teal,
-  warn,
-  dry,
+  frac,
+  band,
 }: {
   label: string;
-  value: number;
-  teal?: boolean;
-  warn?: boolean;
-  dry?: boolean;
+  frac: number;
+  band: ReturnType<typeof tankBand>;
 }) {
-  const pct = Math.max(0, Math.min(100, value * 100));
+  const pct = Math.max(0, Math.min(100, frac * 100));
   return (
-    <div className="bar">
+    <div className={`clip-tank ${band}`} title={`${label} ${tankLabel(band)}`}>
       <span>{label}</span>
       <i>
-        <b
-          className={dry || warn ? "warn" : teal ? "teal" : ""}
-          style={{ ["--fill" as string]: `${pct}%` }}
-        />
+        <b style={{ height: `${pct}%` }} />
       </i>
-      <span>{Math.round(pct)}</span>
+      <em>{band === "ok" ? Math.round(pct) : tankLabel(band)}</em>
     </div>
-  );
-}
-
-function Radar({ blips }: { blips: RadarBlip[] }) {
-  return (
-    <svg className="helion-radar" viewBox="0 0 160 160" aria-hidden="true">
-      <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(216,208,192,0.2)" strokeWidth="1" />
-      <circle cx="80" cy="80" r="46" fill="none" stroke="rgba(111,191,182,0.28)" strokeWidth="1" />
-      <circle cx="80" cy="80" r="22" fill="none" stroke="rgba(216,208,192,0.18)" strokeWidth="1" />
-      <line x1="80" y1="10" x2="80" y2="150" stroke="rgba(216,208,192,0.12)" />
-      <line x1="10" y1="80" x2="150" y2="80" stroke="rgba(216,208,192,0.12)" />
-      <g className="sweep">
-        <path d="M80 80 L80 12 A68 68 0 0 1 128 36 Z" fill="rgba(111,191,182,0.12)" />
-      </g>
-      {blips.map((b) => {
-        const x = 80 + b.u * 66;
-        const y = 80 - b.v * 66;
-        const fill = b.lock ? "#6fbfb6" : b.kind === "station" ? "#c9b48a" : "#d8d0c0";
-        if (b.h > 0.04) {
-          return (
-            <g key={b.id}>
-              <line x1={x} y1={y} x2={x} y2={y - b.h * 10} stroke={fill} strokeWidth="1" opacity="0.55" />
-              <circle cx={x} cy={y} r={b.lock ? 3.4 : b.kind === "star" ? 2.6 : 2.1} fill={fill} />
-            </g>
-          );
-        }
-        if (b.kind === "station") {
-          return <rect key={b.id} x={x - 2} y={y - 2} width="4" height="4" fill={fill} />;
-        }
-        return <circle key={b.id} cx={x} cy={y} r={b.lock ? 3.4 : b.kind === "star" ? 2.6 : 2.1} fill={fill} />;
-      })}
-      <polygon points="80,72 84,88 80,84 76,88" fill="#d8d0c0" />
-    </svg>
   );
 }
 

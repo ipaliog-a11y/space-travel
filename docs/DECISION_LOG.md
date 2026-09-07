@@ -630,6 +630,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #027: Clip HUD
+
+**Date:** 2026-09-07  
+**Status:** ✅ Implemented  
+**Comps:** Elite left/right jobs; Outer Wilds NASA gauges; SC velocity vs nose.
+
+**Steal / don’t:** One amber pip + velocity tick. T1/T2 on the lever. LOOK one verb. Jump is a lamp + mix, not twin bars. No sight picker, no empty radar, no Ship/Hold/Jump tabs.
+
+**Quality bar:** `hud-clip.test.ts` — dock beats sip beats scan; lamp off/amber/teal.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -643,4 +655,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-07  
-**Total Decisions:** 26 approved, 2 pending
+**Total Decisions:** 27 approved, 2 pending
