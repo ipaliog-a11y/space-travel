@@ -2,6 +2,14 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.55] - 2026-09-07
+
+### Fixed
+- T1 dry no longer spoofs OD (heat, trails, tone). In-system hops cost T1. Charts Jump says T2 dry.
+
+### Added
+- T1 / T2 Ok-Low-Dry lamps above Ship / Hold / Jump.
+
 ## [v0.1.54] - 2026-09-06
 
 ### Added

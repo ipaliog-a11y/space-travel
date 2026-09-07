@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { fittedShip } from "@/lib/starwake/catalog";
+import { fittedShip, jumpT2Cost } from "@/lib/starwake/catalog";
+import { canPayT1, canPayT2, FUEL_DRY } from "@/lib/starwake/fuel-status";
 import {
   catalogSystems,
   distLy,
@@ -48,13 +49,18 @@ export function MapPanel({
   onClose,
 }: Props) {
   const loadout = useStarwake((s) => s.loadout);
+  const t1 = useStarwake((s) => s.fuel[s.shipId] ?? 0);
+  const t2 = useStarwake((s) => s.fuel2[s.shipId] ?? 0);
   const here = getSystem(systemId);
   const range = fittedShip(shipId, loadout).jumpRangeLy;
   const catalog = catalogSystems(here);
   const dest = lockedId ? getSystem(lockedId) : null;
   const route = dest && dest.id !== here.id ? plotRoute(here, dest, range) : null;
   const hop = dest && dest.id !== here.id ? nextHop(here, dest, range) : null;
-  const canJump = Boolean(hop && !jumping);
+  const hopCost = hop ? jumpT2Cost(distLy(here, hop)) : 0;
+  const t2ok = Boolean(hop && canPayT2(t2, hopCost));
+  const canJump = Boolean(hop && !jumping && t2ok);
+  const t1ok = t1 > FUEL_DRY && canPayT1(t1, 0.4);
   const hops = route ? route.length - 1 : 0;
   const plotLy = route ? routeLengthLy(route) : 0;
   const scanned = useStarwake((s) => s.scanned);
@@ -130,9 +136,9 @@ export function MapPanel({
 
   const destLine = dest && dest.id !== here.id
     ? hops > 1
-      ? `${distLy(here, dest).toFixed(1)} ly · ${hops} hops · ${plotLy.toFixed(1)} ly plot`
+      ? `${distLy(here, dest).toFixed(1)} ly · ${hops} hops · T2 ${hopCost.toFixed(1)}`
       : hop
-        ? `${distLy(here, dest).toFixed(1)} ly · direct`
+        ? `${distLy(here, dest).toFixed(1)} ly · T2 ${hopCost.toFixed(1)}`
         : `${distLy(here, dest).toFixed(1)} ly · no route`
     : `${NEBULA_LABEL[here.nebula?.kind ?? "arm"]} · ${range.toFixed(0)} ly reach`;
 
@@ -336,14 +342,14 @@ export function MapPanel({
                 <button type="button" disabled={jumping} onClick={() => onLookBody(targetOfPick(), true)}>look</button>
                 <button
                   type="button"
-                  disabled={jumping}
+                  disabled={jumping || !t1ok}
                   onClick={() => onGoBody(pickPlanet ? { kind: "planet", id: pickPlanet.id } : targetOfPick())}
                 >
-                  arrive
+                  {t1ok ? "arrive" : "T1 dry"}
                 </button>
                 {pickPlanet?.stationId && (
-                  <button type="button" disabled={jumping} onClick={() => onGoBody({ kind: "station", id: pickPlanet.stationId! })}>
-                    port
+                  <button type="button" disabled={jumping || !t1ok} onClick={() => onGoBody({ kind: "station", id: pickPlanet.stationId! })}>
+                    {t1ok ? "port" : "T1 dry"}
                   </button>
                 )}
               </span>
@@ -359,7 +365,7 @@ export function MapPanel({
                 </span>
               </div>
               <button type="button" className="act-btn jump" disabled={!canJump} onClick={onJump}>
-                {hops > 1 ? `Jump · ${hop?.name ?? ""}` : "Jump"}
+                {jumping ? "Spool" : !hop ? "Jump" : t2ok ? (hops > 1 ? `Jump · ${hop?.name ?? ""}` : "Jump") : "T2 dry"}
               </button>
             </>
           )}

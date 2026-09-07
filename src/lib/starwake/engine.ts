@@ -2,6 +2,7 @@
 import type { Planet, Station, FlightMode } from "./types";
 import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
+import { canPayT1, FUEL_DRY, transitT1Cost } from "./fuel-status";
 import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
 import { headReady, jumpHead01 as headFromYaw, jumpLock01 as lockFromHop } from "./jump-align";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
@@ -325,7 +326,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		return jumpT2Cost(distLy(getSystem(fromId), getSystem(toId)));
 	}
 	function t2Dry() {
-		return fuel2Local <= .05;
+		return fuel2Local <= FUEL_DRY;
+	}
+	function t1Dry() {
+		return fuelLocal <= FUEL_DRY;
 	}
 	function syncFuelFromStore() {
 		const st = getStarwake();
@@ -351,7 +355,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			throttle,
 			heat01,
 			overheated,
-			overdrive: throttle > OD_GATE && !overheated,
+			overdrive: throttle > OD_GATE && !overheated && fuelLocal > FUEL_DRY,
 			boostCharges: st.boostCharges,
 			boostMax: def.boostCapacity,
 			boosting: boostActive,
@@ -373,7 +377,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			fuelCap: def.fuelCap,
 			fuel2: fuel2Local,
 			fuelCap2: def.fuelCap2,
-			dry: fuelLocal <= .05,
+			dry: t1Dry(),
 			dry2: t2Dry(),
 			atStation,
 			atStationId,
@@ -417,7 +421,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	}
 	function flightRegime() {
 		if (mode === "docking" || mode === "berthed") return "dock";
-		if (boostActive || (throttle > OD_GATE && !overheated)) return "od";
+		if (boostActive || (throttle > OD_GATE && !overheated && !t1Dry())) return "od";
 		if (boundId && parkHold) return "park";
 		if (boundName) return "well";
 		return "free";
@@ -1212,6 +1216,17 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			getStarwake().setMapOpen(false);
 			return;
 		}
+		const park = parkPose(target);
+		const dist = park
+			? Math.hypot(park.x - shipPos.x, park.y - shipPos.y, park.z - shipPos.z)
+			: 80;
+		const cost = transitT1Cost(dist);
+		if (!canPayT1(fuelLocal, cost)) {
+			getStarwake().pushNotice({ kicker: "Fuel", title: "T1 dry", body: "No in-system hop." });
+			return;
+		}
+		fuelLocal = Math.max(0, fuelLocal - cost);
+		flushFuel(true);
 		const body = bodyWorld(target, worldTime);
 		navTarget = target;
 		navName = body?.name ?? null;
@@ -1224,7 +1239,6 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			flashT = .4;
 			return;
 		}
-		const park = parkPose(target);
 		if (!park) {
 			commitBody(target);
 			return;
@@ -1233,7 +1247,6 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		transitFrom.x = shipPos.x;
 		transitFrom.y = shipPos.y;
 		transitFrom.z = shipPos.z;
-		const dist = Math.hypot(park.x - shipPos.x, park.y - shipPos.y, park.z - shipPos.z);
 		transitDur = 0.92 + Math.min(1.55, Math.sqrt(Math.max(80, dist) / 2800) * 1.05);
 		transitT = 0;
 		cruiseAmt = 0;
@@ -1348,6 +1361,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const m = jumpMeters();
 			return m.hop && m.t2ok && headReady(m.head);
 		}
+		if (t1Dry()) return false;
 		return Boolean(hopTarget());
 	}
 	function bodyWorld(target, t) {
@@ -1596,7 +1610,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const hop = nextHop(here, dest, def.jumpRangeLy);
 		if (!hop) return;
 		const cost = hopT2Cost(here.id, hop.id);
-		if (fuel2Local + 1e-4 < cost) return;
+		if (fuel2Local + 1e-4 < cost) {
+			getStarwake().pushNotice({ kicker: "Fuel", title: "T2 dry", body: "No FSD hop." });
+			return;
+		}
 		pendingDest = hop.id;
 		mode = "charging";
 		chargeT = 0;
@@ -2180,7 +2197,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			}
 			const inJump = mode === "charging" || mode === "hyperspace" || mode === "dropping" || mode === "transit";
 			const inPort = mode === "docking" || mode === "berthed";
-			const dry = fuelLocal <= .05;
+			const dry = t1Dry();
 			if (entered && !inJump && mode !== "berthed") {
 				const thrRate = .72;
 				let thrDelta = 0;
@@ -2207,7 +2224,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				if (boostLeft <= 0) boostActive = false;
 			}
 			if (overheated && throttle > OD_GATE) applyThrottle(OD_GATE);
-			const inOverdrive = entered && !inJump && !overheated && throttle > OD_GATE;
+			const inOverdrive = entered && !inJump && !overheated && !dry && throttle > OD_GATE;
 			if (inOverdrive) {
 				heat01 = Math.min(1, heat01 + clockDt / Math.max(1, def.overdriveSec));
 				if (heat01 >= 1) {
@@ -2399,7 +2416,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				const burn = Math.abs(drive) * dt * T1_PER_DIST * (load > 1 ? 1.25 : 1);
 				fuelLocal = Math.max(0, fuelLocal - burn);
 				fuelFlush += dt;
-				if (fuelFlush > 1.6 || fuelLocal <= .05) {
+				if (fuelFlush > 1.6 || fuelLocal <= FUEL_DRY) {
 					fuelFlush = 0;
 					flushFuel();
 				}
@@ -3006,7 +3023,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			tunnel.classList.toggle("cruise", mode === "transit");
 			tunnel.classList.toggle("fsd", mode === "hyperspace" || mode === "charging");
 			canvas.dataset.warp = warpAmt > 0.05 ? (mode === "transit" ? "cruise" : "fsd") : "";
-			audio.update(Math.max(0, throttle), boostAmt, Math.max(jumpAmt, cruiseAmt * 0.72));
+			audio.update(dry ? 0 : Math.max(0, throttle), boostAmt, Math.max(jumpAmt, cruiseAmt * 0.72));
 			if (now - lastUiPush > 80) {
 				lastUiPush = now;
 				if (getStarwake().mode !== mode) getStarwake().setMode(mode);

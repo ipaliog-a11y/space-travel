@@ -582,6 +582,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #023: Dry tanks kill OD, transit, and the Jump lamp
+
+**Date:** 2026-09-07  
+**Status:** ✅ Implemented  
+**Comps:** Elite T1/T2, SC hydrogen vs quantum.
+
+**Steal / don’t:** T1 empty: no OD heat/trails/tone, no in-system hop. T2 empty: Charts Jump says T2 dry. Lamps above Ship/Hold/Jump. Not a sim fuel model.
+
+**Quality bar:** `fuel-status.test.ts` — dry ≤ 0.05, low < 15%, transit never free.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -595,4 +607,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-07  
-**Total Decisions:** 22 approved, 2 pending
+**Total Decisions:** 23 approved, 2 pending

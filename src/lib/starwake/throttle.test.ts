@@ -66,6 +66,7 @@ describe("throttle lever", () => {
     assert.equal(throttleReadout(-0.2, {}).status, "Rev");
     assert.equal(throttleReadout(0, { halt: true }).status, "Halt");
     assert.equal(throttleReadout(0.8, { overdrive: true }).status, "Od");
+    assert.equal(throttleReadout(0.9, { dry: true }).status, "Dry");
     assert.equal(throttleReadout(0.1, { docking: true }).status, "Dock");
     assert.equal(throttleReadout(-0.2, {}).pct, -20);
   });

@@ -20,6 +20,7 @@ import { getMyProfile } from "@/lib/player-profile/api";
 import { sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
+import { tankBand, tankLabel } from "@/lib/starwake/fuel-status";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
 import { useFlightWear } from "@/lib/starwake/use-flight-wear";
 import { throttleToVisual, visualToThrottle, throttleReadout, idleHalt } from "@/lib/starwake/throttle";
@@ -554,6 +555,7 @@ export function FlightChrome({
     overdrive: drive.overdrive,
     docking: drive.docking,
     berthed: drive.berthed,
+    dry: drive.dry,
     halt: idleHalt(drive.throttle, drive.docking, Boolean(drive.atStationId), drive.speed / 100),
   });
 
@@ -735,6 +737,14 @@ export function FlightChrome({
             </span>
           </div>
         )}
+        <div className="fuel-lamps" aria-label="Tanks">
+          <span className={`fuel-lamp ${tankBand(drive.fuel, drive.fuelCap)}`}>
+            T1 {tankLabel(tankBand(drive.fuel, drive.fuelCap))}
+          </span>
+          <span className={`fuel-lamp ${tankBand(drive.fuel2, drive.fuelCap2)}`}>
+            T2 {tankLabel(tankBand(drive.fuel2, drive.fuelCap2))}
+          </span>
+        </div>
         <div className="mfd" data-ui>
           <button type="button" data-on={tab === "ship"} onClick={() => setTab("ship")}>
             Ship
@@ -761,7 +771,7 @@ export function FlightChrome({
         </div>
         {tab === "jump" && (
           <button type="button" className="h-btn jump" data-ui disabled={!canJump} onClick={onJump}>
-            {jumping ? "Spool" : "Jump"}
+            {jumping ? "Spool" : drive.dry2 ? "T2 dry" : "Jump"}
           </button>
         )}
         {tab === "ship" && (

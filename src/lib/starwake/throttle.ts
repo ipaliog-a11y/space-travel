@@ -69,10 +69,11 @@ export function springReverse(t: number, reverseHeld: boolean): number {
 
 export function throttleReadout(
   t: number,
-  opts: { overdrive?: boolean; docking?: boolean; berthed?: boolean; halt?: boolean },
-): { pct: number; status: "Idle" | "Fwd" | "Rev" | "Halt" | "Od" | "Dock" } {
+  opts: { overdrive?: boolean; docking?: boolean; berthed?: boolean; halt?: boolean; dry?: boolean },
+): { pct: number; status: "Idle" | "Fwd" | "Rev" | "Halt" | "Od" | "Dock" | "Dry" } {
   const pct = Math.round(t * 100);
   if (opts.berthed || opts.docking) return { pct, status: "Dock" };
+  if (opts.dry) return { pct, status: "Dry" };
   if (opts.halt && Math.abs(t) <= THR_DEAD) return { pct: 0, status: "Halt" };
   if (t < -THR_DEAD) return { pct, status: "Rev" };
   if (opts.overdrive) return { pct, status: "Od" };

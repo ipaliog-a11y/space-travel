@@ -2940,6 +2940,32 @@ button.pad-jump em {
 .od-heat.od em {
   color: var(--color-helion-ivory);
 }
+.fuel-lamps {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0.15rem;
+}
+.fuel-lamp {
+  flex: 1;
+  min-height: 1.7rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--color-helion-ivory) 18%, transparent);
+  font-family: var(--font-helion-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-helion-dim);
+}
+.fuel-lamp.low {
+  color: var(--color-helion-warn);
+  border-color: color-mix(in oklab, var(--color-helion-warn) 45%, transparent);
+}
+.fuel-lamp.dry {
+  color: var(--color-helion-warn);
+  background: color-mix(in oklab, var(--color-helion-warn) 18%, transparent);
+  border-color: var(--color-helion-warn);
+}
 .helion-acts {
   display: flex;
   flex-wrap: wrap;
