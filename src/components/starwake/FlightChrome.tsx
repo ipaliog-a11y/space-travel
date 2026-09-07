@@ -695,8 +695,8 @@ export function FlightChrome({
                       : "Heading off"
             : tab === "ship"
               ? wear
-                ? `wear ${wear.wearPercentage.toFixed(0)}% · bst ${drive.boostCharges}/${drive.boostMax}`
-                : `bst ${drive.boostCharges}/${drive.boostMax}`
+                ? `wear ${wear.wearPercentage.toFixed(0)}%`
+                : "pad hull"
               : man
                 ? `${man.job.cargo} · ${man.job.qty}u`
                 : cargo.length
@@ -719,7 +719,6 @@ export function FlightChrome({
         ) : tab === "ship" ? (
           <div className="bars">
             <Bar label="Hull" value={hullPct} warn={hullPct < 0.8} />
-            <Bar label="Bst" value={drive.boostMax ? drive.boostCharges / drive.boostMax : 0} teal />
           </div>
         ) : (
           <div className="bars">
@@ -780,6 +779,7 @@ export function FlightChrome({
               engine={engine}
               disabled={jumping || !drive.boostArmed || (drive.boostCharges <= 0 && !drive.boosting)}
               active={drive.boosting}
+              charges={`${drive.boostCharges}/${drive.boostMax}`}
             />
           </div>
         )}
@@ -1043,11 +1043,41 @@ function BoostButton({
   engine,
   disabled,
   active,
+  charges,
 }: {
   engine: EngineHandle | null;
   disabled: boolean;
   active: boolean;
+  charges: string;
 }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const down = (e: PointerEvent) => {
+      if (el.disabled) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      engine?.setBoost(true);
+    };
+    const up = () => {
+      engine?.setBoost(false);
+    };
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+    };
+  }, [engine]);
+  return (
+    <button ref={ref} type="button" className={`h-btn boost${active ? " on" : ""}`} disabled={disabled}>
+      Boost {charges}
+    </button>
+  );
+}
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const el = ref.current;
