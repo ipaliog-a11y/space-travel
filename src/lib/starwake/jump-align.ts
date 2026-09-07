@@ -44,11 +44,11 @@ export function jumpHead01(
   return aimHead01(fwd, lockSky(from, to));
 }
 
-export function jumpLock01(opts: { locked: boolean; hop: boolean; t2ok: boolean; head01: number }): number {
-  if (!opts.locked) return 0;
-  if (!opts.hop) return 0.18;
-  if (!opts.t2ok) return Math.min(0.55, 0.2 + opts.head01 * 0.35);
-  return opts.head01;
+export function jumpLock01(opts: { hop: boolean; fuelOk: boolean; cone: boolean }): number {
+  if (!opts.hop) return 0;
+  if (!opts.fuelOk) return 0.34;
+  if (!opts.cone) return 0.67;
+  return 1;
 }
 
 export function headReady(head01: number) {

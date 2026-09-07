@@ -1367,9 +1367,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const hop = nextHop(here, dest, hull().jumpRangeLy);
 			const t2ok = Boolean(hop) && fuel2Local + 1e-4 >= hopT2Cost(here.id, hop.id);
 			const head = headFromFwd(fwd, here, dest);
+			const cone = headReady(head);
 			return {
 				head,
-				lock: lockFromHop({ locked: true, hop: Boolean(hop), t2ok, head01: head }),
+				lock: lockFromHop({ hop: Boolean(hop), fuelOk: t2ok, cone }),
 				hop: Boolean(hop),
 				t2ok,
 				kind: "fsd",
@@ -1384,7 +1385,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const hop = Boolean(hopTarget());
 		return {
 			head,
-			lock: head,
+			lock: lockFromHop({ hop, fuelOk: !t1Dry(), cone: headReady(head) }),
 			hop,
 			t2ok: false,
 			kind: hop ? "hop" : "look",
@@ -1411,7 +1412,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			return m.hop && m.t2ok && headReady(m.head);
 		}
 		if (t1Dry()) return false;
-		return Boolean(hopTarget());
+		const m = jumpMeters();
+		return Boolean(hopTarget()) && headReady(m.head);
 	}
 	function bodyWorld(target, t) {
 		const sysNow = getSystem(getStarwake().systemId);

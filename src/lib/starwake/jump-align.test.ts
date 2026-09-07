@@ -26,13 +26,13 @@ describe("jump align", () => {
 
   it("head is 0 with no lock", () => {
     assert.equal(jumpHead01([0, 0, -1], null, { x: 1, y: 1 }), 0);
-    assert.equal(jumpLock01({ locked: false, hop: true, t2ok: true, head01: 1 }), 0);
   });
 
-  it("lock rides head when the hop is legal", () => {
-    assert.equal(jumpLock01({ locked: true, hop: false, t2ok: true, head01: 0.9 }), 0.18);
-    const on = jumpLock01({ locked: true, hop: true, t2ok: true, head01: 0.8 });
-    assert.equal(on, 0.8);
+  it("lock is hop then fuel then cone, never a second head", () => {
+    assert.equal(jumpLock01({ hop: false, fuelOk: true, cone: true }), 0);
+    assert.equal(jumpLock01({ hop: true, fuelOk: false, cone: true }), 0.34);
+    assert.equal(jumpLock01({ hop: true, fuelOk: true, cone: false }), 0.67);
+    assert.equal(jumpLock01({ hop: true, fuelOk: true, cone: true }), 1);
     assert.ok(HEAD_READY > 0.5);
   });
 });

@@ -802,14 +802,18 @@ export function FlightChrome({
               ? "Spooling"
               : drive.jumpKind === "fsd"
                 ? canJump
-                  ? `FSD · ${Math.round(drive.jumpHead01 * 100)}%`
+                  ? "FSD locked"
                   : drive.jumpLock01 < 0.2
-                    ? "Out of range"
-                    : drive.dry2
+                    ? "No plot"
+                    : drive.jumpLock01 < 0.5
                       ? "Need T2"
-                      : `Head ${Math.round(drive.jumpHead01 * 100)}% · turn to the pip`
+                      : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
                 : drive.jumpKind === "hop"
-                  ? `Hop ready · ${Math.round(drive.jumpHead01 * 100)}%`
+                  ? canJump
+                    ? "Hop locked"
+                    : drive.jumpLock01 < 0.5
+                      ? "Need T1"
+                      : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
                   : drive.jumpKind === "look"
                     ? `On nose · ${Math.round(drive.jumpHead01 * 100)}%`
                     : "Look at a world · or Charts a star"
@@ -834,7 +838,7 @@ export function FlightChrome({
           <div className="bars">
             <Bar label="T2" value={t2} teal dry={drive.dry2} />
             <Bar label="Head" value={drive.jumpHead01} warn={drive.jumpHead01 < 0.55} />
-            <Bar label="Lock" value={drive.jumpLock01} warn={drive.jumpLock01 < 0.8} />
+            <Bar label="Lock" value={drive.jumpLock01} warn={drive.jumpLock01 < 1} teal={drive.jumpLock01 >= 1} />
           </div>
         ) : tab === "ship" ? (
           <div className="bars">
