@@ -4,7 +4,7 @@ import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
 import { canPayT1, FUEL_DRY, transitT1Cost } from "./fuel-status";
 import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
-import { headReady, jumpHead01 as headFromYaw, jumpLock01 as lockFromHop } from "./jump-align";
+import { headReady, jumpHead01 as headFromFwd, jumpLock01 as lockFromHop, lockSky } from "./jump-align";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
 import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetMu, planetSOI, starMu } from "./orbit";
 import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, perspective, quatFromEuler, quatFromAxisAngle, quatInvert, quatLook, quatMul, quatNormalize, quatSlerp, quatToMat4, rotateVec, translation, viewFromLook, wrapDelta } from "./math";
@@ -61,6 +61,9 @@ export type DriveHud = {
   canJump: boolean;
   jumpHead01: number;
   jumpLock01: number;
+  lockAimOn: boolean;
+  lockAimNdcX: number;
+  lockAimNdcY: number;
   scanned: boolean;
   coasting: boolean;
   well: string | null;
@@ -372,6 +375,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			canJump: canFireJump(),
 			jumpHead01: jumpMeters().head,
 			jumpLock01: jumpMeters().lock,
+			lockAimOn: lockAim().on,
+			lockAimNdcX: lockAim().ndcX,
+			lockAimNdcY: lockAim().ndcY,
 			scanned: Boolean(atPlanetId && getStarwake().scanned[atPlanetId]),
 			coasting: st.entered && Math.abs(throttle) <= THR_DEAD,
 			well: boundName,
@@ -1346,12 +1352,24 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const dest = getSystem(lock);
 		const hop = nextHop(here, dest, hull().jumpRangeLy);
 		const t2ok = Boolean(hop) && fuel2Local + 1e-4 >= hopT2Cost(here.id, hop.id);
+		const fwd = rotateVec(orientQuat, [0, 0, -1]);
+		const head = headFromFwd(fwd, here, dest);
 		return {
-			head: headFromYaw(headingYaw, here, dest),
-			lock: lockFromHop({ locked: true, hop: Boolean(hop), t2ok }),
+			head,
+			lock: lockFromHop({ locked: true, hop: Boolean(hop), t2ok, head01: head }),
 			hop: Boolean(hop),
 			t2ok,
+			sky: lockSky(here, dest),
 		};
+	}
+	function lockAim() {
+		const m = jumpMeters();
+		if (!m.sky) return { on: false, ndcX: 0, ndcY: 0 };
+		const far = 6400;
+		const pr = projectWorld(shipPos.x + m.sky[0] * far, shipPos.y + m.sky[1] * far, shipPos.z + m.sky[2] * far);
+		if (!pr) return { on: false, ndcX: 0, ndcY: 0 };
+		const on = Math.abs(pr.ndcX) < 1.15 && Math.abs(pr.ndcY) < 1.15;
+		return { on, ndcX: pr.ndcX, ndcY: pr.ndcY };
 	}
 	function canFireJump() {
 		const st = getStarwake();
@@ -3056,7 +3074,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			tunnel.classList.toggle("fsd", mode === "hyperspace" || mode === "charging");
 			canvas.dataset.warp = warpAmt > 0.05 ? (mode === "transit" ? "cruise" : "fsd") : "";
 			audio.update(dry ? 0 : Math.max(0, throttle), boostAmt, Math.max(jumpAmt, cruiseAmt * 0.72));
-			if (now - lastUiPush > 80) {
+			if (now - lastUiPush > 40) {
 				lastUiPush = now;
 				if (getStarwake().mode !== mode) getStarwake().setMode(mode);
 				if (mode === "charging") getStarwake().setCharge01(clamp(chargeT, 0, 1));

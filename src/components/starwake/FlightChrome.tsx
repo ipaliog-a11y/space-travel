@@ -91,6 +91,9 @@ const IDLE_DRIVE: DriveHud = {
   canJump: false,
   jumpHead01: 0,
   jumpLock01: 0,
+  lockAimOn: false,
+  lockAimNdcX: 0,
+  lockAimNdcY: 0,
   atPlanetId: null,
   scanned: false,
   coasting: false,
@@ -673,6 +676,19 @@ export function FlightChrome({
           )}
         </div>
       )}
+      {locked && drive.lockAimOn && (
+        <div
+          className="planet-tag jump-aim"
+          style={{
+            left: `${(drive.lockAimNdcX * 0.5 + 0.5) * 100}%`,
+            top: `${(-drive.lockAimNdcY * 0.5 + 0.5) * 100}%`,
+            opacity: 1,
+          }}
+        >
+          {locked.name}
+          <span className="tag-dist">fsd {Math.round(drive.jumpHead01 * 100)}%</span>
+        </div>
+      )}
 
       <div className="helion-sys">
         System
@@ -776,16 +792,16 @@ export function FlightChrome({
         <div className="meta">
           {tab === "jump"
             ? canJump
-              ? "Aligned"
+              ? `Aligned · ${Math.round(drive.jumpHead01 * 100)}%`
               : jumping
                 ? "Spooling"
                 : !locked
-                  ? "No lock"
-                  : drive.jumpLock01 < 0.4
+                  ? "Charts · galaxy · a star"
+                  : drive.jumpLock01 < 0.2
                     ? "Out of range"
-                    : drive.jumpLock01 < 0.8
+                    : drive.jumpLock01 < 0.56 && drive.dry2
                       ? "Need T2"
-                      : "Heading off"
+                      : `Head ${Math.round(drive.jumpHead01 * 100)}% · turn to the pip`
             : tab === "ship"
               ? wear
                 ? `wear ${wear.wearPercentage.toFixed(0)}%`

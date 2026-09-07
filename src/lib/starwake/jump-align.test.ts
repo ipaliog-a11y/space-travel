@@ -1,27 +1,30 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { HEAD_READY, jumpHead01, jumpLock01, lockBearing } from "./jump-align.ts";
+import { HEAD_READY, jumpHead01, jumpLock01, lockSky } from "./jump-align.ts";
 
 describe("jump align", () => {
-  it("head is 1 when the nose matches galactic bearing", () => {
+  it("head follows the nose vs the lock sky", () => {
     const from = { x: 0, y: 0 };
     const to = { x: 10, y: 0 };
-    const bear = lockBearing(from, to);
-    assert.ok(jumpHead01(bear, from, to) > 0.99);
-    assert.ok(jumpHead01(bear + Math.PI, from, to) < 0.05);
-    const mid = jumpHead01(bear + Math.PI / 2, from, to);
-    assert.ok(mid > 0.45 && mid < 0.55);
+    const sky = lockSky(from, to);
+    assert.ok(sky);
+    assert.ok(jumpHead01(sky, from, to) > 0.99);
+    const back: [number, number, number] = [-sky[0], -sky[1], -sky[2]];
+    assert.ok(jumpHead01(back, from, to) < 0.05);
+    const side: [number, number, number] = [0, 0, 1];
+    const mid = jumpHead01(side, from, to);
+    assert.ok(mid > 0.2 && mid < 0.8);
   });
 
   it("head is 0 with no lock", () => {
-    assert.equal(jumpHead01(0, null, { x: 1, y: 1 }), 0);
-    assert.equal(jumpLock01({ locked: false, hop: true, t2ok: true }), 0);
+    assert.equal(jumpHead01([0, 0, -1], null, { x: 1, y: 1 }), 0);
+    assert.equal(jumpLock01({ locked: false, hop: true, t2ok: true, head01: 1 }), 0);
   });
 
-  it("lock fills hop then T2, never a fake 12", () => {
-    assert.equal(jumpLock01({ locked: true, hop: false, t2ok: true }), 0.18);
-    assert.equal(jumpLock01({ locked: true, hop: true, t2ok: false }), 0.55);
-    assert.equal(jumpLock01({ locked: true, hop: true, t2ok: true }), 1);
+  it("lock rides head when the hop is legal", () => {
+    assert.equal(jumpLock01({ locked: true, hop: false, t2ok: true, head01: 0.9 }), 0.18);
+    const on = jumpLock01({ locked: true, hop: true, t2ok: true, head01: 0.8 });
+    assert.equal(on, 0.8);
     assert.ok(HEAD_READY > 0.5);
   });
 });
