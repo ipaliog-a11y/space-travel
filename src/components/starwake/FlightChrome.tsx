@@ -1078,31 +1078,4 @@ function BoostButton({
     </button>
   );
 }
-  const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const down = (e: PointerEvent) => {
-      if (el.disabled) return;
-      e.preventDefault();
-      el.setPointerCapture(e.pointerId);
-      engine?.setBoost(true);
-    };
-    const up = () => {
-      engine?.setBoost(false);
-    };
-    el.addEventListener("pointerdown", down);
-    el.addEventListener("pointerup", up);
-    el.addEventListener("pointercancel", up);
-    return () => {
-      el.removeEventListener("pointerdown", down);
-      el.removeEventListener("pointerup", up);
-      el.removeEventListener("pointercancel", up);
-    };
-  }, [engine]);
-  return (
-    <button ref={ref} type="button" className={`h-btn boost${active ? " on" : ""}`} disabled={disabled}>
-      Boost
-    </button>
-  );
-}
+
