@@ -61,6 +61,7 @@ function flavorOf(systemId: string): KiteFlavor {
 }
 
 function regimeLabel(drive: DriveHud) {
+  if (drive.scooping) return "Sip";
   if (drive.regime === "dock") return "Dock";
   if (drive.regime === "od") return drive.boosting ? "Boost" : "Od";
   if (drive.regime === "park") return "Park";
@@ -105,6 +106,13 @@ const IDLE_DRIVE: DriveHud = {
   fuelCap2: 24,
   dry: false,
   dry2: false,
+  stranded: false,
+  canScoop: false,
+  scooping: false,
+  fsdT1: 0,
+  fsdT2: 0,
+  padId: null,
+  padName: null,
   atStation: null,
   atStationId: null,
   docking: false,
@@ -329,11 +337,11 @@ export function FlightChrome({
   }, [tug]);
 
   useEffect(() => {
-    if (hit || drive.berthed || drive.docking || isJumpMode(mode)) return;
-    if (!drive.dry) return;
+    if (hit || drive.berthed || drive.docking || isJumpMode(mode) || drive.scooping) return;
+    if (!drive.dry && !drive.stranded) return;
     if (tugRef.current) return;
-    openTug(drive.dry2 ? "stranded" : "local");
-  }, [drive.dry, drive.dry2, drive.berthed, drive.docking, mode, hit, engine]);
+    openTug(drive.dry && drive.dry2 ? "stranded" : "local");
+  }, [drive.dry, drive.dry2, drive.stranded, drive.berthed, drive.docking, mode, hit, engine]);
 
   useEffect(() => {
     let live = true;
@@ -744,6 +752,11 @@ export function FlightChrome({
               Abort
             </button>
           )}
+          {drive.canScoop && (
+            <button type="button" className={`h-btn${drive.scooping ? " on" : ""}`} onClick={() => engine?.requestScoop()}>
+              {drive.scooping ? "Sip…" : "Sip star"}
+            </button>
+          )}
           {canDock && (
             <button type="button" className="h-btn" onClick={() => engine?.requestDock()}>
               Dock
@@ -802,11 +815,11 @@ export function FlightChrome({
               ? "Spooling"
               : drive.jumpKind === "fsd"
                 ? canJump
-                  ? "FSD locked"
+                  ? `FSD T1 ${drive.fsdT1} · T2 ${drive.fsdT2}`
                   : drive.jumpLock01 < 0.2
                     ? "No plot"
                     : drive.jumpLock01 < 0.5
-                      ? "Need T2"
+                      ? `Need T1 ${drive.fsdT1} · T2 ${drive.fsdT2}`
                       : `Off nose · ${Math.round(drive.jumpHead01 * 100)}%`
                 : drive.jumpKind === "hop"
                   ? canJump
@@ -894,10 +907,31 @@ export function FlightChrome({
         </div>
         {tab === "jump" && (
           <button type="button" className="h-btn jump" data-ui disabled={!canJump} onClick={onJump}>
-            {jumping ? "Spool" : drive.dry2 ? "T2 dry" : "Jump"}
+            {jumping
+              ? "Spool"
+              : drive.jumpKind === "fsd"
+                ? `Jump T1 ${drive.fsdT1}`
+                : drive.dry2
+                  ? "T2 dry"
+                  : "Jump"}
           </button>
         )}
-        {tab === "jump" && drive.dry2 && !drive.dry && !tug && (
+        {tab === "jump" && drive.jumpKind === "fsd" && !canJump && !jumping && !tug && (
+          <button type="button" className="h-btn" data-ui onClick={() => openTug("local")}>
+            Tug
+          </button>
+        )}
+        {tab === "jump" && drive.jumpKind === "fsd" && !canJump && !jumping && drive.padId && !drive.stranded && (
+          <button
+            type="button"
+            className="h-btn"
+            data-ui
+            onClick={() => engine?.goToBody({ kind: "station", id: drive.padId! })}
+          >
+            Pad {drive.padName ?? ""}
+          </button>
+        )}
+        {tab === "jump" && drive.dry2 && !drive.dry && drive.jumpKind !== "fsd" && !tug && (
           <button type="button" className="h-btn" data-ui onClick={() => openTug("ferry")}>
             Ferry
           </button>

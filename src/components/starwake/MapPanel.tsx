@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fittedShip, jumpT2Cost } from "@/lib/starwake/catalog";
-import { canPayT1, canPayT2, FUEL_DRY } from "@/lib/starwake/fuel-status";
+import { canPayFsd, canPayT1, FUEL_DRY, fsdMix } from "@/lib/starwake/fuel-status";
 import { requestTug } from "@/lib/starwake/tug";
 import {
   catalogSystems,
@@ -59,7 +59,9 @@ export function MapPanel({
   const route = dest && dest.id !== here.id ? plotRoute(here, dest, range) : null;
   const hop = dest && dest.id !== here.id ? nextHop(here, dest, range) : null;
   const hopCost = hop ? jumpT2Cost(distLy(here, hop)) : 0;
-  const t2ok = Boolean(hop && canPayT2(t2, hopCost));
+  const hull = fittedShip(shipId, loadout);
+  const mix = hop ? fsdMix(hopCost, hull.fuelCap, hull.fuelCap2) : { t1: 0, t2: 0 };
+  const t2ok = Boolean(hop && canPayFsd(t1, t2, mix));
   const canJump = Boolean(hop && !jumping && t2ok);
   const t1ok = t1 > FUEL_DRY && canPayT1(t1, 0.4);
   const hops = route ? route.length - 1 : 0;
@@ -366,11 +368,26 @@ export function MapPanel({
                 </span>
               </div>
               <button type="button" className="act-btn jump" disabled={!canJump} onClick={onJump}>
-                {jumping ? "Spool" : !hop ? "Jump" : t2ok ? (hops > 1 ? `Jump · ${hop?.name ?? ""}` : "Jump") : "T2 dry"}
+                {jumping
+                  ? "Spool"
+                  : !hop
+                    ? "Jump"
+                    : t2ok
+                      ? hops > 1
+                        ? `Jump · ${hop?.name ?? ""}`
+                        : `Jump T1 ${mix.t1}`
+                      : t2 + 1e-4 < mix.t2
+                        ? "T2 short"
+                        : "T1 short"}
               </button>
-              {!t2ok && t1ok && hop && !jumping && (
-                <button type="button" className="act-btn" onClick={() => requestTug("ferry")}>
-                  Ferry
+              {!t2ok && hop && !jumping && (
+                <button type="button" className="act-btn" onClick={() => requestTug("local")}>
+                  Tug
+                </button>
+              )}
+              {!t2ok && t1ok && hop && !jumping && here.stations[0] && (
+                <button type="button" className="act-btn" onClick={() => onGoBody({ kind: "station", id: here.stations[0].id })}>
+                  Pad
                 </button>
               )}
             </>

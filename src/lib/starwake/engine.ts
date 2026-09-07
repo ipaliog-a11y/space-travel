@@ -2,7 +2,7 @@
 import type { Planet, Station, FlightMode } from "./types";
 import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
-import { canPayT1, FUEL_DRY, transitT1Cost } from "./fuel-status";
+import { canPayFsd, canPayT1, FUEL_DRY, fsdMix, scoopBand, SCOOP_T1_PER_SEC, transitT1Cost } from "./fuel-status";
 import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
 import { aimHead01, headReady, jumpHead01 as headFromFwd, jumpLock01 as lockFromHop, lockSky } from "./jump-align";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
@@ -74,6 +74,13 @@ export type DriveHud = {
   fuelCap2: number;
   dry: boolean;
   dry2: boolean;
+  stranded: boolean;
+  canScoop: boolean;
+  scooping: boolean;
+  fsdT1: number;
+  fsdT2: number;
+  padId: string | null;
+  padName: string | null;
   atStation: string | null;
   atStationId: string | null;
   docking: boolean;
@@ -103,6 +110,7 @@ export type EngineHandle = {
   undock: () => void;
   requestSurvey: () => void;
   requestExtract: () => void;
+  requestScoop: () => void;
   refillBoosts: () => void;
   refuel: () => void;
   setBoost: (v: boolean) => void;
@@ -331,6 +339,25 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	function hopT2Cost(fromId, toId) {
 		return jumpT2Cost(distLy(getSystem(fromId), getSystem(toId)));
 	}
+	function hopMix(fromId, toId) {
+		return fsdMix(hopT2Cost(fromId, toId), tankCap(), tankCap2());
+	}
+	function starDist() {
+		return Math.hypot(shipPos.x, shipPos.y, shipPos.z);
+	}
+	function scoopState() {
+		return scoopBand(starDist(), getSystem(getStarwake().systemId).starRadius);
+	}
+	function nearestPadCost() {
+		const pad = nearestPad();
+		if (!pad) return Infinity;
+		const body = bodyWorld({ kind: "station", id: pad.id }, worldTime);
+		if (!body) return Infinity;
+		return transitT1Cost(Math.hypot(body.pos[0] - shipPos.x, body.pos[1] - shipPos.y, body.pos[2] - shipPos.z));
+	}
+	function canReachPad() {
+		return canPayT1(fuelLocal, nearestPadCost());
+	}
 	function t2Dry() {
 		return fuel2Local <= FUEL_DRY;
 	}
@@ -377,6 +404,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			jumpHead01: jumpMeters().head,
 			jumpLock01: jumpMeters().lock,
 			jumpKind: jumpMeters().kind,
+			fsdT1: jumpMeters().mix?.t1 ?? 0,
+			fsdT2: jumpMeters().mix?.t2 ?? 0,
 			lockAimOn: lockAim().on,
 			lockAimNdcX: lockAim().ndcX,
 			lockAimNdcY: lockAim().ndcY,
@@ -389,6 +418,13 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			fuelCap2: def.fuelCap2,
 			dry: t1Dry(),
 			dry2: t2Dry(),
+			stranded: getStarwake().entered && mode === "local" && !t1Dry() && !canReachPad(),
+			canScoop: scoopState() !== "out",
+			scooping,
+			fsdT1: 0,
+			fsdT2: 0,
+			padId: nearestPad()?.id ?? null,
+			padName: nearestPad()?.name ?? null,
 			atStation,
 			atStationId,
 			docking: mode === "docking",
@@ -499,6 +535,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	let gyroBaseBeta = null;
 	let gyroBaseGamma = null;
 	let pendingDest = null;
+	let pendingMix = null;
+	let scooping = false;
 	let running = true;
 	let raf = 0;
 	let lastUiPush = 0;
@@ -1117,6 +1155,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		}
 		placeInSystem(id);
 		halt();
+		scooping = false;
 		heat01 = 0;
 		overheated = false;
 		punchT = 1;
@@ -1365,21 +1404,23 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			const here = getSystem(st.systemId);
 			const dest = getSystem(lock);
 			const hop = nextHop(here, dest, hull().jumpRangeLy);
-			const t2ok = Boolean(hop) && fuel2Local + 1e-4 >= hopT2Cost(here.id, hop.id);
+			const mix = hop ? hopMix(here.id, hop.id) : { t1: 0, t2: 0 };
+			const mixOk = Boolean(hop) && canPayFsd(fuelLocal, fuel2Local, mix);
 			const head = headFromFwd(fwd, here, dest);
 			const cone = headReady(head);
 			return {
 				head,
-				lock: lockFromHop({ hop: Boolean(hop), fuelOk: t2ok, cone }),
+				lock: lockFromHop({ hop: Boolean(hop), fuelOk: mixOk, cone }),
 				hop: Boolean(hop),
-				t2ok,
+				t2ok: mixOk,
+				mix,
 				kind: "fsd",
 				sky: lockSky(here, dest),
 			};
 		}
 		const look = lookTarget();
 		const body = look ? bodyWorld(look, worldTime) : null;
-		if (!body) return { head: 0, lock: 0, hop: false, t2ok: false, kind: "none", sky: null };
+		if (!body) return { head: 0, lock: 0, hop: false, t2ok: false, kind: "none", sky: null, mix: null };
 		const to = [body.pos[0] - shipPos.x, body.pos[1] - shipPos.y, body.pos[2] - shipPos.z];
 		const head = aimHead01(fwd, to);
 		const hop = Boolean(hopTarget());
@@ -1390,6 +1431,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			t2ok: false,
 			kind: hop ? "hop" : "look",
 			sky: null,
+			mix: null,
 		};
 	}
 	function lockAim() {
@@ -1407,7 +1449,6 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		if (mode === "charging" || mode === "hyperspace" || mode === "dropping" || mode === "docking" || mode === "berthed" || mode === "transit") return false;
 		const lock = st.lockedSystemId;
 		if (lock && lock !== st.systemId) {
-			if (t2Dry()) return false;
 			const m = jumpMeters();
 			return m.hop && m.t2ok && headReady(m.head);
 		}
@@ -1652,6 +1693,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 	function tryJump() {
 		const st = getStarwake();
 		if (!st.entered) return;
+		scooping = false;
 		if (mode === "charging" || mode === "hyperspace" || mode === "dropping" || mode === "docking" || mode === "berthed" || mode === "transit") return;
 		const lock = st.lockedSystemId;
 		const here = getSystem(st.systemId);
@@ -1660,12 +1702,14 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		const def = hull();
 		const hop = nextHop(here, dest, def.jumpRangeLy);
 		if (!hop) return;
-		const cost = hopT2Cost(here.id, hop.id);
-		if (fuel2Local + 1e-4 < cost) {
-			getStarwake().pushNotice({ kicker: "Fuel", title: "T2 dry", body: "No FSD hop." });
+		const mix = hopMix(here.id, hop.id);
+		if (!canPayFsd(fuelLocal, fuel2Local, mix)) {
+			const miss = fuel2Local + 1e-4 < mix.t2 ? "T2" : "T1";
+			getStarwake().pushNotice({ kicker: "Fuel", title: `${miss} short`, body: `FSD wants T1 ${mix.t1} · T2 ${mix.t2}. Scoop or tug.` });
 			return;
 		}
 		pendingDest = hop.id;
+		pendingMix = mix;
 		mode = "charging";
 		chargeT = 0;
 		navTarget = null;
@@ -1853,6 +1897,22 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		}
 		extracting = true;
 		extractPaused = false;
+		pushDrive();
+	}
+	function requestScoop() {
+		if (!getStarwake().entered) return;
+		if (mode !== "local") return;
+		if (scooping) {
+			scooping = false;
+			pushDrive();
+			return;
+		}
+		if (scoopState() === "out") return;
+		scooping = true;
+		extracting = false;
+		surveying = false;
+		applyThrottle(0.28);
+		parkHold = false;
 		pushDrive();
 	}
 	function completeExtractQa() {
@@ -2323,7 +2383,10 @@ export function createEngine(els: OverlayEls): EngineHandle {
 				if (chargeT >= 1) {
 					const dest = pendingDest ?? st.lockedSystemId;
 					if (dest && dest !== st.systemId) {
-						fuel2Local = Math.max(0, fuel2Local - hopT2Cost(st.systemId, dest));
+						const mix = pendingMix ?? hopMix(st.systemId, dest);
+						pendingMix = null;
+						fuelLocal = Math.max(0, fuelLocal - mix.t1);
+						fuel2Local = Math.max(0, fuel2Local - mix.t2);
 						flushFuel(true);
 					}
 					mode = "hyperspace";
@@ -2495,11 +2558,43 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			if (entered && !inJump && Math.abs(drive) > .04) {
 				const load = Math.abs(drive) / Math.max(.8, def.cruiseSpeed);
 				const burn = Math.abs(drive) * dt * T1_PER_DIST * (load > 1 ? 1.25 : 1);
-				fuelLocal = Math.max(0, fuelLocal - burn);
+				if (!scooping) fuelLocal = Math.max(0, fuelLocal - burn);
 				fuelFlush += dt;
 				if (fuelFlush > 1.6 || fuelLocal <= FUEL_DRY) {
 					fuelFlush = 0;
 					flushFuel();
+				}
+			}
+			if (scooping) {
+				if (mode !== "local" || inPort || stickActive || Math.abs(yawInput) > .12 || Math.abs(pitchInput) > .12) {
+					scooping = false;
+				} else {
+					const sysNow = getSystem(st.systemId);
+					const rStar = sysNow.starRadius;
+					let d = starDist() || 1;
+					const inner = rStar * 1.35;
+					const outer = rStar * 2.9;
+					const want = Math.max(inner * 1.08, Math.min(outer * 0.92, d));
+					const nx = shipPos.x / d, ny = shipPos.y / d, nz = shipPos.z / d;
+					const err = want - d;
+					shipPos.x += nx * err * Math.min(1, 1.8 * dt);
+					shipPos.y += ny * err * Math.min(1, 1.8 * dt);
+					shipPos.z += nz * err * Math.min(1, 1.8 * dt);
+					const cv = circularVelocity(shipPos.x, shipPos.y, shipPos.z, starMu(rStar));
+					shipVel.x = cv[0];
+					shipVel.y = cv[1];
+					shipVel.z = cv[2];
+					lastWorldSpeed = Math.hypot(cv[0], cv[1], cv[2]);
+					faceWorld(cv[0], cv[1], cv[2]);
+					if (scoopState() === "in") {
+						fuelLocal = Math.min(tankCap(), fuelLocal + tankCap() * SCOOP_T1_PER_SEC * dt);
+						fuelFlush += dt;
+						if (fuelFlush > 0.35) {
+							fuelFlush = 0;
+							flushFuel();
+						}
+					}
+					boundName = sysNow.name;
 				}
 			}
 			if (inPort) {
@@ -3203,6 +3298,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		requestSurvey: () => requestSurvey(),
 		completeSurvey: () => completeSurveyQa(),
 		requestExtract: () => requestExtract(),
+		requestScoop: () => requestScoop(),
 		completeExtract: () => completeExtractQa(),
 		getSurvey: () => ({
 			surveying,
@@ -3450,6 +3546,9 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		},
 		requestExtract() {
 			requestExtract();
+		},
+		requestScoop() {
+			requestScoop();
 		},
 		requestJump() {
 			jumpQueued = true;

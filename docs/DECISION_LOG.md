@@ -618,6 +618,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #026: FSD mix, pad tug, star sip
+
+**Date:** 2026-09-07  
+**Status:** ✅ Implemented  
+**Comps:** Elite scoop + Fuel Rats; SC quantum; Helion ticket.
+
+**Steal / don’t:** FSD bill is 20% T1 / 80% T2. Drop stays at the star. Can’t pay or can’t reach a pad → tug. T1 hop to the nearest pad if it still pays. Orbit the star, Sip, 1% T1 / sec. No hull wipe.
+
+**Quality bar:** `fuel-status.test.ts` — mix 20/80, scoop band, 1%/s.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -631,4 +643,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-07  
-**Total Decisions:** 25 approved, 2 pending
+**Total Decisions:** 26 approved, 2 pending
