@@ -594,6 +594,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #024: Helion tug
+
+**Date:** 2026-09-07  
+**Status:** ✅ Implemented  
+**Comps:** Elite Fuel Rats, SC claim, NMS mine-out.
+
+**Steal / don’t:** Call a Helion tug. Credits, pad drop, tanks filled. No hull wipe, no player rescue. T1 dry must call. T2-only is optional Ferry home.
+
+**Quality bar:** `tug.test.ts` — local ₡400, +8/au, outpost half, skip ×1.5, ferry 1.2k–2.5k, rank never free.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -607,4 +619,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-07  
-**Total Decisions:** 23 approved, 2 pending
+**Total Decisions:** 24 approved, 2 pending

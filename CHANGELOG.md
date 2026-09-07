@@ -2,6 +2,11 @@
 
 All notable changes to the Starwake project.
 
+## [v0.1.56] - 2026-09-07
+
+### Added
+- Helion tug: T1 dry must call; T2-only Ferry is optional. Credits, pad drop, tanks filled.
+
 ## [v0.1.55] - 2026-09-07
 
 ### Fixed

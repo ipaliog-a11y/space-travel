@@ -297,6 +297,19 @@ export const serviceCrewPad = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const payTug = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: { amount: number }) => data)
+  .handler(async ({ context, data }): Promise<{ credits: number; paid: number }> => {
+    const { requireCompleteProfile, modifyCredits } = await import("../player-profile/server.ts");
+    const want = Math.max(0, Math.min(50_000, Math.round(Number(data.amount) || 0)));
+    const profile = await requireCompleteProfile(context.userId);
+    const paid = Math.min(profile.credits, want);
+    if (paid <= 0) return { credits: profile.credits, paid: 0 };
+    const next = await modifyCredits(context.userId, -paid);
+    return { credits: next.credits, paid };
+  });
+
 export const payRansom = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: { amount: number }) => data)

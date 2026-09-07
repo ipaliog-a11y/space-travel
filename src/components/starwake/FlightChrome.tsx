@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DriveHud, EngineHandle } from "@/lib/starwake/engine";
-import { getCatalog, getSystem } from "@/lib/starwake/galaxy";
+import { getCatalog, getSystem, HOME_SYSTEM_ID } from "@/lib/starwake/galaxy";
 import { formatStop, holdUsed, jobPayout } from "@/lib/starwake/jobs";
 import { cargoQty, EMPTY_HOLD, lotLabel, markHold, markTotal } from "@/lib/starwake/market";
 import { hashu, mulberry32 } from "@/lib/starwake/math";
@@ -15,12 +15,13 @@ import {
   slipKite,
   type KiteFlavor,
 } from "@/lib/starwake/risk";
-import { payRansom } from "@/lib/hangar/api";
+import { payRansom, payTug } from "@/lib/hangar/api";
 import { getMyProfile } from "@/lib/player-profile/api";
 import { sourceFromCatalog, yieldsFor } from "@/lib/starwake/mining";
 import { fittedShip } from "@/lib/starwake/catalog";
 import { useStarwake } from "@/lib/starwake/store";
 import { tankBand, tankLabel } from "@/lib/starwake/fuel-status";
+import { destPad, listenTug, tugCost, tugWaitSec, type TugKind, type TugPad } from "@/lib/starwake/tug";
 import { isJumpMode, type FlightMode } from "@/lib/starwake/types";
 import { useFlightWear } from "@/lib/starwake/use-flight-wear";
 import { throttleToVisual, visualToThrottle, throttleReadout, idleHalt } from "@/lib/starwake/throttle";
@@ -155,6 +156,19 @@ export function FlightChrome({
   const rankRef = useRef(1);
   const dropSeen = useRef(false);
   const [npc, setNpc] = useState({ fly: 0, pad: 0 });
+  const [tug, setTug] = useState<{
+    kind: TugKind;
+    pad: TugPad;
+    waitCost: number;
+    skipCost: number;
+    waitSec: number;
+    phase: "offer" | "wait";
+    until: number;
+  } | null>(null);
+  const [tugBusy, setTugBusy] = useState(false);
+  const [tugTick, setTugTick] = useState(0);
+  const tugRef = useRef(tug);
+  tugRef.current = tug;
   const driveRef = useRef(drive);
 
   const leaveToMenu = useCallback(() => {
@@ -237,6 +251,85 @@ export function FlightChrome({
       body: why,
     });
   }
+
+  function openTug(kind: TugKind) {
+    const st = useStarwake.getState();
+    const here = getSystem(st.systemId);
+    const home = getSystem(HOME_SYSTEM_ID);
+    const nearest = engine?.nearestPad?.() ?? null;
+    const pad = destPad({
+      here,
+      home,
+      kind,
+      nearestId: nearest?.id ?? null,
+      lastStationId: st.boardStationId,
+      outpostId: st.outpost?.id ?? null,
+    });
+    const outpostHere = Boolean(st.outpost && st.outpost.systemId === here.id && kind !== "ferry");
+    const rank = rankRef.current;
+    const waitCost = tugCost({ kind, au: pad.au, ly: pad.ly, rank, outpostHere, skip: false });
+    const skipCost = tugCost({ kind, au: pad.au, ly: pad.ly, rank, outpostHere, skip: true });
+    setTug({
+      kind,
+      pad,
+      waitCost,
+      skipCost,
+      waitSec: tugWaitSec(pad.au),
+      phase: "offer",
+      until: 0,
+    });
+  }
+
+  async function finishTug(skip: boolean) {
+    const row = tugRef.current;
+    if (!row) return;
+    tugRef.current = null;
+    setTug(null);
+    setTugBusy(true);
+    const cost = skip ? row.skipCost : row.waitCost;
+    try {
+      await payTug({ data: { amount: cost } });
+    } catch {
+      /* Helion writes off the rest */
+    }
+    engine?.recoverTo?.(row.pad.systemId, row.pad.stationId, row.kind !== "local");
+    useStarwake.getState().pushNotice({
+      kicker: "Helion",
+      title: "Tug on the pad",
+      body: `${row.pad.name}. Tanks filled.`,
+    });
+    setTugBusy(false);
+  }
+
+  function callTug(skip: boolean) {
+    const row = tugRef.current;
+    if (!row || tugBusy) return;
+    if (skip || row.waitSec <= 0) {
+      void finishTug(true);
+      return;
+    }
+    setTug({ ...row, phase: "wait", until: Date.now() + row.waitSec * 1000 });
+  }
+
+  useEffect(() => {
+    return listenTug((kind) => openTug(kind));
+  }, [engine]);
+
+  useEffect(() => {
+    if (!tug || tug.phase !== "wait") return;
+    const id = window.setInterval(() => {
+      setTugTick((n) => n + 1);
+      if (Date.now() >= (tugRef.current?.until ?? 0)) void finishTug(false);
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [tug]);
+
+  useEffect(() => {
+    if (hit || drive.berthed || drive.docking || isJumpMode(mode)) return;
+    if (!drive.dry) return;
+    if (tugRef.current) return;
+    openTug(drive.dry2 ? "stranded" : "local");
+  }, [drive.dry, drive.dry2, drive.berthed, drive.docking, mode, hit, engine]);
 
   useEffect(() => {
     let live = true;
@@ -773,6 +866,11 @@ export function FlightChrome({
             {jumping ? "Spool" : drive.dry2 ? "T2 dry" : "Jump"}
           </button>
         )}
+        {tab === "jump" && drive.dry2 && !drive.dry && !tug && (
+          <button type="button" className="h-btn" data-ui onClick={() => openTug("ferry")}>
+            Ferry
+          </button>
+        )}
         {tab === "ship" && (
           <div className="boost-row" data-ui>
             <BoostButton
@@ -871,6 +969,46 @@ export function FlightChrome({
                 Slip {hit.evadePct}%
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {tug && !hit && (
+        <div className="helion-confirm" role="dialog" aria-modal="true" aria-labelledby="tug-title" data-ui>
+          <div className="helion-confirm-card" data-ui>
+            <div className="k">Helion</div>
+            <h2 id="tug-title">
+              {tug.phase === "wait" ? "Tug inbound" : tug.kind === "ferry" ? "Helion ferry" : "Helion tug"}
+            </h2>
+            <p className="lede">
+              {tug.kind === "ferry" ? "T2 dry." : "T1 dry."} Drop at {tug.pad.name}.
+              {tug.kind === "stranded" ? " T2 topped on the pad." : ""}
+              {tug.kind === "ferry" ? ` ${tug.pad.ly.toFixed(1)} ly.` : ""}
+            </p>
+            {tug.phase === "wait" ? (
+              <>
+                <p className="lede">{Math.max(0, Math.ceil((tug.until - Date.now()) / 1000) + tugTick * 0)}s</p>
+                <div className="gate-acts">
+                  <button type="button" className="engage" disabled={tugBusy} onClick={() => callTug(true)}>
+                    Skip ₡{tug.skipCost.toLocaleString()}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="gate-acts">
+                <button type="button" className="engage" disabled={tugBusy} onClick={() => callTug(false)}>
+                  Call ₡{tug.waitCost.toLocaleString()}
+                </button>
+                <button type="button" className="engage ghost" disabled={tugBusy} onClick={() => callTug(true)}>
+                  Fast ₡{tug.skipCost.toLocaleString()}
+                </button>
+                {tug.kind === "ferry" && (
+                  <button type="button" className="engage ghost" disabled={tugBusy} onClick={() => setTug(null)}>
+                    Hold
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

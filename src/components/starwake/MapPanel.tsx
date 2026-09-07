@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fittedShip, jumpT2Cost } from "@/lib/starwake/catalog";
 import { canPayT1, canPayT2, FUEL_DRY } from "@/lib/starwake/fuel-status";
+import { requestTug } from "@/lib/starwake/tug";
 import {
   catalogSystems,
   distLy,
@@ -367,6 +368,11 @@ export function MapPanel({
               <button type="button" className="act-btn jump" disabled={!canJump} onClick={onJump}>
                 {jumping ? "Spool" : !hop ? "Jump" : t2ok ? (hops > 1 ? `Jump · ${hop?.name ?? ""}` : "Jump") : "T2 dry"}
               </button>
+              {!t2ok && t1ok && hop && !jumping && (
+                <button type="button" className="act-btn" onClick={() => requestTug("ferry")}>
+                  Ferry
+                </button>
+              )}
             </>
           )}
         </div>

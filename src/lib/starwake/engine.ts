@@ -125,6 +125,8 @@ export type EngineHandle = {
   goToBody: (t: LocalTarget) => void;
   lookAtBody: (t: LocalTarget, keepMap?: boolean) => void;
   arrive: (id: string) => void;
+  recoverTo: (systemId: string, stationId: string, fillT2: boolean) => void;
+  nearestPad: () => { id: string; name: string; au: number } | null;
   returnToHangar: () => void;
   [key: string]: unknown;
 };
@@ -1905,6 +1907,36 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		placeAtStation(id);
 		berthNow();
 	}
+	function nearestPad() {
+		const sys = getSystem(getStarwake().systemId);
+		let best = null;
+		let bestD = Infinity;
+		for (const sn of sys.stations) {
+			const host = sys.planets.find((p) => p.id === sn.planetId);
+			if (!host) continue;
+			const [x, y, z] = stationWorld(sn, host, worldTime);
+			const d = Math.hypot(x - shipPos.x, y - shipPos.y, z - shipPos.z);
+			if (d < bestD) {
+				bestD = d;
+				best = { id: sn.id, name: sn.name, au: host.au };
+			}
+		}
+		return best;
+	}
+	function recoverTo(systemId, stationId, fillT2) {
+		const st = getStarwake();
+		if (st.systemId !== systemId) arrive(systemId);
+		placeAtStation(stationId);
+		dockStationId = stationId;
+		berthNow();
+		fuelLocal = tankCap();
+		if (fillT2) fuel2Local = tankCap2();
+		flushFuel(true);
+		heat01 = 0;
+		overheated = false;
+		audio.fireDrop(hull().audioPitch);
+		pushDrive();
+	}
 	const ext = gl.getExtension("ANGLE_instanced_arrays");
 	const countStars = () => window.innerWidth <= 640 ? 2600 : 4200;
 	const KIND_CODE = {
@@ -3376,6 +3408,8 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		goToBody,
 		lookAtBody,
 		arrive,
+		recoverTo,
+		nearestPad,
 		returnToHangar,
 		unlockAudio() {
 			audio.unlock();
