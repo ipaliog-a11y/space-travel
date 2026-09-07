@@ -4,7 +4,7 @@ import { createAudio } from "./audio";
 import { jumpT2Cost, liveShip, T1_PER_DIST } from "./catalog";
 import { canPayT1, FUEL_DRY, transitT1Cost } from "./fuel-status";
 import { distLy, getCatalog, getSystem, GALAXY, GALAXY_SKY, inBelt, moonPark, moonProximity, moonWorld, cometPark, cometProximity, cometWorld, beltRock, planetKeepOut, planetPark, planetProximity, planetWorld, NEBULA_CODE, nextHop } from "./galaxy";
-import { headReady, jumpHead01 as headFromFwd, jumpLock01 as lockFromHop, lockSky } from "./jump-align";
+import { aimHead01, headReady, jumpHead01 as headFromFwd, jumpLock01 as lockFromHop, lockSky } from "./jump-align";
 import { gateFrame, occupiedGates, pickApproachGate, stationFrame, stationProximity, stationWorld } from "./stations";
 import { circularVelocity, gravityAt, keplerState, orbitPolyline, planetMu, planetSOI, starMu } from "./orbit";
 import { clamp, composeAlongY, composeAlongZ, composeModel, mat4, multiply, perspective, quatFromEuler, quatFromAxisAngle, quatInvert, quatLook, quatMul, quatNormalize, quatSlerp, quatToMat4, rotateVec, translation, viewFromLook, wrapDelta } from "./math";
@@ -61,6 +61,7 @@ export type DriveHud = {
   canJump: boolean;
   jumpHead01: number;
   jumpLock01: number;
+  jumpKind: "none" | "look" | "hop" | "fsd";
   lockAimOn: boolean;
   lockAimNdcX: number;
   lockAimNdcY: number;
@@ -375,6 +376,7 @@ export function createEngine(els: OverlayEls): EngineHandle {
 			canJump: canFireJump(),
 			jumpHead01: jumpMeters().head,
 			jumpLock01: jumpMeters().lock,
+			jumpKind: jumpMeters().kind,
 			lockAimOn: lockAim().on,
 			lockAimNdcX: lockAim().ndcX,
 			lockAimNdcY: lockAim().ndcY,
@@ -1312,6 +1314,17 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		else return null;
 		return alreadyThere(target) ? null : target;
 	}
+	function lookTarget() {
+		if (navTarget && navTarget.kind !== "moon") return navTarget;
+		if (!focusId) return null;
+		const sysNow = getSystem(getStarwake().systemId);
+		if (focusId === "star") return { kind: "star" };
+		if (focusId === "belt" && sysNow.belt) return { kind: "belt" };
+		if (sysNow.stations.find((s) => s.id === focusId)) return { kind: "station", id: focusId };
+		if (sysNow.planets.find((pl) => pl.id === focusId)) return { kind: "planet", id: focusId };
+		if (sysNow.comets.find((c) => c.id === focusId)) return { kind: "comet", id: focusId };
+		return null;
+	}
 	function alreadyThere(target) {
 		const body = bodyWorld(target, worldTime);
 		if (!body) return true;
@@ -1345,21 +1358,37 @@ export function createEngine(els: OverlayEls): EngineHandle {
 		return d / lastWorldSpeed;
 	}
 	function jumpMeters() {
+		const fwd = rotateVec(orientQuat, [0, 0, -1]);
 		const st = getStarwake();
 		const lock = st.lockedSystemId;
-		if (!lock || lock === st.systemId) return { head: 0, lock: 0, hop: false, t2ok: false };
-		const here = getSystem(st.systemId);
-		const dest = getSystem(lock);
-		const hop = nextHop(here, dest, hull().jumpRangeLy);
-		const t2ok = Boolean(hop) && fuel2Local + 1e-4 >= hopT2Cost(here.id, hop.id);
-		const fwd = rotateVec(orientQuat, [0, 0, -1]);
-		const head = headFromFwd(fwd, here, dest);
+		if (lock && lock !== st.systemId) {
+			const here = getSystem(st.systemId);
+			const dest = getSystem(lock);
+			const hop = nextHop(here, dest, hull().jumpRangeLy);
+			const t2ok = Boolean(hop) && fuel2Local + 1e-4 >= hopT2Cost(here.id, hop.id);
+			const head = headFromFwd(fwd, here, dest);
+			return {
+				head,
+				lock: lockFromHop({ locked: true, hop: Boolean(hop), t2ok, head01: head }),
+				hop: Boolean(hop),
+				t2ok,
+				kind: "fsd",
+				sky: lockSky(here, dest),
+			};
+		}
+		const look = lookTarget();
+		const body = look ? bodyWorld(look, worldTime) : null;
+		if (!body) return { head: 0, lock: 0, hop: false, t2ok: false, kind: "none", sky: null };
+		const to = [body.pos[0] - shipPos.x, body.pos[1] - shipPos.y, body.pos[2] - shipPos.z];
+		const head = aimHead01(fwd, to);
+		const hop = Boolean(hopTarget());
 		return {
 			head,
-			lock: lockFromHop({ locked: true, hop: Boolean(hop), t2ok, head01: head }),
-			hop: Boolean(hop),
-			t2ok,
-			sky: lockSky(here, dest),
+			lock: head,
+			hop,
+			t2ok: false,
+			kind: hop ? "hop" : "look",
+			sky: null,
 		};
 	}
 	function lockAim() {

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { HEAD_READY, jumpHead01, jumpLock01, lockSky } from "./jump-align.ts";
+import { HEAD_READY, aimHead01, jumpHead01, jumpLock01, lockSky } from "./jump-align.ts";
 
 describe("jump align", () => {
   it("head follows the nose vs the lock sky", () => {
@@ -14,6 +14,14 @@ describe("jump align", () => {
     const side: [number, number, number] = [0, 0, 1];
     const mid = jumpHead01(side, from, to);
     assert.ok(mid > 0.2 && mid < 0.8);
+  });
+
+  it("local aim follows a planet vector", () => {
+    const fwd: [number, number, number] = [0, 0, -1];
+    assert.ok(aimHead01(fwd, [0, 0, -10]) > 0.99);
+    assert.ok(aimHead01(fwd, [0, 0, 10]) < 0.05);
+    const side = aimHead01(fwd, [10, 0, 0]);
+    assert.ok(side > 0.4 && side < 0.6);
   });
 
   it("head is 0 with no lock", () => {

@@ -22,17 +22,26 @@ export function lockSky(
   return [dx / len, 0, dz / len];
 }
 
+/** 1 = nose on a world-space aim vector. */
+export function aimHead01(
+  fwd: [number, number, number] | null,
+  to: [number, number, number] | null,
+): number {
+  if (!fwd || !to) return 0;
+  const tl = Math.hypot(to[0], to[1], to[2]);
+  if (tl < 1e-6) return 0;
+  const fl = Math.hypot(fwd[0], fwd[1], fwd[2]) || 1;
+  const dot = (fwd[0] * to[0] + fwd[1] * to[1] + fwd[2] * to[2]) / (fl * tl);
+  return Math.max(0, Math.min(1, 0.5 + 0.5 * dot));
+}
+
 /** 1 = nose on the lock sky. 0 = opposite. Uses the real forward, not a yaw sidecar. */
 export function jumpHead01(
   fwd: [number, number, number] | null,
   from: { x: number; y: number } | null,
   to: { x: number; y: number } | null,
 ): number {
-  const sky = lockSky(from, to);
-  if (!sky || !fwd) return 0;
-  const fl = Math.hypot(fwd[0], fwd[1], fwd[2]) || 1;
-  const dot = (fwd[0] * sky[0] + fwd[1] * sky[1] + fwd[2] * sky[2]) / fl;
-  return Math.max(0, Math.min(1, 0.5 + 0.5 * dot));
+  return aimHead01(fwd, lockSky(from, to));
 }
 
 export function jumpLock01(opts: { locked: boolean; hop: boolean; t2ok: boolean; head01: number }): number {

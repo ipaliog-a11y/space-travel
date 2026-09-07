@@ -91,6 +91,7 @@ const IDLE_DRIVE: DriveHud = {
   canJump: false,
   jumpHead01: 0,
   jumpLock01: 0,
+  jumpKind: "none",
   lockAimOn: false,
   lockAimNdcX: 0,
   lockAimNdcY: 0,
@@ -787,21 +788,31 @@ export function FlightChrome({
       </div>
 
       <div className="helion-plate right">
-        <div className="k">{tab === "jump" ? "Fsd" : tab === "ship" ? "Hull" : "Own"}</div>
-        <div className="name">{tab === "jump" ? (locked?.name ?? "Jump") : hull.name}</div>
+        <div className="k">{tab === "jump" ? (drive.jumpKind === "fsd" ? "Fsd" : "Hop") : tab === "ship" ? "Hull" : "Own"}</div>
+        <div className="name">
+          {tab === "jump"
+            ? drive.jumpKind === "fsd"
+              ? (locked?.name ?? "Jump")
+              : drive.navName || tagName || "Jump"
+            : hull.name}
+        </div>
         <div className="meta">
           {tab === "jump"
-            ? canJump
-              ? `Aligned · ${Math.round(drive.jumpHead01 * 100)}%`
-              : jumping
-                ? "Spooling"
-                : !locked
-                  ? "Charts · galaxy · a star"
+            ? jumping
+              ? "Spooling"
+              : drive.jumpKind === "fsd"
+                ? canJump
+                  ? `FSD · ${Math.round(drive.jumpHead01 * 100)}%`
                   : drive.jumpLock01 < 0.2
                     ? "Out of range"
-                    : drive.jumpLock01 < 0.56 && drive.dry2
+                    : drive.dry2
                       ? "Need T2"
                       : `Head ${Math.round(drive.jumpHead01 * 100)}% · turn to the pip`
+                : drive.jumpKind === "hop"
+                  ? `Hop ready · ${Math.round(drive.jumpHead01 * 100)}%`
+                  : drive.jumpKind === "look"
+                    ? `On nose · ${Math.round(drive.jumpHead01 * 100)}%`
+                    : "Look at a world · or Charts a star"
             : tab === "ship"
               ? wear
                 ? `wear ${wear.wearPercentage.toFixed(0)}%`
