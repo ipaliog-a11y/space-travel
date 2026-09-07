@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { jumpT2Cost, refuelQuote, SHIPS, STARTER_HULLS, T1_CREDIT_PER_UNIT, T2_CHARGE, T2_CREDIT_PER_UNIT } from "./catalog.ts";
-import { emptySlot, firstEmptySlotId, firstOccupiedSlotId, migrateSlots, snapshotFromUnknown } from "./saves.ts";
+import { blankCareerSlot, emptySlot, firstEmptySlotId, firstOccupiedSlotId, migrateSlots, snapshotFromUnknown } from "./saves.ts";
 
 describe("save slots", () => {
   it("folds a v13 blob into slot 1 and leaves 2 and 3 empty", () => {
@@ -56,6 +56,35 @@ describe("save slots", () => {
     raw.career = { displayName: "Pilot", callSign: "PILOT", iconId: "pilot-01" };
     const slot = snapshotFromUnknown(raw, emptySlot("1"));
     assert.equal(slot.career, null);
+  });
+
+  it("a new career slot has an empty tape and survives reload as active", () => {
+    const one = emptySlot("1");
+    one.hasSave = true;
+    one.jobLog = [
+      {
+        id: "old",
+        kind: "courier",
+        cargo: "ore",
+        qty: 2,
+        from: { systemId: "helion", stationId: "a" },
+        to: { systemId: "helion", stationId: "b" },
+        pay: 10,
+        at: 1,
+        shipId: "courier",
+      },
+    ];
+    one.visitedPlanets = { p: { systemId: "helion", at: 1 } };
+    const fresh = blankCareerSlot("2");
+    assert.equal(fresh.jobLog.length, 0);
+    assert.deepEqual(fresh.visitedPlanets, {});
+    const { activeSlotId, slots } = migrateSlots({
+      activeSlotId: "2",
+      slots: { "1": one, "2": fresh, "3": emptySlot("3") },
+    });
+    assert.equal(activeSlotId, "2");
+    assert.equal(slots["2"].jobLog.length, 0);
+    assert.equal(slots["1"].jobLog.length, 1);
   });
 
   it("picks the first empty slot and the first occupied slot", () => {

@@ -135,6 +135,10 @@ function sanitizeWarehouses(raw: unknown): Record<string, CargoHold> {
   return out;
 }
 
+export function blankCareerSlot(id: SaveSlotId, name = SAVE_SLOT_NAMES[id]): SaveSlotSnapshot {
+  return { ...emptySlot(id, name), hasSave: true, lastSaveAt: Date.now() };
+}
+
 export function emptySlot(id: SaveSlotId, name = SAVE_SLOT_NAMES[id]): SaveSlotSnapshot {
   const loadout = stockLoadout();
   return {

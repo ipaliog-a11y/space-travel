@@ -2091,6 +2091,72 @@ button.tape-row {
   font-size:12px;
   line-height:1.45
 }
+.diary-tape {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.diary-stamp {
+  display: grid;
+  grid-template-columns: 6.4rem minmax(0, 1fr) auto;
+  gap: 0.35rem 1rem;
+  align-items: start;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-helion-ivory) 10%, transparent);
+}
+.diary-stamp time {
+  font-family: var(--font-helion-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--color-helion-dim);
+  padding-top: 0.12rem;
+}
+.diary-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+.diary-kicker {
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-helion-teal);
+}
+.diary-stamp strong {
+  font-family: var(--font-helion);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-helion-ivory);
+  overflow-wrap: anywhere;
+}
+.diary-meta {
+  font-family: var(--font-helion-mono);
+  font-size: 0.68rem;
+  color: var(--color-helion-dim);
+  line-height: 1.4;
+}
+.diary-pay {
+  font-family: var(--font-helion-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--color-helion-ivory);
+  white-space: nowrap;
+  padding-top: 0.85rem;
+}
+.diary-pay.mute {
+  min-height: 1em;
+}
+@media (max-width: 640px) {
+  .diary-stamp {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .diary-stamp time {
+    grid-column: 1 / -1;
+  }
+}
 .survey-list {
   flex-direction:column;
   gap:6px;

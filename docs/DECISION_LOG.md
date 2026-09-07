@@ -606,6 +606,18 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 
 ---
 
+## Decision #025: Pilot tape
+
+**Date:** 2026-09-07  
+**Status:** ✅ Implemented  
+**Comps:** Elite journal (one chronological log), NMS discoveries, SC mobiGlas list.
+
+**Steal / don’t:** One tape, newest first. Hauls and worlds as stamps on this save only. Not two disconnected columns. New career wipes the tape and keeps the empty slot active on reload.
+
+**Quality bar:** `diary.test.ts` + `saves.test.ts` — empty slot has no stamps; new career survives migrate without inheriting the old jobLog.
+
+---
+
 ## Pending Decisions
 
 ### Wear Accumulation Balance
@@ -619,4 +631,4 @@ Quality table lives in `src/lib/starwake/throttle.test.ts`. Change the feel by e
 ---
 
 **Last Updated:** 2026-09-07  
-**Total Decisions:** 24 approved, 2 pending
+**Total Decisions:** 25 approved, 2 pending

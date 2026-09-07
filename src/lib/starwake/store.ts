@@ -32,6 +32,7 @@ import {
 import {
   SAVE_SLOT_IDS,
   SAVE_SLOT_NAMES,
+  blankCareerSlot,
   emptySlot,
   firstEmptySlotId,
   firstOccupiedSlotId,
@@ -742,10 +743,10 @@ export const useStarwake = create<StarwakeState>()(
         const st = get();
         const target = firstEmptySlotId(st.slots, st.activeSlotId);
         if (!target) return null;
-        if (target === st.activeSlotId && !st.career && !st.hasSave) return target;
         const parked = slotFromLive(captureLive(st), st.slots[st.activeSlotId].name);
-        const fresh = emptySlot(target);
-        const slots = { ...st.slots, [st.activeSlotId]: parked, [target]: fresh };
+        const fresh = blankCareerSlot(target, st.slots[target].name);
+        const slots = { ...st.slots, [target]: fresh };
+        if (target !== st.activeSlotId) slots[st.activeSlotId] = parked;
         set({
           ...applyLive(liveFromSlot(fresh)),
           slots,
